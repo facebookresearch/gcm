@@ -527,9 +527,9 @@ ufmt==2.5.0 \
     --hash=sha256:16db9dcf42bb02b13e0b1e90a0fb8e9980732508752979364e64b6816969d78d \
     --hash=sha256:a86dfcefd5031fcc4215602d90ad78d2f20a976b6b12ea8e8307ca6a1470c102
     # via gcm (pyproject.toml)
-urllib3==1.26.20 \
-    --hash=sha256:0ed14ccfbf1c30a9072c7ca157e4319b70d65f623e91e7b32fadb2853431016e \
-    --hash=sha256:40c2dc0c681e47eb8f90e7e27bf6ff7df2e677421fd46756da1161c39ca70d32
+urllib3==2.6.2 \
+    --hash=sha256:016f9c98bb7e98085cb2b4b17b87d2c702975664e4f060c6532e64d1c1a5e797 \
+    --hash=sha256:ec21cddfe7724fc7cb4ba4bea7aa8e2ef36f607a4bab81aa6ce42a13dc3f03dd
     # via
     #   requests
     #   twine
