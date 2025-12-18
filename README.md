@@ -20,6 +20,8 @@ GCM is a monorepo with the following components:
 - [Health Checks](gcm/health_checks/): Verifies the proper functioning of hardware, software, network, storage, and services throughout the job lifecycle.
 - [Telemetry Processor / GPU Metrics](gcm/slurmprocessor/): Enhances OpenTelemetry data by correlating telemetry with Slurm metadata, enabling attribution of metrics (e.g., GPU utilization) to specific jobs and users.
 
+For more information, check our [documentation](https://facebookresearch.github.io/gcm/).
+
 ## Contributing
 
 Each component has its own README with detailed guides:
