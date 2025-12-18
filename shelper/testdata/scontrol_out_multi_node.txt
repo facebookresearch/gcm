@@ -1,0 +1,32 @@
+JobId=8401413 JobName=slurm_job_name
+   UserId=test_username(1472000020) GroupId=test_username(1472000020) MCS_label=N/A
+   Priority=1002612 Nice=0 Account=test_account QOS=test_qos
+   JobState=RUNNING Reason=None Dependency=(null)
+   Requeue=1 Restarts=0 BatchFlag=1 Reboot=0 ExitCode=0:0
+   DerivedExitCode=0:0
+   RunTime=2-05:32:24 TimeLimit=7-00:00:00 TimeMin=N/A
+   SubmitTime=2024-11-12T17:16:23 EligibleTime=2024-11-12T17:16:23
+   AccrueTime=2024-11-12T17:16:23
+   StartTime=2024-11-12T17:52:38 EndTime=2024-11-19T17:52:38 Deadline=N/A
+   PreemptEligibleTime=2024-11-12T19:52:38 PreemptTime=None
+   SuspendTime=None SecsPreSuspend=0 LastSchedEval=2024-11-12T17:52:38 Scheduler=Main
+   Partition=learn AllocNode:Sid=node4055:2931806
+   ReqNodeList=(null) ExcNodeList=(null)
+   NodeList=node[1433,1787,1795,1854,1889-1890,1968-1969]
+   BatchHost=node1433
+   NumNodes=8 NumCPUs=2048 NumTasks=64 CPUs/Task=32 ReqB:S:C:T=0:0:*:*
+   ReqTRES=cpu=2048,mem=12000G,node=8,billing=4572,gres/gpu=64
+   AllocTRES=cpu=2048,mem=12000G,node=8,billing=4572,gres/gpu=64
+   Socks/Node=* NtasksPerN:B:S:C=8:0:*:* CoreSpec=*
+   JOB_GRES=gpu:ampere:64
+     Nodes=node[1433,1787,1795,1854,1889-1890,1968-1969] CPU_IDs=0-255 Mem=1536000 GRES=gpu:ampere:8(IDX:0-7)
+   MinCPUsNode=256 MinMemoryNode=1500G MinTmpDiskNode=0
+   Features=(null) DelayBoot=00:00:00
+   OverSubscribe=OK Contiguous=0 Licenses=(null) Network=(null)
+   Command=/home/test_username/slurm_launcher.sh
+   WorkDir=/home/test_username
+   StdErr=/gen_ca/test_username/slurm_job_id.err
+   StdIn=/dev/null
+   StdOut=/gen_ca/test_username/slurm_job_id.out
+   TresPerNode=gres/gpu:8
+   TresPerTask=cpu=32

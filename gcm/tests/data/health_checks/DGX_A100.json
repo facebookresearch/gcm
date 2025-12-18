@@ -1,0 +1,103 @@
+{
+    "pci" : {
+        "0000:c4:00.0" : { "type": "pci", "dev" : "nvswitch_c4", "zone": "internal", "slot": "NVSW", "link_speed" : [ "8 GT/s", "8.0 GT/s PCIe" ], "link_width" : "2", "topology_critical" : "true" },
+        "0000:c5:00.0" : { "type": "pci", "dev" : "nvswitch_c5", "zone": "internal", "slot": "NVSW", "link_speed" : [ "8 GT/s", "8.0 GT/s PCIe" ], "link_width" : "2", "topology_critical" : "true" },
+        "0000:c6:00.0" : { "type": "pci", "dev" : "nvswitch_c6", "zone": "internal", "slot": "NVSW", "link_speed" : [ "8 GT/s", "8.0 GT/s PCIe" ], "link_width" : "2", "topology_critical" : "true" },
+        "0000:c7:00.0" : { "type": "pci", "dev" : "nvswitch_c7", "zone": "internal", "slot": "NVSW", "link_speed" : [ "8 GT/s", "8.0 GT/s PCIe" ], "link_width" : "2", "topology_critical" : "true" },
+        "0000:c8:00.0" : { "type": "pci", "dev" : "nvswitch_c8", "zone": "internal", "slot": "NVSW", "link_speed" : [ "8 GT/s", "8.0 GT/s PCIe" ], "link_width" : "2", "topology_critical" : "true" },
+        "0000:c9:00.0" : { "type": "pci", "dev" : "nvswitch_c9", "zone": "internal", "slot": "NVSW", "link_speed" : [ "8 GT/s", "8.0 GT/s PCIe" ], "link_width" : "2", "topology_critical" : "true" },
+
+        "0000:e1:00.0" : { "type": "net", "dev" : "/sys/class/net/enp225s0f0", "zone" : "mb_back", "slot" : "PCIE_4", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "16" },
+        "0000:e1:00.1" : { "type": "net", "dev" : "/sys/class/net/enp225s0f1", "zone" : "mb_back", "slot" : "PCIE_4", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "16" },
+        "0000:61:00.0" : { "type": "net", "dev" : "/sys/class/net/enp97s0f0", "zone" : "mb_back", "slot" : "PCIE_5", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "16" },
+        "0000:61:00.1" : { "type": "net", "dev" : "/sys/class/net/enp97s0f1", "zone" : "mb_back", "slot" : "PCIE_5", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "16" },
+
+        "0000:4b:00.0" : { "type": "ib", "dev" : "/sys/class/net/ib2", "zone" : "mb_back", "slot" : "PCIE_0", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe"  ], "link_width" : "16" },
+        "0000:54:00.0" : { "type": "ib", "dev" : "/sys/class/net/ib3", "zone" : "mb_back", "slot" : "PCIE_1", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe"  ], "link_width" : "16" },
+        "0000:ba:00.0" : { "type": "ib", "dev" : "/sys/class/net/ib6", "zone" : "mb_back", "slot" : "PCIE_2", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe"  ], "link_width" : "16" },
+        "0000:cc:00.0" : { "type": "ib", "dev" : "/sys/class/net/ib7", "zone" : "mb_back", "slot" : "PCIE_3", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe"  ], "link_width" : "16" },
+
+        "0000:0c:00.0" : { "type": "ib", "dev" : "/sys/class/net/ib0", "zone" : "mb_back", "slot" : "PCIE_6", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe"  ], "link_width" : "16" },
+        "0000:12:00.0" : { "type": "ib", "dev" : "/sys/class/net/ib1", "zone" : "mb_back", "slot" : "PCIE_7", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe"  ], "link_width" : "16" },
+        "0000:8d:00.0" : { "type": "ib", "dev" : "/sys/class/net/ib4", "zone" : "mb_back", "slot" : "PCIE_8", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe"  ], "link_width" : "16" },
+        "0000:94:00.0" : { "type": "ib", "dev" : "/sys/class/net/ib5", "zone" : "mb_back", "slot" : "PCIE_9", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe"  ], "link_width" : "16" },
+
+        "0000:09:00.0" : { "type": "nvme", "dev" : "/dev/nvme1", "zone" : "front", "slot" : "U.2_0", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "4" },
+        "0000:08:00.0" : { "type": "nvme", "dev" : "/dev/nvme0", "zone" : "front", "slot" : "U.2_1", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "4" },
+        "0000:52:00.0" : { "type": "nvme", "dev" : "/dev/nvme4", "zone" : "front", "slot" : "U.2_2", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "4" },
+        "0000:53:00.0" : { "type": "nvme", "dev" : "/dev/nvme5", "zone" : "front", "slot" : "U.2_3", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "4" },
+        "0000:8a:00.0" : { "type": "nvme", "dev" : "/dev/nvme7", "zone" : "front", "slot" : "U.2_4", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "4" },
+        "0000:89:00.0" : { "type": "nvme", "dev" : "/dev/nvme6", "zone" : "front", "slot" : "U.2_5", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "4" },
+        "0000:ca:00.0" : { "type": "nvme", "dev" : "/dev/nvme8", "zone" : "front", "slot" : "U.2_6", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "4" },
+        "0000:cb:00.0" : { "type": "nvme", "dev" : "/dev/nvme9", "zone" : "front", "slot" : "U.2_7", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "4" },
+
+        "0000:22:00.0" : { "type": "nvme", "dev" : "/dev/nvme2", "zone" : "mb_back", "slot" : "M.2_0", "link_speed" : [ "8 GT/s", "8.0 GT/s PCIe", "16 GT/s", "16.0 GT/s PCIe"], "link_width" : "4" },
+        "0000:23:00.0" : { "type": "nvme", "dev" : "/dev/nvme3", "zone" : "mb_back", "slot" : "M.2_1", "link_speed" : [ "8 GT/s", "8.0 GT/s PCIe", "16 GT/s", "16.0 GT/s PCIe"], "link_width" : "4" },
+
+        "0000:07:00.0" : { "type": "gpu", "dev" : "/dev/nvidia0", "zone" : "gpu", "slot" : "GPU_0", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "16" },
+        "0000:0f:00.0" : { "type": "gpu", "dev" : "/dev/nvidia1", "zone" : "gpu", "slot" : "GPU_1", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "16" },
+        "0000:47:00.0" : { "type": "gpu", "dev" : "/dev/nvidia2", "zone" : "gpu", "slot" : "GPU_2", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "16" },
+        "0000:4e:00.0" : { "type": "gpu", "dev" : "/dev/nvidia3", "zone" : "gpu", "slot" : "GPU_3", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "16" },
+
+        "0000:87:00.0" : { "type": "gpu", "dev" : "/dev/nvidia4", "zone" : "gpu", "slot" : "GPU_4", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "16" },
+        "0000:90:00.0" : { "type": "gpu", "dev" : "/dev/nvidia5", "zone" : "gpu", "slot" : "GPU_5", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "16" },
+        "0000:b7:00.0" : { "type": "gpu", "dev" : "/dev/nvidia6", "zone" : "gpu", "slot" : "GPU_6", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "16" },
+        "0000:bd:00.0" : { "type": "gpu", "dev" : "/dev/nvidia7", "zone" : "gpu", "slot" : "GPU_7", "link_speed" : [ "16 GT/s", "16.0 GT/s PCIe" ], "link_width" : "16" }
+    },
+
+    "eth": {
+        "PCIE_5": { "netdev": "enp97s0f0", "phys": true, "flags": ["SLAVE", "UP", "LOWER_UP"], "speed": 200000, "mtu": 9192 },
+        "PCIE_4": { "netdev": "enp225s0f0", "phys": true, "flags": ["SLAVE", "UP", "LOWER_UP"], "speed": 200000, "mtu": 9192 },
+        "front0": { "netdev": "front0", "phys": false, "flags": ["UP", "LOWER_UP"], "speed": 400000, "mtu": 9192 }
+    },
+
+    "ib" : {
+        "link_rate" : "200 Gb/sec (4X HDR)",
+        "firmware_version" : [
+          "20.31.2354"
+        ],
+
+        "interfaces" : {
+            "ib0" : { "mlx" : "mlx5_0", "desc" : "HCA-1"},
+            "ib1" : { "mlx" : "mlx5_1", "desc" : "HCA-2"},
+            "ib2" : { "mlx" : "mlx5_2", "desc" : "HCA-5"},
+            "ib3" : { "mlx" : "mlx5_3", "desc" : "HCA-6"},
+            "ib4" : { "mlx" : "mlx5_6", "desc" : "HCA-9"},
+            "ib5" : { "mlx" : "mlx5_7", "desc" : "HCA-10"},
+            "ib6" : { "mlx" : "mlx5_8", "desc" : "HCA-11"},
+            "ib7" : { "mlx" : "mlx5_9", "desc" : "HCA-12"}
+        }
+    },
+
+    "disks" : {
+         "U.2_0": { "blockdev": "nvme1", "size" : 3840000000000 },
+         "U.2_1": { "blockdev": "nvme0", "size" : 3840000000000 },
+         "U.2_2": { "blockdev": "nvme4", "size" : 3840000000000 },
+         "U.2_3": { "blockdev": "nvme5", "size" : 3840000000000 },
+         "U.2_4": { "blockdev": "nvme7", "size" : 3840000000000 },
+         "U.2_5": { "blockdev": "nvme6", "size" : 3840000000000 },
+         "U.2_6": { "blockdev": "nvme8", "size" : 3840000000000 },
+         "U.2_7": { "blockdev": "nvme9", "size" : 3840000000000 },
+         "M.2_0": { "blockdev": "nvme2", "size" : 1920000000000 },
+         "M.2_1": { "blockdev": "nvme3", "size" : 1920000000000 }
+    },
+
+    "zone_geom" : {
+        "front" : [
+            [ "U.2_0", "U.2_1", "U.2_2", "U.2_3" ],
+            [ "U.2_4", "U.2_5", "U.2_6", "U.2_7" ]
+        ],
+
+        "gpu" : [
+            [ "", "FRONT", "IO PINS", "" ],
+            [ "GPU_3", "GPU_2", "GPU_1", "GPU_0" ],
+            [ "GPU_7", "GPU_6", "GPU_5", "GPU_4" ],
+            [ "", "BACK", "NVSW", ""]
+        ],
+
+        "mb_back" : [
+            [ "", "", "", "RISER", "M.2_0", "M.2_1", "RISER", "", "", ""],
+            [ "PCIE_0", "PCIE_1", "PCIE_2", "PCIE_3", "PCIE_4", "PCIE_5", "PCIE_6", "PCIE_7", "PCIE_8", "PCIE_9" ]
+        ]
+    }
+}

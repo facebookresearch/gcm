@@ -1,0 +1,414 @@
+{
+    "intf_status": [
+        {
+            "ifindex": 1,
+            "ifname": "lo",
+            "flags": [
+                "LOOPBACK",
+                "UP",
+                "LOWER_UP"
+            ],
+            "mtu": 65536,
+            "qdisc": "noqueue",
+            "operstate": "UNKNOWN",
+            "group": "default",
+            "txqlen": 1000,
+            "link_type": "loopback",
+            "address": "address",
+            "broadcast": "broadcast",
+            "addr_info": [
+                {
+                    "family": "inet",
+                    "local": "local",
+                    "prefixlen": 8,
+                    "scope": "host",
+                    "label": "lo",
+                    "valid_life_time": 4294967295,
+                    "preferred_life_time": 4294967295
+                },
+                {
+                    "family": "inet6",
+                    "local": "local",
+                    "prefixlen": 128,
+                    "scope": "host",
+                    "valid_life_time": 4294967295,
+                    "preferred_life_time": 4294967295
+                }
+            ]
+        },
+        {
+            "ifindex": 2,
+            "ifname": "enp226s0",
+            "flags": [
+                "NO-CARRIER",
+                "BROADCAST",
+                "MULTICAST",
+                "UP"
+            ],
+            "mtu": 1500,
+            "qdisc": "mq",
+            "operstate": "DOWN",
+            "group": "default",
+            "txqlen": 1000,
+            "link_type": "ether",
+            "address": "address2",
+            "broadcast": "broadcast2",
+            "addr_info": []
+        },
+        {
+            "ifindex": 3,
+            "ifname": "enp97s0f0",
+            "flags": [
+                "BROADCAST",
+                "MULTICAST",
+                "SLAVE",
+                "UP",
+                "LOWER_UP"
+            ],
+            "mtu": 9192,
+            "qdisc": "mq",
+            "main": "front0",
+            "operstate": "UP",
+            "group": "default",
+            "txqlen": 1000,
+            "link_type": "ether",
+            "address": "address",
+            "broadcast": "broadcast",
+            "addr_info": []
+        },
+        {
+            "ifindex": 4,
+            "ifname": "enp97s0f1",
+            "flags": [
+                "NO-CARRIER",
+                "BROADCAST",
+                "MULTICAST",
+                "UP"
+            ],
+            "mtu": 1500,
+            "qdisc": "mq",
+            "operstate": "DOWN",
+            "group": "default",
+            "txqlen": 1000,
+            "link_type": "ether",
+            "address": "address",
+            "broadcast": "broadcast",
+            "addr_info": []
+        },
+        {
+            "ifindex": 5,
+            "ifname": "enp225s0f0",
+            "flags": [
+                "NO-CARRIER",
+                "BROADCAST",
+                "MULTICAST",
+                "UP"
+            ],
+            "mtu": 1500,
+            "qdisc": "mq",
+            "operstate": "DOWN",
+            "group": "default",
+            "txqlen": 1000,
+            "link_type": "ether",
+            "address": "address",
+            "broadcast": "broadcast",
+            "addr_info": []
+        },
+        {
+            "ifindex": 6,
+            "ifname": "enp225s0f1",
+            "flags": [
+                "NO-CARRIER",
+                "BROADCAST",
+                "MULTICAST",
+                "UP"
+            ],
+            "mtu": 1500,
+            "qdisc": "mq",
+            "operstate": "DOWN",
+            "group": "default",
+            "txqlen": 1000,
+            "link_type": "ether",
+            "address": "address",
+            "broadcast": "broadcast",
+            "addr_info": []
+        },
+        {
+            "ifindex": 7,
+            "ifname": "ib0",
+            "flags": [
+                "BROADCAST",
+                "MULTICAST",
+                "UP",
+                "LOWER_UP"
+            ],
+            "mtu": 2044,
+            "qdisc": "mq",
+            "operstate": "UP",
+            "group": "default",
+            "txqlen": 256,
+            "link_type": "infiniband",
+            "address": "address",
+            "broadcast": "broadcast",
+            "addr_info": []
+        },
+        {
+            "ifindex": 8,
+            "ifname": "ib1",
+            "flags": [
+                "BROADCAST",
+                "MULTICAST",
+                "UP",
+                "LOWER_UP"
+            ],
+            "mtu": 2044,
+            "qdisc": "mq",
+            "operstate": "UP",
+            "group": "default",
+            "txqlen": 256,
+            "link_type": "infiniband",
+            "address": "address",
+            "broadcast": "broadcast",
+            "addr_info": []
+        },
+        {
+            "ifindex": 9,
+            "ifname": "ib2",
+            "flags": [
+                "BROADCAST",
+                "MULTICAST",
+                "UP",
+                "LOWER_UP"
+            ],
+            "mtu": 2044,
+            "qdisc": "mq",
+            "operstate": "UP",
+            "group": "default",
+            "txqlen": 256,
+            "link_type": "infiniband",
+            "address": "address",
+            "broadcast": "broadcast",
+            "addr_info": []
+        },
+        {
+            "ifindex": 10,
+            "ifname": "ib3",
+            "flags": [
+                "BROADCAST",
+                "MULTICAST",
+                "UP",
+                "LOWER_UP"
+            ],
+            "mtu": 2044,
+            "qdisc": "mq",
+            "operstate": "UP",
+            "group": "default",
+            "txqlen": 256,
+            "link_type": "infiniband",
+            "address": "address",
+            "broadcast": "broadcast",
+            "addr_info": []
+        },
+        {
+            "ifindex": 11,
+            "ifname": "ib4",
+            "flags": [
+                "BROADCAST",
+                "MULTICAST",
+                "UP",
+                "LOWER_UP"
+            ],
+            "mtu": 2044,
+            "qdisc": "mq",
+            "operstate": "UP",
+            "group": "default",
+            "txqlen": 256,
+            "link_type": "infiniband",
+            "address": "address",
+            "broadcast": "broadcast",
+            "addr_info": []
+        },
+        {
+            "ifindex": 12,
+            "ifname": "ib5",
+            "flags": [
+                "BROADCAST",
+                "MULTICAST",
+                "UP",
+                "LOWER_UP"
+            ],
+            "mtu": 2044,
+            "qdisc": "mq",
+            "operstate": "UP",
+            "group": "default",
+            "txqlen": 256,
+            "link_type": "infiniband",
+            "address": "address",
+            "broadcast": "broadcast",
+            "addr_info": []
+        },
+        {
+            "ifindex": 13,
+            "ifname": "ib6",
+            "flags": [
+                "BROADCAST",
+                "MULTICAST",
+                "UP",
+                "LOWER_UP"
+            ],
+            "mtu": 2044,
+            "qdisc": "mq",
+            "operstate": "UP",
+            "group": "default",
+            "txqlen": 256,
+            "link_type": "infiniband",
+            "address": "address",
+            "broadcast": "broadcast",
+            "addr_info": []
+        },
+        {
+            "ifindex": 14,
+            "ifname": "ib7",
+            "flags": [
+                "BROADCAST",
+                "MULTICAST",
+                "UP",
+                "LOWER_UP"
+            ],
+            "mtu": 2044,
+            "qdisc": "mq",
+            "operstate": "UP",
+            "group": "default",
+            "txqlen": 256,
+            "link_type": "infiniband",
+            "address": "address",
+            "broadcast": "broadcast",
+            "addr_info": []
+        },
+        {
+            "ifindex": 15,
+            "ifname": "front0",
+            "flags": [
+                "BROADCAST",
+                "MULTICAST",
+                "MASTER",
+                "UP",
+                "LOWER_UP"
+            ],
+            "mtu": 9192,
+            "qdisc": "noqueue",
+            "operstate": "UP",
+            "group": "default",
+            "txqlen": 1000,
+            "link_type": "ether",
+            "address": "address",
+            "broadcast": "broadcast",
+            "addr_info": [
+                {
+                    "family": "inet",
+                    "local": "local",
+                    "prefixlen": 27,
+                    "broadcast": "broadcast",
+                    "scope": "global",
+                    "noprefixroute": true,
+                    "label": "front0",
+                    "valid_life_time": 4294967295,
+                    "preferred_life_time": 4294967295
+                },
+                {
+                    "family": "inet6",
+                    "local": "local",
+                    "prefixlen": 64,
+                    "scope": "global",
+                    "noprefixroute": true,
+                    "valid_life_time": 4294967295,
+                    "preferred_life_time": 4294967295
+                },
+                {
+                    "family": "inet6",
+                    "local": "local",
+                    "prefixlen": 64,
+                    "scope": "link",
+                    "noprefixroute": true,
+                    "valid_life_time": 4294967295,
+                    "preferred_life_time": 4294967295
+                }
+            ]
+        }
+    ],
+    "lldp_status": {
+        "lldp": {
+            "interface": {
+                "enp97s0f0": {
+                    "via": "LLDP",
+                    "rid": "1",
+                    "age": "52 days, 18:36:24",
+                    "chassis": {
+                        "rscfee5002": {
+                            "id": {
+                                "type": "mac",
+                                "value": "mac_value"
+                            },
+                            "descr": "Arista Networks EOS version 4.24.4M running on an Arista Networks 7368",
+                            "mgmt-ip": "mgmt-ip",
+                            "capability": [
+                                {
+                                    "type": "Bridge",
+                                    "enabled": true
+                                },
+                                {
+                                    "type": "Router",
+                                    "enabled": true
+                                }
+                            ]
+                        }
+                    },
+                    "port": {
+                        "id": {
+                            "type": "ifname",
+                            "value": "ifname_value"
+                        },
+                        "ttl": "120"
+                    }
+                }
+            }
+        }
+    },
+    "link_speed": {
+        "enp225s0f0": "200000",
+        "enp97s0f0": "200000",
+        "front0": "400000"
+    },
+    "phys_macaddr": {
+        "enp97s0f0": "hwaddr1",
+        "enp225s0f0" : "hwaddr2"
+},
+    "intf_ifcfg": {
+        "enp97s0f0": {
+            "DEVICE": "enp97s0f0",
+            "NAME": "enp97s0f0",
+            "ONBOOT": "yes",
+            "HWADDR": "HWADDR1",
+            "SLAVE": "yes",
+            "MASTER": "front0",
+            "HOTPLUG": "no",
+            "TYPE": "Ethernet",
+            "BOOTPROTO": "none",
+            "IPV6ADDR_SECONDARIES": "\"\"",
+            "MTU": "9192"
+        },
+        "enp225s0f0": {
+            "DEVICE": "enp225s0f0",
+            "NAME": "enp225s0f0",
+            "ONBOOT": "yes",
+            "HWADDR": "HWADDR2",
+            "SLAVE": "yes",
+            "MASTER": "front0",
+            "HOTPLUG": "no",
+            "TYPE": "Ethernet",
+            "BOOTPROTO": "none",
+            "IPV6ADDR_SECONDARIES": "\"\"",
+            "MTU": "9192"
+        }
+    }
+}

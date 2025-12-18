@@ -1,0 +1,3 @@
+#!/bin/bash
+
+exec cat /usr/local/bin/sample-sacctmgr-qos.txt

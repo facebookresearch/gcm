@@ -1,0 +1,211 @@
+name: Release GCM Monitoring and Health Checks on version bump
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - gcm/version.txt
+  pull_request:
+    paths:
+      - gcm/version.txt
+
+permissions:
+  # required to create releases
+  contents: write
+
+concurrency:
+  # wait for previous release to complete before next release starts
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  setup-venv:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    outputs:
+      cache-key: ${{ steps.cache-keys.outputs.cache-key }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - uses: actions/cache@v4
+      id: cache-venv
+      with:
+        path: ~/.cache/venv-ci
+        key: ${{ env.pythonLocation }}-${{ hashFiles('dev-requirements.txt') }}
+
+    - name: Install python dependencies
+      if: steps.cache-venv.outputs.cache-hit != 'true'
+      run: |
+        python -m venv ~/.cache/venv-ci
+        source ~/.cache/venv-ci/bin/activate
+        pip install -r dev-requirements.txt
+
+  check-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      RELEASE_EXISTS: ${{ steps.check_release.outputs.RELEASE_EXISTS }}
+      VERSION: ${{ steps.version.outputs.VERSION }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION_FILE="gcm/version.txt"
+          read -r VERSION < "$VERSION_FILE"
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Version: $VERSION"
+
+      - name: Validate Version (X.Y.Z)
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "version.txt is not Version (X.Y.Z). Got: $VERSION"
+            exit 1
+          fi
+
+      - name: Check if release already exists
+        id: check_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "RELEASE_EXISTS=true" >> "$GITHUB_OUTPUT"
+            echo "Release v$VERSION already exists. Skipping."
+          else
+            echo "RELEASE_EXISTS=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-and-release:
+    needs: [setup-venv, check-release]
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+
+    runs-on: ${{ matrix.os }}
+    if: needs.check-release.outputs.RELEASE_EXISTS == 'false'
+    env:
+      RELEASE_EXISTS: ${{ needs.check-release.outputs.RELEASE_EXISTS }}
+      VERSION: ${{ needs.check-release.outputs.VERSION }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      # TODO: move this to a github bot
+      - name: Derive maintainer (name/email) from triggering commit
+        id: maint
+        run: |
+          set -euo pipefail
+          NAME=$(git log -1 --pretty=format:'%an')
+          EMAIL=$(git log -1 --pretty=format:'%ae')
+          echo "NAME=$NAME"   >> "$GITHUB_ENV"
+          echo "EMAIL=$EMAIL" >> "$GITHUB_ENV"
+          echo "Author Name: $NAME"
+          echo "Author Email: $EMAIL"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Load cached venv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/venv-ci
+          key: ${{ env.pythonLocation }}-${{ hashFiles('dev-requirements.txt') }}
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          cp -r $HOME/.cargo/bin/* $HOME/.cache/venv-ci/bin/
+
+      - name: Install build dependencies
+        run: |
+          sudo apt update --yes
+          sudo apt install --yes build-essential devscripts debhelper dpkg-dev
+
+      - name: Bump debian/changelog with dch, commit & push
+        if: matrix.os == 'ubuntu-24.04'
+        run: |
+          set -euo pipefail
+
+          CURRENT="$(dpkg-parsechangelog -S Version || true)"
+
+          if [[ "$CURRENT" == "$VERSION" ]]; then
+            echo "Changelog already at $VERSION — nothing to commit."
+          else
+            export DEBFULLNAME=$NAME
+            export DEBEMAIL=$EMAIL
+            dch -v "${VERSION}" --package gcm "${VERSION}"
+            dch -r "${VERSION}"
+            git config user.name $NAME
+            git config user.email $EMAIL
+            git add debian/changelog
+            git commit -m "dch: release ${VERSION} (CI)"
+            # push back to the same branch that triggered the run
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          fi
+
+          # Record the commit we want the tag to point to (our current HEAD)
+          echo "COMMIT_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Setup build directory
+        run: echo "BUILDDIR=$(mktemp -d)" >> $GITHUB_ENV
+
+      - name: Build Debian
+        run: |
+          source ~/.cache/venv-ci/bin/activate
+          gcm/bin/build_deb.sh "$BUILDDIR"
+
+      - name: Rename with OS version
+        run: |
+          OS_VERSION=$(echo "${{ matrix.os }}" | cut -d- -f2)
+
+          cd "$BUILDDIR"
+          for file in *.deb; do
+            mv "$file" "${file%.deb}-ubuntu${OS_VERSION}.deb"
+          done
+
+      - name: Build package (wheel + sdist)
+        run: |
+          source ~/.cache/venv-ci/bin/activate
+          python -m build
+
+      - name: Create GitHub Release and upload assets
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'facebookresearch/gcm' && env.RELEASE_EXISTS == 'false' }}
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: v${{ env.VERSION }}
+          tag_name: v${{ env.VERSION }}
+          target_commitish: ${{ env.COMMIT_SHA }}
+          generate_release_notes: true
+          append_body: true
+          body: |
+            Automated release for version ${{ env.VERSION }}.
+
+            ---
+            This release was generated by CI:
+            • Workflow: [${{ github.workflow }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            • Commit: [${{ env.COMMIT_SHA }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ env.COMMIT_SHA }})
+            • Actor: @${{ github.actor }}
+          files: |
+            dist/*
+            ${{ env.BUILDDIR }}/*.deb

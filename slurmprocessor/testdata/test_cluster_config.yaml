@@ -1,0 +1,34 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+receivers:
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'node_exporter'
+          scrape_interval: 5s
+          static_configs:
+            - targets: ['localhost:9100']
+        - job_name: 'dcgm_exporter'
+          scrape_interval: 5s
+          static_configs:
+            - targets: ['localhost:9400']
+processors:
+  slurm:
+    # The metadata source to use: "nvml", "slurmd", or "slurmctld"
+    mode: "slurmd"
+    # we're not generating load on slurmctld, no need to cache results
+    cache_duration: 0
+    cache_filepath: "/tmp/slurmprocessor_cache.json"
+    query_slurmctld: false
+exporters:
+  debug:
+    verbosity: detailed
+service:
+  pipelines:
+    metrics:
+      receivers:
+      - prometheus
+      processors:
+      - slurm
+      exporters:
+      - debug

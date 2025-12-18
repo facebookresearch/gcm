@@ -1,0 +1,31 @@
+#!/usr/bin/make -f
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+%:
+	dh $@
+
+override_dh_auto_build:
+	$(MAKE) clean
+	$(MAKE) release/gcm
+	$(MAKE) release/health_checks
+
+SYSTEMD_OUT:=debian/gcm/lib/systemd/system
+GCM_LIB:=debian/gcm/usr/lib/gcm/gcm_lib
+GCM_HC_LIB:=debian/gcm/usr/lib/hc/hc_lib
+
+override_dh_auto_install:
+	mkdir -p ${GCM_LIB}
+	cp -r build/x86_64-unknown-linux-gnu/release/install_gcm/gcm_lib/* ${GCM_LIB}
+	cp build/x86_64-unknown-linux-gnu/release/install_gcm/gcm debian/gcm/usr/lib/gcm/gcm
+
+	cp systemd/hc_resources.slice ${SYSTEMD_OUT}
+	cp systemd/sacct_backfill.service ${SYSTEMD_OUT}
+	cp systemd/sacct_running.service ${SYSTEMD_OUT}
+	cp systemd/slurm_job_monitor.service ${SYSTEMD_OUT}
+	cp systemd/slurm_monitor.service ${SYSTEMD_OUT}
+	cp systemd/scontrol.service ${SYSTEMD_OUT}
+	cp systemd/storage.service ${SYSTEMD_OUT}
+
+	mkdir -p ${GCM_HC_LIB}
+	cp -r build/x86_64-unknown-linux-gnu/release/install_hc/hc_lib/* ${GCM_HC_LIB}
+	cp build/x86_64-unknown-linux-gnu/release/install_hc/health_checks debian/healthchecks/usr/bin

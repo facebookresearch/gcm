@@ -1,0 +1,18 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+Source: gcm
+Maintainer: FAIR Efficiency <oncall+fair_efficiency@xmail.facebook.com>
+Section: misc
+Priority: optional
+Standards-Version: 3.9.2
+Build-Depends: debhelper (>= 9)
+
+Package: gcm
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: FAIR's telemetry scripts
+
+Package: healthchecks
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: FAIR's health check scripts

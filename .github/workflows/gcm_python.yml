@@ -1,0 +1,188 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+name: GPU Cluster Monitoring Python CI
+
+on: push
+
+permissions:
+  contents: read
+
+jobs:
+  setup-venv:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    outputs:
+      cache-key: ${{ steps.cache-keys.outputs.cache-key }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - uses: actions/cache@v4
+      id: cache-venv
+      with:
+        path: ~/.cache/venv-ci
+        key: ${{ env.pythonLocation }}-${{ hashFiles('dev-requirements.txt') }}
+
+    - name: Install python dependencies
+      if: steps.cache-venv.outputs.cache-hit != 'true'
+      run: |
+        python -m venv ~/.cache/venv-ci
+        source ~/.cache/venv-ci/bin/activate
+        pip install -r dev-requirements.txt
+
+  build_deb:
+    needs: setup-venv
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # needed so that setuptools_scm can correctly figure out version at build
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Load cached venv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/venv-ci
+          key: ${{ env.pythonLocation }}-${{ hashFiles('dev-requirements.txt') }}
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          cp -r $HOME/.cargo/bin/* $HOME/.cache/venv-ci/bin/
+
+      - name: Install build dependencies
+        run: |
+          sudo apt update --yes
+          sudo apt install --yes build-essential devscripts debhelper
+
+      - name: Setup build directory
+        run: echo "builddir=$(mktemp -d)" >> $GITHUB_ENV
+
+      - name: Build Debian
+        run: |
+          source ~/.cache/venv-ci/bin/activate
+          gcm/bin/build_deb.sh "${{ env.builddir }}"
+
+  nox-lint:
+    needs: setup-venv
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Common Setup
+        uses: ./.github/actions/common-setup
+
+      - name: nox lint
+        run: |
+          source ~/.cache/venv-ci/bin/activate
+          nox -s lint
+
+  nox-tests:
+    needs: setup-venv
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Common Setup
+        uses: ./.github/actions/common-setup
+
+      - name: nox tests
+        run: |
+          source ~/.cache/venv-ci/bin/activate
+          nox -s tests
+
+  nox-typecheck:
+    needs: setup-venv
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Common Setup
+        uses: ./.github/actions/common-setup
+
+      - name: nox typecheck
+        run: |
+          source ~/.cache/venv-ci/bin/activate
+          nox -s typecheck
+
+  nox-format:
+    needs: setup-venv
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Common Setup
+        uses: ./.github/actions/common-setup
+
+      - name: nox format
+        run: |
+          source ~/.cache/venv-ci/bin/activate
+          nox -s format
+
+  pyoxidizer-build-gcm:
+    needs: setup-venv
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Common Setup
+        uses: ./.github/actions/common-setup
+
+      - name: Build gcm
+        run: |
+          source ~/.cache/venv-ci/bin/activate
+          make release/gcm
+
+      - name: Test built binary
+        run: ./build/x86_64-unknown-linux-gnu/release/install_gcm/gcm --help
+
+  pyoxidizer-build-health_checks:
+    needs: setup-venv
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Common Setup
+        uses: ./.github/actions/common-setup
+
+      - name: Build health_checks
+        run: |
+          source ~/.cache/venv-ci/bin/activate
+          make release/health_checks
+
+      - name: Test built binary
+        run: ./build/x86_64-unknown-linux-gnu/release/install_hc/health_checks --help

@@ -1,0 +1,26 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+receivers:
+  examplereceiver:
+
+processors:
+  slurm:
+    # The metadata source to use: "nvml", "slurmd", or "slurmctld"
+    metadata_source: "slurmctld"
+    cache_duration: 123
+    cache_filepath: "/tmp/slurmprocessor_cache.json"
+    # T234205156 (jakobjohnson)
+    query_slurmctld: false
+
+exporters:
+  exampleexporter:
+
+service:
+  pipelines:
+    traces:
+      receivers:
+      - examplereceiver
+      processors:
+      - slurm
+      exporters:
+      - exampleexporter

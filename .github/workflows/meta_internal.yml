@@ -1,0 +1,276 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This workflow uses a Github Environment that has access to a Graph API key (`graph-api-access`),
+# to secure the key, any PR needs a Maintainer to TRIGGER and APPROVE the workflow to run on the given PR.
+#
+# As a Maintainer, for PRs where graph api should be tested before merge:
+# 1. [TRIGGER]: Comment `/metaci tests`, github-actions[bot] will react with a 🚀 to Ack your comment and trigger a deploy request.
+# 2. [APPROVE]: Navigate to https://github.com/facebookresearch/gcm/actions/workflows/meta_internal.yml, select the workflow run that comes
+# from the relevant PR (you can filter by branch/actor), open the workflow page, and approve your deploy request.
+#     On the workflow page, you should be able to see towards the top:
+#       a. <USER> commented on #<PR_NUMBER> <COMMIT>
+#       b. <USER> requested your review to deploy to graph-api-access
+#     Open <PR_NUMBER> and check whether this run should be approved based on [A, B, C] below.
+#     On the workflow page there's a `Review deployment` button that allows you to Approve/Reject the request
+#
+# `graph-api-access` [APPROVE] guidelines:
+#   A. [REJECT] all deploy requests coming from non-maintainers. This rule exists to ensure that all runs are coming
+#   from the latest changes for a given PR. Bypassing this rule should fail CI, as we're checking if the comment author
+#   is an OWNER for the repo before running any of the jobs.
+#
+#   B. [APPROVE] deploy requests from PRs that do not touch CI workflows.
+#
+#   C. If PRs do touch CI workflows, look at the code changes and make sure that it's not leaking any secrets
+#   i.e. things like `run: echo ${{ env.GRAPH_API_KEY }}` should be rejected.
+
+name: Meta Internal Integration Tests
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  statuses: write
+  pull-requests: write
+  contents: read
+
+jobs:
+  trigger-tests:
+    if: ${{ github.event.issue.pull_request && (contains(github.event.comment.body, '/metaci tests') || contains(github.event.comment.body, '/metaci integration tests')) && contains(fromJSON('["OWNER"]'), github.event.comment.author_association)}}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get PR details
+        id: get-pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            await github.rest.reactions.createForIssueComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'rocket'
+            });
+
+  setup-venv:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    outputs:
+      cache-key: ${{ steps.cache-keys.outputs.cache-key }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - uses: actions/cache@v4
+      id: cache-venv
+      with:
+        path: ~/.cache/venv-ci
+        key: ${{ env.pythonLocation }}-${{ hashFiles('dev-requirements.txt') }}
+
+    - name: Install python dependencies
+      if: steps.cache-venv.outputs.cache-hit != 'true'
+      run: |
+        python -m venv ~/.cache/venv-ci
+        source ~/.cache/venv-ci/bin/activate
+        pip install -r dev-requirements.txt
+
+  build_deb:
+    needs: [setup-venv, trigger-tests]
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # needed so that setuptools_scm can correctly figure out version at build
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Load cached venv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/venv-ci
+          key: ${{ env.pythonLocation }}-${{ hashFiles('dev-requirements.txt') }}
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          cp -r $HOME/.cargo/bin/* $HOME/.cache/venv-ci/bin/
+
+      - name: Install build dependencies
+        run: |
+          sudo apt update --yes
+          sudo apt install --yes build-essential devscripts debhelper
+
+      - name: Setup build directory
+        run: echo "builddir=$(mktemp -d)" >> $GITHUB_ENV
+
+      - name: Build Debian
+        run: |
+          source ~/.cache/venv-ci/bin/activate
+          gcm/bin/build_deb.sh "${{ env.builddir }}"
+
+      - name: Upload binary file
+        uses: actions/upload-artifact@v4
+        with:
+          name: gcm.deb
+          path: ${{ env.builddir }}/gcm_*.deb
+
+  test_systemd:
+    # TODO: fix systemd tests on github ci
+    if: false
+    needs: [trigger-tests, build_deb]
+    runs-on: ubuntu-latest
+    environment: graph-api-access
+    steps:
+      - name: Get PR info and set pending status
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: pr.head.sha,
+              state: 'pending',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              description: 'Meta Internal Test - Systemd test',
+              context: 'Meta Internal Test - Systemd test'
+            });
+            core.setOutput('head_sha', pr.head.sha);
+            core.setOutput('head_ref', pr.head.ref);
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.head_ref }}
+
+      - name: Download binary file
+        uses: actions/download-artifact@v4
+        with:
+          name: gcm.deb
+
+      - name: Set up Vagrant & VirtualBox
+        shell: bash
+        run: |
+          wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+
+          sudo apt-get update
+          sudo apt-get install -y virtualbox vagrant
+
+      - name: Show Vagrant version
+        run: vagrant --version
+
+      - name: Show vboxmanage version
+        run: vboxmanage --version
+
+      - name: Provision VM
+        run: GRAPH_API_ACCESS_TOKEN=${{ secrets.GRAPH_API_ACCESS_TOKEN }} vagrant up
+
+      - name: Start sacct systemd service
+        run: |
+          vagrant ssh -c 'sudo systemctl start sacct_backfill'
+          sleep 10
+
+      - name: Check if sacct collection starts
+        run: |
+          output=$(vagrant ssh -c 'sudo systemctl status sacct_backfill')
+          echo "$output" | grep -q 'Started' || (echo "sacct_backfill failed to start" && exit 1)
+
+      - name: Set final status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const state = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: '${{ steps.pr.outputs.head_sha }}',
+              state: state,
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              description: `Meta Internal Test - Systemd test ${state}`,
+              context: 'Meta Internal Test - Systemd test'
+            });
+
+  nox-meta-internal-tests:
+    needs: [setup-venv, trigger-tests]
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    environment: graph-api-access
+    steps:
+      - name: Get PR info and set pending status
+        id: pr
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: pr.head.sha,
+              state: 'pending',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              description: 'Meta Internal Test - pytest test',
+              context: 'Meta Internal Test - pytest test'
+            });
+            core.setOutput('head_sha', pr.head.sha);
+            core.setOutput('head_ref', pr.head.ref);
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.head_ref }}
+
+      - name: Set env variables for e2e tests
+        run: |
+          echo "GRAPH_API_ACCESS_TOKEN=${{ secrets.GRAPH_API_ACCESS_TOKEN }}" >> $GITHUB_ENV
+
+      - name: Common Setup
+        uses: ./.github/actions/common-setup
+
+      - name: nox tests
+        run: |
+          source ~/.cache/venv-ci/bin/activate
+          nox -s internal_tests
+
+      - name: Set final status
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const state = '${{ job.status }}' === 'success' ? 'success' : 'failure';
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: '${{ steps.pr.outputs.head_sha }}',
+              state: state,
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              description: `Meta Internal Test - pytest test ${state}`,
+              context: 'Meta Internal Test - pytest test'
+            });

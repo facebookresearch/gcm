@@ -1,0 +1,75 @@
+{
+    "json_format_version": [
+        1,
+        0
+    ],
+    "smartctl": {
+        "version": [
+            7,
+            1
+        ],
+        "svn_revision": "5049",
+        "platform_info": "x86_64-linux-5.4.0-74.83.1.ubuntu.x86_64",
+        "build_info": "(local build)",
+        "argv": [
+            "smartctl",
+            "-xj",
+            "/dev/nvme9"
+        ],
+        "exit_status": 0
+    },
+    "device": {
+        "name": "/dev/nvme9",
+        "info_name": "/dev/nvme9",
+        "type": "nvme",
+        "protocol": "NVMe"
+    },
+    "model_name": "test model",
+    "serial_number": "test serial",
+    "firmware_version": "test firmware version",
+    "nvme_pci_vendor": {
+        "id": 0,
+        "subsystem_id": 0
+    },
+    "nvme_ieee_oui_identifier": 9233294,
+    "nvme_total_capacity": 3840755982336,
+    "nvme_unallocated_capacity": 0,
+    "nvme_controller_id": 1,
+    "nvme_number_of_namespaces": 64,
+    "local_time": {
+        "time_t": 1649774574,
+        "asctime": "Tue Apr 12 14:42:54 2022 UTC"
+    },
+    "smart_status": {
+        "passed": true,
+        "nvme": {
+            "value": 0
+        }
+    },
+    "nvme_smart_health_information_log": {
+        "critical_warning": 0,
+        "temperature": 39,
+        "available_spare": 0,
+        "available_spare_threshold": 11,
+        "percentage_used": 0,
+        "data_units_read": 376188,
+        "data_units_written": 398403,
+        "host_reads": 47481001,
+        "host_writes": 45559707,
+        "controller_busy_time": 26,
+        "power_cycles": 24,
+        "power_on_hours": 3258,
+        "unsafe_shutdowns": 21,
+        "media_errors": 0,
+        "num_err_log_entries": 156609,
+        "warning_temp_time": 0,
+        "critical_comp_time": 0
+    },
+    "temperature": {
+        "current": 39
+    },
+    "power_cycle_count": 24,
+    "power_on_time": {
+        "hours": 3258
+    }
+}

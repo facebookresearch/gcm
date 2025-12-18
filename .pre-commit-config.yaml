@@ -1,0 +1,29 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.4.0
+  hooks:
+    - id: trailing-whitespace
+    - id: end-of-file-fixer
+    - id: check-toml
+- repo: https://github.com/pycqa/flake8
+  rev: 6.0.0
+  hooks:
+    - id: flake8
+      exclude: gcm/gen/.*
+- repo: https://github.com/omnilib/ufmt
+  rev: v2.3.0
+  hooks:
+    - id: ufmt
+      additional_dependencies:
+        - black == 24.4.2
+        - usort == 1.0.5
+- repo: local
+  hooks:
+    - id: mypy
+      name: mypy
+      entry: mypy
+      language: system
+      files: ^(gcm)/.*\.py$
+      args: ["--install-types", "--non-interactive", "--config-file=mypy.ini"]

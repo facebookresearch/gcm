@@ -1,0 +1,63 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+[gcm.sacct_running]
+chunk_size = "1M"
+log_folder = "/var/log"
+# run hourly
+interval = 3600
+sink = "otel"
+sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+]
+
+[gcm.sacctmgr_qos]
+log_folder = "/var/log"
+sink="otel"
+sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+]
+
+[gcm.sacct_backfill]
+log_folder = "/var/log"
+publish_timeout = 7200
+sacct_timeout = 1800
+# run every 5 min
+interval = 300
+
+[gcm.sacct_backfill.new]
+step = 1
+# if `start` is higher than `interval`, downstream should dedup
+start = "30 min ago"
+end = "now"
+
+[gcm.sacct_publish]
+log_folder = "/var/log"
+chunk_size="1M"
+ignore_line_errors=true
+sacct_output_io_errors="replace"
+verbose=true
+delimiter='|#'
+sink="otel"
+sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+]
+
+[gcm.slurm_job_monitor]
+log_folder="/var/log"
+log_level="WARNING"
+interval = 60
+sink = "file"
+sink_opts = [
+  "job_file_path=/var/log/gcm/job_data.log",
+  "node_file_path=/var/log/gcm/node_data.log",
+]
+
+[gcm.slurm_monitor]
+log_folder="/var/log"
+verbose=true
+interval = 60
+heterogeneous_cluster_v1 = true
+sink="otel"
+sink_opts = [
+  "metric_resource_attributes={'key1': 'val1'}",
+]

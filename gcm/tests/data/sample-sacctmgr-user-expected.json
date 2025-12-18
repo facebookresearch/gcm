@@ -1,0 +1,30 @@
+[
+  {
+    "User": "test_user1",
+    "DefaultAccount": "test_account1",
+    "Account": "everyone",
+    "DefaultQOS": "",
+    "QOS": "normal"
+  },
+  {
+    "User": "test_user1",
+    "DefaultAccount": "test_account1",
+    "Account": "test_account1,test_account2",
+    "DefaultQOS": "normal",
+    "QOS": "normal,lowest"
+  },
+  {
+    "User": "test_user1",
+    "DefaultAccount": "test_account1",
+    "Account": "fair-sc-researchers",
+    "DefaultQOS": "",
+    "QOS": "normal"
+  },
+  {
+    "User": "test_user1",
+    "DefaultAccount": "test_account1",
+    "Account": "nuclide",
+    "DefaultQOS": "",
+    "QOS": "normal"
+  }
+]

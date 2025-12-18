@@ -1,0 +1,223 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+[health_checks.check-nvidia-smi]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-process.check-zombie]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-process.check-running-process]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-syslogs]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-storage.disk-usage]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-storage.mounted-directory]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-processor.cpufreq-governor]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-processor.processor-freq]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-dcgmi.diag]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-dcgmi.nvlink]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-hca]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-ipmitool.check-sel]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "graph_api"
+ sink_opts = [
+ "app_secret=/var/cluster_monitor/api_keys/graph_api",
+ "scribe_category=perfpipe_cluster_health",
+ ]
+
+[health_checks.cuda.memtest]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-nccl]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-service.service-status]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-service.package-version]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-service.ssh-connection]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-service.slurmctld-count]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-service.node-slurm-state]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-service.cluster-availability]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "graph_api"
+ sink_opts = [
+ "app_secret=/var/cluster_monitor/api_keys/graph_api",
+ "scribe_category=perfpipe_cluster_health",
+ ]
+
+[health_checks.check-ibstat]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-sensors]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]

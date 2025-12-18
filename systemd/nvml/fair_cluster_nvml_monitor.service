@@ -1,0 +1,13 @@
+[Unit]
+Description=Collect and publish NVML metrics.
+After=network.target
+
+[Service]
+Type=simple
+User=cluster_monitor
+ExecStart=/usr/bin/gcm nvml_monitor
+Restart=on-failure
+RestartSec=300
+Slice=fair_cluster_nvml_resources.slice
+# penguin does network rate limiting on the file below
+ExecStartPre=sudo /usr/local/sbin/hc_network.sh

@@ -1,0 +1,12 @@
+[Unit]
+Description=Log Slurm resource (e.g. GPU) allocation
+After=network.target
+
+[Service]
+Type=simple
+User=cluster_monitor
+Environment="PATH=/usr/local/bin:/public/slurm/20.11.3/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/slurm/bin"
+ExecStart=/usr/bin/gcm slurm_monitor
+Restart=on-failure
+RestartSec=300
+Slice=hc_resources.slice

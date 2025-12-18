@@ -1,0 +1,3 @@
+1196 31 0:59 / /logs rw,relatime shared:810 - nfs node101:/syslog rw,vers=3,rsize=524288,wsize=524288,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,mountaddr=100.0.0.0,mountvers=3,mountport=2049,mountproto=udp,local_lock=none,addr=100.0.0.0
+1224 31 0:63 / /le/cmd rw,relatime shared:823 - nfs node104:/cmd rw,vers=3,rsize=524288,wsize=524288,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,mountaddr=100.0.0.0,mountvers=3,mountport=2049,mountproto=udp,local_lock=none,addr=100.0.0.0
+1930 31 0:71 / /public ro,relatime shared:940 - nfs node101:/public ro,vers=3,rsize=524288,wsize=524288,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,mountaddr=100.0.0.0,mountvers=3,mountport=2049,mountproto=udp,local_lock=none,addr=100.0.0.0

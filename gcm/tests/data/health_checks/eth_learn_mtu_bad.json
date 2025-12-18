@@ -1,0 +1,207 @@
+{
+    "intf_status": [
+        {
+            "ifindex": 3,
+            "ifname": "enp97s0f0",
+            "flags": [
+                "BROADCAST",
+                "MULTICAST",
+                "SLAVE",
+                "UP",
+                "LOWER_UP"
+            ],
+            "mtu": 1500,
+            "qdisc": "mq",
+            "main": "front0",
+            "operstate": "UP",
+            "group": "default",
+            "txqlen": 1000,
+            "link_type": "ether",
+            "address": "address",
+            "broadcast": "broadcast",
+            "addr_info": []
+        },
+        {
+            "ifindex": 5,
+            "ifname": "enp225s0f0",
+            "flags": [
+                "BROADCAST",
+                "MULTICAST",
+                "SLAVE",
+                "UP",
+                "LOWER_UP"
+            ],
+            "mtu": 1500,
+            "qdisc": "mq",
+            "main": "front0",
+            "operstate": "UP",
+            "group": "default",
+            "txqlen": 1000,
+            "link_type": "ether",
+            "address": "address",
+            "broadcast": "broadcast",
+            "addr_info": []
+        },
+        {
+            "ifindex": 16,
+            "ifname": "front0",
+            "flags": [
+                "BROADCAST",
+                "MULTICAST",
+                "MASTER",
+                "UP",
+                "LOWER_UP"
+            ],
+            "mtu": 1500,
+            "qdisc": "noqueue",
+            "operstate": "UP",
+            "group": "default",
+            "txqlen": 1000,
+            "link_type": "ether",
+            "address": "address",
+            "broadcast": "broadcast",
+            "addr_info": [
+                {
+                    "family": "inet",
+                    "local": "local",
+                    "prefixlen": 27,
+                    "broadcast": "broadcast",
+                    "scope": "global",
+                    "noprefixroute": true,
+                    "label": "front0",
+                    "valid_life_time": 4294967295,
+                    "preferred_life_time": 4294967295
+                },
+                {
+                    "family": "inet6",
+                    "local": "local",
+                    "prefixlen": 64,
+                    "scope": "global",
+                    "noprefixroute": true,
+                    "valid_life_time": 4294967295,
+                    "preferred_life_time": 4294967295
+                },
+                {
+                    "family": "inet6",
+                    "local": "local",
+                    "prefixlen": 64,
+                    "scope": "link",
+                    "noprefixroute": true,
+                    "valid_life_time": 4294967295,
+                    "preferred_life_time": 4294967295
+                }
+            ]
+        }
+    ],
+    "lldp_status": {
+        "lldp": {
+            "interface": [
+                {
+                    "enp97s0f0": {
+                        "via": "LLDP",
+                        "rid": "9",
+                        "age": "9 days, 16:15:40",
+                        "chassis": {
+                            "rscfee5001": {
+                                "id": {
+                                    "type": "mac",
+                                    "value": "mac_value"
+                                },
+                                "descr": "Arista Networks EOS version 4.24.4M running on an Arista Networks 7368",
+                                "mgmt-ip": "mgmt-ip",
+                                "capability": [
+                                    {
+                                        "type": "Bridge",
+                                        "enabled": true
+                                    },
+                                    {
+                                        "type": "Router",
+                                        "enabled": true
+                                    }
+                                ]
+                            }
+                        },
+                        "port": {
+                            "id": {
+                                "type": "ifname",
+                                "value": "ifname_value"
+                            },
+                            "ttl": "120"
+                        }
+                    }
+                },
+                {
+                    "enp225s0f0": {
+                        "via": "LLDP",
+                        "rid": "1",
+                        "age": "124 days, 21:03:25",
+                        "chassis": {
+                            "rscfee4001": {
+                                "id": {
+                                    "type": "mac",
+                                    "value": "mac_value"
+                                },
+                                "descr": "Arista Networks EOS version 4.24.4M running on an Arista Networks 7368",
+                                "mgmt-ip": "mgmt-ip",
+                                "capability": [
+                                    {
+                                        "type": "Bridge",
+                                        "enabled": true
+                                    },
+                                    {
+                                        "type": "Router",
+                                        "enabled": true
+                                    }
+                                ]
+                            }
+                        },
+                        "port": {
+                            "id": {
+                                "type": "ifname",
+                                "value": "ifname_value"
+                            },
+                            "ttl": "120"
+                        }
+                    }
+                }
+            ]
+        }
+    },
+    "link_speed": {
+        "enp225s0f0": "200000",
+        "enp97s0f0": "200000",
+        "front0": "400000"
+    },
+    "phys_macaddr": {
+        "enp97s0f0": "hwaddr",
+        "enp225s0f0": "hwaddr"
+    },
+    "intf_ifcfg": {
+        "enp97s0f0": {
+            "DEVICE": "enp97s0f0",
+            "NAME": "enp97s0f0",
+            "ONBOOT": "yes",
+            "HWADDR": "HWADDR",
+            "SLAVE": "yes",
+            "MASTER": "front0",
+            "HOTPLUG": "no",
+            "TYPE": "Ethernet",
+            "BOOTPROTO": "none",
+            "IPV6ADDR_SECONDARIES": "\"\"",
+            "MTU": "9192"
+        },
+        "enp225s0f0": {
+            "DEVICE": "enp225s0f0",
+            "NAME": "enp225s0f0",
+            "ONBOOT": "yes",
+            "HWADDR": "HWADDR",
+            "SLAVE": "yes",
+            "MASTER": "front0",
+            "HOTPLUG": "no",
+            "TYPE": "Ethernet",
+            "BOOTPROTO": "none",
+            "IPV6ADDR_SECONDARIES": "\"\"",
+            "MTU": "9192"
+        }
+    }
+}

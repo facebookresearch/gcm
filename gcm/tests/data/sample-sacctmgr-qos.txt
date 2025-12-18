@@ -1,0 +1,6 @@
+Name|Priority|GraceTime|Preempt|PreemptExemptTime|PreemptMode|Flags|UsageThres|UsageFactor|GrpTRES|GrpTRESMins|GrpTRESRunMins|GrpJobs|GrpSubmit|GrpWall|MaxTRES|MaxTRESPerNode|MaxTRESMins|MaxWall|MaxTRESPU|MaxJobsPU|MaxSubmitPU|MaxTRESPA|MaxJobsPA|MaxSubmitPA|MinTRES
+normal1|0|00:00:00|||cluster|||1.000000|||||||||||||||||
+normal2|1|00:00:00|||cluster|OverPartQOS||1.000000|cpu=262144,gres/gpu=8192,mem=1800T||||||||||cpu=32768,gres/gpu=1024,mem=225T||||||
+normal3|100|00:00:00|lowest||cluster|OverPartQOS||1.000000|||||||||||cpu=512,gres/gpu=16,mem=3600G||||||
+normal4|10|00:00:00|lowest||cluster|OverPartQOS||1.000000|cpu=4096,gres/gpu=128,mem=28800G||||||||||||||||
+normal5|10|00:00:00|lowest||cluster|OverPartQOS||1.000000|cpu=16384,gres/gpu=512,mem=112.50T||||||||||||||||

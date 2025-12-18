@@ -1,0 +1,7 @@
+[Unit]
+Description=Slice for gcm services
+
+[Slice]
+MemoryHigh=700M
+MemoryMax=1G
+CPUQuota=200%

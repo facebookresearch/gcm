@@ -1,0 +1,65 @@
+name: 🐛 Bug Report
+description: Create a report to help us reproduce and fix the bug
+title: "🐛[Bug Report]: "
+labels: ["bug"]
+
+body:
+- type: markdown
+  attributes:
+    value: >
+      #### Before submitting a bug, please make sure the issue hasn't been already addressed by searching through [the existing and past issues](https://github.com/facebookresearch/gpu-cluster-monitoring/issues?q=is%3Aissue+sort%3Acreated-desc+).
+- type: textarea
+  attributes:
+    label: 🐛 Describe the bug
+    description: |
+      Please provide a clear and concise description of what the bug is.
+
+      If relevant, create a minimal repro (See [this](https://stackoverflow.com/help/minimal-reproducible-example) for tips)
+
+      If the code is too long (hopefully, it isn't), feel free to put it in a public gist and link it in the issue: https://gist.github.com.
+
+      Please also paste or describe the results you observe instead of the expected results. If you observe an error, please paste the error message including the **full** traceback of the exception. It may be relevant to wrap error messages in ```` ```triple quotes blocks``` ````.
+    placeholder: |
+      A clear and concise description of what the bug is.
+
+      ```
+      # Sample code to reproduce the problem
+      ```
+
+      ```
+      The error message you got, with the full traceback.
+      ```
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Describe your installation method
+    description: |
+      Please provide a clear and concise description of how you're using gpu-cluster-monitoring within your system.
+
+      Examples:
+        - Using gpu-cluster-monitoring as a debian binary built with `make release/gcm`
+        - Using gpu-cluster-monitoring as a python library
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: System information
+    description: |
+      - gpu-cluster-monitoring Version:
+      - Operating system:
+      - Build command you used (if compiling from source):
+      - Python version:
+      - [Optional] GPU models and configuration:
+      - [Optional] Any other relevant information:
+      - [Optional] Please run the following and paste the output below.
+        ```
+        nvidia-smi
+        ```
+
+  validations:
+    required: true
+- type: markdown
+  attributes:
+    value: >
+      Thanks for contributing 🎉!

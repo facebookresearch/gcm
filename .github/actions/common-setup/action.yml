@@ -1,0 +1,17 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+name: 'Checkout and Set up Python'
+description: 'Checkout and setup Python'
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Load cached venv
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/venv-ci
+        key: ${{ env.pythonLocation }}-${{ hashFiles('dev-requirements.txt') }}

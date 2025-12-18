@@ -1,0 +1,5 @@
+User|DefaultAccount|Account|DefaultQOS|QOS
+test_user1|test_account1|everyone||normal
+test_user1|test_account1|test_account1,test_account2|normal|normal,lowest
+test_user1|test_account1|fair-sc-researchers||normal
+test_user1|test_account1|nuclide||normal

@@ -1,0 +1,8 @@
+requirements*txt linguist-generated=true
+dev-requirements*txt linguist-generated=true
+gcm/gen/* linguist-generated=true
+gcm/gen/**/* linguist-generated=true
+gcm/features/gen/* linguist-generated=true
+
+.git_archival.txt export-subst
+*.go text eol=lf

@@ -1,0 +1,27 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+[gcm.sacct_backfill]
+publish_timeout = 7200
+sacct_timeout = 1800
+once = true
+log_folder = "/var/log"
+
+[gcm.sacct_backfill.new]
+start = "2023-01-16"
+end = "2023-01-17"
+step = 12
+
+[gcm.sacct_publish]
+cluster = "systemd_test"
+chunk_size = "1M"
+ignore_line_errors = true
+sacct_output_io_errors = "replace"
+verbose = true
+delimiter = "|#"
+log_folder = "/var/log"
+
+sink = "graph_api"
+sink_opts = [
+  "app_secret=/home/graph_api_key",
+  "scribe_category=fair_cluster_sacct_test",
+]

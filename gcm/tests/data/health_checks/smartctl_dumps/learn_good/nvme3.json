@@ -1,0 +1,103 @@
+{
+    "json_format_version": [
+        1,
+        0
+    ],
+    "smartctl": {
+        "version": [
+            7,
+            1
+        ],
+        "svn_revision": "5049",
+        "platform_info": "x86_64-linux-5.4.0-74.83.1.ubuntu.x86_64",
+        "build_info": "(local build)",
+        "argv": [
+            "smartctl",
+            "-jx",
+            "/dev/nvme3"
+        ],
+        "exit_status": 0
+    },
+    "device": {
+        "name": "/dev/nvme3",
+        "info_name": "/dev/nvme3",
+        "type": "nvme",
+        "protocol": "NVMe"
+    },
+    "model_name": "test model",
+    "serial_number": "test serial",
+    "firmware_version": "test firmware version",
+    "nvme_pci_vendor": {
+        "id": 0,
+        "subsystem_id": 0
+    },
+    "nvme_ieee_oui_identifier": 9528,
+    "nvme_total_capacity": 1920383410176,
+    "nvme_unallocated_capacity": 0,
+    "nvme_controller_id": 4,
+    "nvme_number_of_namespaces": 1,
+    "nvme_namespaces": [
+        {
+            "id": 1,
+            "size": {
+                "blocks": 3750748848,
+                "bytes": 1920383410176
+            },
+            "capacity": {
+                "blocks": 3750748848,
+                "bytes": 1920383410176
+            },
+            "utilization": {
+                "blocks": 3750483936,
+                "bytes": 1920247775232
+            },
+            "formatted_lba_size": 512
+        }
+    ],
+    "user_capacity": {
+        "blocks": 3750748848,
+        "bytes": 1920383410176
+    },
+    "logical_block_size": 512,
+    "local_time": {
+        "time_t": 1649276208,
+        "asctime": "Wed Apr  6 20:16:48 2022 UTC"
+    },
+    "smart_status": {
+        "passed": true,
+        "nvme": {
+            "value": 0
+        }
+    },
+    "nvme_smart_health_information_log": {
+        "critical_warning": 0,
+        "temperature": 32,
+        "available_spare": 100,
+        "available_spare_threshold": 10,
+        "percentage_used": 0,
+        "data_units_read": 211743900,
+        "data_units_written": 170286580,
+        "host_reads": 558634255,
+        "host_writes": 672158353,
+        "controller_busy_time": 1903,
+        "power_cycles": 34,
+        "power_on_hours": 11885,
+        "unsafe_shutdowns": 15,
+        "media_errors": 0,
+        "num_err_log_entries": 1310,
+        "warning_temp_time": 0,
+        "critical_comp_time": 0,
+        "temperature_sensors": [
+            32,
+            32,
+            37
+        ]
+    },
+    "temperature": {
+        "current": 32
+    },
+    "power_cycle_count": 34,
+    "power_on_time": {
+        "hours": 11885
+    }
+}

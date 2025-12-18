@@ -1,0 +1,97 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+name: Go packages CI
+
+on: push
+
+permissions:
+  contents: read
+
+jobs:
+  shelper-tests:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./shelper
+
+    strategy:
+      matrix:
+        go-version: [ '1.21', '1.22', '1.23', '1.24']
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: shelper install dependencies
+        run: go get .
+      - name: shelper go test
+        run: go test .
+
+  shelper-format:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./shelper
+
+    strategy:
+      matrix:
+        go-version: [ '1.21', '1.22', '1.23', '1.24']
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: shelper go formatter
+        run: if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then exit 1; fi
+
+  shelper-lint:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./shelper
+
+    strategy:
+      matrix:
+        go-version: [ '1.21', '1.22', '1.23', '1.24']
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.1
+          working-directory: shelper
+
+  # TODO(luccab): github package name has to match github URL
+  # slurmprocessor-tests:
+  #   runs-on: ubuntu-latest
+
+  #   defaults:
+  #     run:
+  #       working-directory: ./slurmprocessor
+
+  #   strategy:
+  #     matrix:
+  #       go-version: [ '1.21', '1.22', '1.23', '1.24']
+
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Setup Go ${{ matrix.go-version }}
+  #       uses: actions/setup-go@v5
+  #       with:
+  #         go-version: ${{ matrix.go-version }}
+  #     - name: slurmprocessor install dependencies
+  #       run: go get .
+  #     - name: slurmprocessor go test
+  #       run: go test .
