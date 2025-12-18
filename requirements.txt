@@ -85,9 +85,9 @@ opentelemetry-exporter-otlp==1.34.1 \
     --hash=sha256:71c9ad342d665d9e4235898d205db17c5764cd7a69acb8a5dcd6d5e04c4c9988 \
     --hash=sha256:f4a453e9cde7f6362fd4a090d8acf7881d1dc585540c7b65cbd63e36644238d4
     # via gcm (pyproject.toml)
-opentelemetry-exporter-otlp-proto-common==1.34.1 \
-    --hash=sha256:8e2019284bf24d3deebbb6c59c71e6eef3307cd88eff8c633e061abba33f7e87 \
-    --hash=sha256:b59a20a927facd5eac06edaf87a07e49f9e4a13db487b7d8a52b37cb87710f8b
+opentelemetry-exporter-otlp-proto-common==1.39.1 \
+    --hash=sha256:08f8a5862d64cc3435105686d0216c1365dc5701f86844a8cd56597d0c764fde \
+    --hash=sha256:763370d4737a59741c89a67b50f9e39271639ee4afc999dadfe768541c027464
     # via
     #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-exporter-otlp-proto-http
