@@ -8,11 +8,11 @@ GCM Monitoring is a Python CLI with a series of [collectors](./getting_started#g
 
 For a cluster-level view of GCM Monitoring:
 
-<img src="/img/gcm_monitoring.png" style={{ maxHeight: '400px', display: 'block', margin: '0 auto' }} />
+<img src="/gcm/img/gcm_monitoring.png" style={{ maxHeight: '400px', display: 'block', margin: '0 auto' }} />
 
 On a Kubernetes environment:
 
-<img src="/img/gcm_monitoring_kube.png" style={{ maxHeight: '400px', display: 'block', margin: '0 auto' }} />
+<img src="/gcm/img/gcm_monitoring_kube.png" style={{ maxHeight: '400px', display: 'block', margin: '0 auto' }} />
 
 ## Quick Start Guide
 

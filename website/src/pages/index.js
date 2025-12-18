@@ -16,8 +16,8 @@ function HomepageHeader() {
         <ThemedImage
           alt="GCM Logo"
           sources={{
-            light: 'img/gcm_long_white.svg',
-            dark: 'img/gcm_long_black.svg',
+            light: '/gcm/img/gcm_long_white.svg',
+            dark: '/gcm/img/gcm_long_black.svg',
           }}
           style={{maxWidth: '50%', minWidth: '250px'}}
         />

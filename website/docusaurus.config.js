@@ -12,14 +12,14 @@ import {themes as prismThemes} from 'prism-react-renderer';
 const config = {
   title: 'Meta GPU Cluster Monitoring (GCM)',
   tagline: 'GCM: Large-Scale AI Research Cluster Monitoring.',
-  // favicon: 'img/gcm_white.svg',
+  // favicon: '/img/gcm_white.svg',
 
   headTags: [
     {
       tagName: "link",
       attributes: {
         rel: "icon",
-        href: "img/gcm_black.svg",
+        href: "/img/gcm_black.svg",
         type: "image/svg+xml",
         sizes: "32x32",
         media: "(prefers-color-scheme: light)",
@@ -29,7 +29,7 @@ const config = {
       tagName: "link",
       attributes: {
         rel: "icon",
-        href: "img/gcm_white.svg",
+        href: "/img/gcm_white.svg",
         type: "image/svg+xml",
         sizes: "32x32",
         media: "(prefers-color-scheme: dark)",
@@ -46,7 +46,7 @@ const config = {
   url: 'https://facebookresearch.github.io/',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/gcm',
+  baseUrl: '/gcm/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
@@ -94,8 +94,8 @@ const config = {
         title: 'GCM',
         logo: {
           alt: 'GCM Logo',
-          src: 'img/gcm_black.svg',
-          srcDark: 'img/gcm_white.svg',
+          src: '/img/gcm_black.svg',
+          srcDark: '/img/gcm_white.svg',
         },
         items: [
           {

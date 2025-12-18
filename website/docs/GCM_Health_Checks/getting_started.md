@@ -6,7 +6,7 @@ sidebar_position: 1
 
 GCM Health Checks is a Python CLI with a suite of [Health Checks](./getting_started#available-health-checks)
 
-<img src="/img/gcm_health_checks.png" style={{ maxHeight: '300px', display: 'block', margin: '0 auto' }} />
+<img src="/gcm/img/gcm_health_checks.png" style={{ maxHeight: '300px', display: 'block', margin: '0 auto' }} />
 
 ## Quick Start Guide
 

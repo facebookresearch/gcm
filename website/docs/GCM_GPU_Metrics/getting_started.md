@@ -14,11 +14,11 @@ This processor is particularly useful in high-performance computing environments
 
 We've found at Meta that this processor is mostly useful for Metrics data.
 
-<img src="/img/gcm_gpu_metrics.jpg" style={{ maxHeight: '200px', display: 'block', margin: '0 auto' }} />
+<img src="/gcm/img/gcm_gpu_metrics.jpg" style={{ maxHeight: '200px', display: 'block', margin: '0 auto' }} />
 
 Metric exporting from a DCGM sample perspective:
 
-<img src="/img/gcm_metrics_flow.png" style={{ maxHeight: '800px', display: 'block', margin: '0 auto' }} />
+<img src="/gcm/img/gcm_metrics_flow.png" style={{ maxHeight: '800px', display: 'block', margin: '0 auto' }} />
 
 ## Getting Started
 

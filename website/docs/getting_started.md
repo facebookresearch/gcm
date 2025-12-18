@@ -14,7 +14,7 @@ GCM is a monorepo with the following components:
 - [GCM Health Checks](./GCM_Health_Checks/getting_started): Verifies the proper functioning of hardware, software, network, storage, and services throughout the job lifecycle.
 - [GCM GPU Metrics](./GCM_GPU_Metrics/getting_started): Enhances OpenTelemetry data by correlating telemetry with Slurm metadata, enabling attribution of metrics (e.g., GPU utilization) to specific jobs and users.
 
-<img src="/img/gcm_high_level.png" style={{ maxHeight: '400px', display: 'block', margin: '0 auto' }} />
+<img src="/gcm/img/gcm_high_level.png" style={{ maxHeight: '400px', display: 'block', margin: '0 auto' }} />
 
 Each component has their own Getting Started and Contributing Guide:
 
