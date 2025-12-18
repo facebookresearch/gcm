@@ -178,9 +178,9 @@ typing-extensions==4.14.0 \
     #   opentelemetry-semantic-conventions
     #   pydantic
     #   pydantic-core
-urllib3==1.26.20 \
-    --hash=sha256:0ed14ccfbf1c30a9072c7ca157e4319b70d65f623e91e7b32fadb2853431016e \
-    --hash=sha256:40c2dc0c681e47eb8f90e7e27bf6ff7df2e677421fd46756da1161c39ca70d32
+urllib3==2.6.0 \
+    --hash=sha256:c90f7a39f716c572c4e3e58509581ebd83f9b59cced005b7db7ad2d22b0db99f \
+    --hash=sha256:cb9bcef5a4b345d5da5d145dc3e30834f58e8018828cbc724d30b4cb7d4d49f1
     # via requests
 zipp==3.23.0 \
     --hash=sha256:071652d6115ed432f5ce1d34c336c0adfd6a884660d1e9712a256d3d3bd4b14e \
