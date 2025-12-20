@@ -204,6 +204,11 @@ const config = {
         theme: prismThemes.github,
         darkTheme: prismThemes.dracula,
       },
+      algolia: {
+        appId: '7UME3HJQQL',
+        apiKey: '22e43927eed85234ea84061f1292dab9',
+        indexName: 'gcm'
+      }
     }),
 
   plugins: [
