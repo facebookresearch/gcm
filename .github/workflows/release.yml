@@ -209,3 +209,33 @@ jobs:
           files: |
             dist/*
             ${{ env.BUILDDIR }}/*.deb
+
+      - name: Upload Python dist artifacts
+        if: matrix.os == 'ubuntu-24.04'
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-dist
+          path: dist/*
+          if-no-files-found: error
+
+  pypi-publish:
+    needs: [build-and-release, check-release]
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      # OIDC requirement
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Download dist artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-dist
+          path: dist
+
+      - name: Publish to PyPI (OIDC)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+          skip-existing: true
