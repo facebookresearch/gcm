@@ -219,8 +219,9 @@ jobs:
           if-no-files-found: error
 
   pypi-publish:
-    needs: [build-and-release, check-release]
+    needs: [check-release]
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'facebookresearch/gcm' && env.RELEASE_EXISTS == 'false' }}
     environment: pypi
     permissions:
       # OIDC requirement
