@@ -125,7 +125,7 @@ const config = {
             position: 'right',
           },
           {
-            href: 'https://pypi.org/project/coregcm',
+            href: 'https://pypi.org/project/gpucm',
             label: 'Pypi',
             position: 'right',
           },
@@ -161,7 +161,7 @@ const config = {
               },
               {
                 label: 'Pypi',
-                href: 'https://pypi.org/project/coregcm/',
+                href: 'https://pypi.org/project/gpucm/',
               },
               {
                 label: 'Discussions',

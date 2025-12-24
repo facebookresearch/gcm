@@ -3,8 +3,8 @@ requires = ["setuptools>=80", "wheel", "setuptools_scm[toml]>=6.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "gcm"
-description = "A collection of monitoring utilities for the FAIR Cluster"
+name = "gpucm"
+description = "GPU Cluster Monitoring (GCM): Large-Scale AI Research Cluster Monitoring"
 requires-python = ">=3.10"
 dependencies = [
   # TODO (T198128870): Unpin the requests version
@@ -28,6 +28,10 @@ dependencies = [
   "clusterscope>=0.0.10",
 ]
 dynamic = ["version"]
+license = { text = "MIT" }
+
+[project.urls]
+Homepage = "https://github.com/facebookresearch/gcm"
 
 [project.optional-dependencies]
 dev = [
