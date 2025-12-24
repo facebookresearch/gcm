@@ -4,6 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gpucm"
+readme = "README.md"
 description = "GPU Cluster Monitoring (GCM): Large-Scale AI Research Cluster Monitoring"
 requires-python = ">=3.10"
 dependencies = [

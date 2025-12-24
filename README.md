@@ -6,9 +6,9 @@ All rights reserved.
 
 <p align="center">
     <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./assets/logo/Logo_White_BG_Transparent.svg">
-    <source media="(prefers-color-scheme: light)" srcset="./assets/logo/Logo_Black_BG_Transparent.svg">
-    <img alt="GCM Logo" src="./assets/logo/Logo_Black_BG_Transparent.svg" style="height: 150px;">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/facebookresearch/gcm/master/assets/logo/Logo_White_BG_Transparent.svg">
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/facebookresearch/gcm/master/assets/logo/Logo_Black_BG_Transparent.svg">
+    <img alt="GCM Logo" src="https://raw.githubusercontent.com/facebookresearch/gcm/master/assets/logo/Logo_Black_BG_Transparent.svg" style="height: 150px;">
     </picture>
 </p>
 
