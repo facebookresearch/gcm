@@ -221,7 +221,7 @@ jobs:
   pypi-publish:
     needs: [check-release]
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'facebookresearch/gcm' && env.RELEASE_EXISTS == 'false' }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'facebookresearch/gcm'}}
     environment: pypi
     permissions:
       # OIDC requirement
