@@ -219,7 +219,7 @@ jobs:
           if-no-files-found: error
 
   pypi-publish:
-    needs: [check-release]
+    needs: [build-and-release, check-release]
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'facebookresearch/gcm'}}
     environment: pypi
