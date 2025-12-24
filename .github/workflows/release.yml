@@ -145,7 +145,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          CURRENT="$(dpkg-parsechangelog -S Version || true)"
+          CURRENT="$(dpkg-parsechangelog -S Version 2>/dev/null || true)"
 
           if [[ "$CURRENT" == "$VERSION" ]]; then
             echo "Changelog already at $VERSION — nothing to commit."
