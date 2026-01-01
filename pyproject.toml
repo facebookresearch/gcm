@@ -13,7 +13,7 @@ dependencies = [
   "pynvml==11.4.*",
   "typing_extensions",
   "click==8.0.4",
-  "typeguard==2.13.3",
+  "typeguard==4.4.4",
   "click-option-group",
   "pydantic==2.7.4",
   "omegaconf~=2.2",
