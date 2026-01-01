@@ -162,9 +162,9 @@ tomli==2.2.1 \
     --hash=sha256:cb55c73c5f4408779d0cf3eef9f762b9c9f147a77de7b258bef0a5628adc85cc \
     --hash=sha256:cd45e1dc79c835ce60f7404ec8119f2eb06d38b1deba146f07ced3bbc44505ff
     # via gcm (pyproject.toml)
-typeguard==2.13.3 \
-    --hash=sha256:00edaa8da3a133674796cf5ea87d9f4b4c367d77476e185e80251cc13dfbb8c4 \
-    --hash=sha256:5e3e3be01e887e7eafae5af63d1f36c849aaa94e3a0112097312aabfa16284f1
+typeguard==4.4.4 \
+    --hash=sha256:3a7fd2dffb705d4d0efaed4306a704c89b9dee850b688f060a8b1615a79e5f74 \
+    --hash=sha256:b5f562281b6bfa1f5492470464730ef001646128b180769880468bd84b68b09e
     # via gcm (pyproject.toml)
 typing-extensions==4.14.0 \
     --hash=sha256:8676b788e32f02ab42d9e7c61324048ae4c6d844a399eebace3d4979d75ceef4 \
