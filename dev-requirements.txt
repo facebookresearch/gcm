@@ -482,9 +482,9 @@ trailrunner==1.4.0 \
     # via
     #   ufmt
     #   usort
-twine==6.1.0 \
-    --hash=sha256:a47f973caf122930bf0fbbf17f80b83bc1602c9ce393c7845f289a3001dc5384 \
-    --hash=sha256:be324f6272eff91d07ee93f251edf232fc647935dd585ac003539b42404a8dbd
+twine==6.2.0 \
+    --hash=sha256:418ebf08ccda9a8caaebe414433b0ba5e25eb5e4a927667122fbe8f829f985d8 \
+    --hash=sha256:e5ed0d2fd70c9959770dce51c8f39c8945c574e18173a7b81802dab51b4b75cf
     # via gcm (pyproject.toml)
 typeguard==2.13.3 \
     --hash=sha256:00edaa8da3a133674796cf5ea87d9f4b4c367d77476e185e80251cc13dfbb8c4 \
