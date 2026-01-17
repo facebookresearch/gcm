@@ -12,7 +12,7 @@ All rights reserved.
     </picture>
 </p>
 
-GCM is a set of tools used to do at-scale monitoring for HPC (High-Performance Computing) clusters, it powers [Meta FAIR (Fundamental AI Research)](https://ai.meta.com/research/) AI workloads over hundreds of thousands of GPUs at Meta.
+GCM is a set of tools used to do at-scale monitoring for HPC (High-Performance Computing) clusters, it powers [Meta FAIR (Fundamental AI Research)](https://ai.meta.com/research/) AI workloads across over hundreds of thousands of GPUs at Meta.
 
 GCM is a monorepo with the following components:
 

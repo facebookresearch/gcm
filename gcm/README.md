@@ -4,7 +4,7 @@ All rights reserved.
 -->
 # GPU Cluster Monitoring
 
-This is the core Python CLI toolset for GPU Cluster Monitoring (GCM), providing comprehensive monitoring and health checking capabilities for High-Performance Computing (HPC) clusters. GCM powers FAIR (Fundamental AI Research) AI workloads over hundreds of thousands of GPUs at Meta.
+This is the core Python CLI toolset for GPU Cluster Monitoring (GCM), providing comprehensive monitoring and health checking capabilities for High-Performance Computing (HPC) clusters. GCM powers FAIR (Fundamental AI Research) AI workloads across over hundreds of thousands of GPUs at Meta.
 
 ## Overview
 
