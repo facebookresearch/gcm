@@ -12,13 +12,13 @@ All rights reserved.
     </picture>
 </p>
 
-GCM is a set of tools used to do at-scale monitoring for HPC (High-Performance Computing) clusters, it powers [Meta FAIR (Fundamental AI Research)](https://ai.meta.com/research/) AI workloads across hundreds of thousands of GPUs at Meta.
+GCM is a set of tools used to do at-scale monitoring for HPC (High-Performance Computing) clusters, it powers [Meta FAIR (Fundamental AI Research)](https://ai.meta.com/research/) AI workloads over hundreds of thousands of GPUs at Meta.
 
 GCM is a monorepo with the following components:
 
 - [Monitoring](gcm/monitoring/): Collects cluster statistics from the [Slurm](https://slurm.schedmd.com/documentation.html) workload scheduler, providing visibility into job performance and resource utilization.
 - [Health Checks](gcm/health_checks/): Verifies the proper functioning of hardware, software, network, storage, and services throughout the job lifecycle.
-- [Telemetry Processor / GPU Metrics](gcm/slurmprocessor/): Enhances OpenTelemetry data by correlating telemetry with Slurm metadata, enabling attribution of metrics (e.g., GPU utilization) to specific jobs and users.
+- [Telemetry Processor / GPU Metrics](slurmprocessor/): Enhances OpenTelemetry data by correlating telemetry with Slurm metadata, enabling attribution of metrics (e.g., GPU utilization) to specific jobs and users.
 
 For more information, check our [documentation](https://facebookresearch.github.io/gcm/).
 
@@ -35,8 +35,8 @@ Each component has its own README with detailed guides:
 
 - Integration with more GPU types (AMD, Intel, Custom Accelerators)
 - Support for additional schedulers beyond Slurm
-- [Additional Slurm related Monitoring](gcm/docs/monitoring_onboarding.md#monitoring-something-new-with-gcm)
-- [Support for new exporters](gcm/docs/monitoring_onboarding.md#adding-a-new-exporter-to-gcm)
+- [Additional Slurm related Monitoring](gcm/docs/adding_new_collector.md)
+- [Support for new exporters](gcm/docs/adding_new_exporter.md)
 - Adding support for [Slurm REST API](https://slurm.schedmd.com/rest_api.html) querying
 - Adding support for new [Health Checks](gcm/docs/health_checks_onboarding.md#how-to-write-a-new-health-check?)
 - Distribution via Docker Images and Helm Charts

@@ -7,7 +7,7 @@ All rights reserved.
 In this document we provide an analysis of the health-checks code, so that new users/developers can familiarize themselves with the codebase.
 
 The health-checks code is implemented as a CLI using Python's [`click`](https://click.palletsprojects.com/en/stable/) package. `Click` has good documentation online, however, the existing checks provide a good example of how the checks are using `click`.
-The final outcome of the check is a scalar [`ExitCode`](../health_checks/types.py). Depending on the options that the check was called with, it will also print to a log-file, print a message in stdout (for example when the `nagios` type is selected), and export its results to one of the [sinks](../gcm_exporters/).
+The final outcome of the check is a scalar [`ExitCode`](../health_checks/types.py). Depending on the options that the check was called with, it will also print to a log-file, print a message in stdout (for example when the `nagios` type is selected), and export its results to one of the [sinks](../exporters/).
 
 For instructions on how to set up your conda environment for development/testing of the health-checks or for creating a health-checks binary please refer to [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 For instructions on how to run the different checks and an inventory of the available checks please refer to [README.md](../health_checks/README.md).
@@ -24,7 +24,7 @@ $ health_checks check-dcgmi --help
 $ health_checks check-dcgmi diag --help
 ```
 
-The entry point for the health-checks is defined in [`pyproject.toml`](../pyproject.toml) and points to [`health_checks.py`](../health_checks/cli/health_checks.py).
+The entry point for the health-checks is defined in [`pyproject.toml`](../../pyproject.toml) and points to [`health_checks.py`](../health_checks/cli/health_checks.py).
 `health_checks` is the entry level command. The next level commands are included to the health_check `group()` of commands, for example:
 ```python
 list_of_checks: List[click.core.Command] = [
@@ -243,7 +243,7 @@ Because the health-checks are deployed on multiple different clusters modifying 
 
 To see an example of how to use feature flags you can see [../tests/test_features.py](../tests/test_features.py).
 The steps to add new flags are:
-1. Define a class, if one doesn't already exist, and add you feature definition.  The class should be defined in a .py file under the directory [../gcm/features/feature_definitions/](../gcm/features/feature_definitions/). Note that healthchecks already have the `HealthChecksFeatures` class, defined in [../gcm/features/feature_definitions/health_checks_features.py](../gcm/features/feature_definitions/health_checks_features.py).
+1. Define a class, if one doesn't already exist, and add you feature definition.  The class should be defined in a .py file under the directory [../monitoring/features/feature_definitions/](../monitoring/features/feature_definitions/). Note that healthchecks already have the `HealthChecksFeatures` class, defined in [../monitoring/features/feature_definitions/health_checks_features.py](../monitoring/features/feature_definitions/health_checks_features.py).
 2. In the class add a new flag of type boolean.
 3. Then execute the [../bin/generate_features.py](../bin/generate_features.py) to autogenerate the feature flags code.
 4. Next, include the feature value to the features-config file. For instance let's assume that the class is called `HealthChecksFeatures` and your flag is testflag, the config would have an entry like:

@@ -9,7 +9,7 @@ Documentation and examples for each test can be found below.
 
 For more information please refer to the files in [`docs/`](../docs/).
 
-Refer to [`CONTIBUTING.md`](../CONTRIBUTING.md) and [`health_checks_onboarding.md`](../docs/health_checks_onboarding.md) for information about contributing to the repo and the health-checks code.
+Refer to [`CONTRIBUTING.md`](../CONTRIBUTING.md) and [`health_checks_onboarding.md`](../docs/health_checks_onboarding.md) for information about contributing to the repo and the health-checks code.
 
 The checks are invoked as CLI commands, and need to pass some parameters to execute them. Information about these parameters can be obtained with the help message.
 Here we only explain some of the important parameters.
@@ -34,7 +34,7 @@ Telemetry cannot be utilized when the health-checks are being run as part of an 
 To ease the process of providing parameters to the checks, one could use a config file that defines these parameters.
 The `health_checks` command supports the `--config` option that can get a configuration file as in `toml` format to read the configuration parameters. This can be particularly handy for parameters that are the same across the different checks or to be able to change the parameters of the check without modifying the command.
 
-An example of a `toml` file that specifies check parameters can be found at [./config_example/config.toml](./config_example/config.toml).
+An example of a `toml` file that specifies check parameters can be found at [./config/config.toml](./config/config.toml).
 You can see from this example that you can define parameters for every check following the check's command-subcommand hierarchy.
 
 Assuming that you have created a config file to specify the parameters for the check, you can then execute the health-check command as:
@@ -49,7 +49,7 @@ This option is available for all the checks that are described below and you can
 To ease the process of making code changes without impacting other clusters, and to be able to add killswitches for quickly disabling a health-check, we've added features flags.
 
 The `health_checks` command supports the `--features-config` ooption that can get a configuration file in `toml` format that contains the feature flags definitions.
-An example of a `toml` file that has killswitches for the checks can be found at [./config_example/feature_example.toml](./config_example/feature_example.toml)
+An example of a `toml` file that has killswitches for the checks can be found at [./config/feature_example.toml](./config/feature_example.toml)
 
 The process of adding new feature flags is automated. You can find details on how to add and use features in your code in [`health_checks_onboarding.md`](../docs/health_checks_onboarding.md).
 
