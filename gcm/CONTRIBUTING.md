@@ -8,19 +8,19 @@ All rights reserved.
 
 A dev environment with Nvidia GPUs and slurm CLI commands provides a good foundation for GCM development.
 
-The pinned dependencies were generated using Python 3.10, therefore it is recommended that you use 3.10 in your development environment.
+The pinned dependencies were generated using Python 3.11, therefore it is recommended that you use 3.11 in your development environment.
 
 You can create the environment via conda:
 ```shell
-conda create -y --name py310 python==3.10
-conda activate py310
+conda create -y --name py311 python==3.11
+conda activate py311
 # Common Conda Troubleshooting:
 # if you're having issues activating the conda env
 source activate base
 # binaries like pip, nox should be pointing inside your conda env (`which pip`), if it's not:
 conda install pip
 conda deactivate
-conda activate py310
+conda activate py311
 ```
 
 Once you have a local copy of this repo, first install pinned development dependencies:

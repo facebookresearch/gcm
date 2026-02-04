@@ -18,7 +18,7 @@ On a Kubernetes environment:
 
 ### Requirements
 
-- Python 3.10+
+- Python 3.11+
 - pynvml (for GPU monitoring features)
 - Slurm (for job scheduler integration)
 

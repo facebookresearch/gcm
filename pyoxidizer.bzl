@@ -1,6 +1,6 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
-PYTHON_VERSION = "3.10"
+PYTHON_VERSION = "3.11"
 
 def make_gcm():
     dist = default_python_distribution(python_version = PYTHON_VERSION)
