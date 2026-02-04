@@ -1,0 +1,5 @@
+[
+  {"JOBID": 85957.0, "PARTITION": "learn", "USER": "generate", "ACCOUNT": "general_", "PRIORITY": 1000629.0, "SITE": 0.0, "AGE": 0.0, "ASSOC": 0.0, "FAIRSHARE": 530.0, "JOBSIZE": 0.0, "PARTITION_PRIO": 1000000.0, "QOSNAME": "lowest", "QOS": "100", "NICE": 0.0},
+  {"JOBID": 85968.0, "PARTITION": "learn", "USER": "generate", "ACCOUNT": "general_", "PRIORITY": 1000629.0, "SITE": 0.0, "AGE": 0.0, "ASSOC": 0.0, "FAIRSHARE": 530.0, "JOBSIZE": 0.0, "PARTITION_PRIO": 1000000.0, "QOSNAME": "lowest", "QOS": "100", "NICE": 0.0},
+  {"JOBID": 85981.0, "PARTITION": "learn", "USER": "generate", "ACCOUNT": "general_", "PRIORITY": 1000629.0, "SITE": 0.0, "AGE": 0.0, "ASSOC": 0.0, "FAIRSHARE": 530.0, "JOBSIZE": 0.0, "PARTITION_PRIO": 1000000.0, "QOSNAME": "lowest", "QOS": "100", "NICE": 0.0}
+]

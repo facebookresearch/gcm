@@ -33,6 +33,7 @@ from gcm.schemas.slurm.sdiag import Sdiag
 from gcm.schemas.slurm.sinfo import Sinfo
 from gcm.schemas.slurm.sinfo_node import SinfoNode
 from gcm.schemas.slurm.sinfo_row import SinfoRow
+from gcm.schemas.slurm.sprio import SPRIO_FORMAT_SPEC, SPRIO_HEADER
 from gcm.schemas.slurm.squeue import JOB_DATA_SLURM_FIELDS, JobData
 
 if TYPE_CHECKING:
@@ -121,6 +122,14 @@ class SlurmClient(Protocol):
 
     def count_runaway_jobs(self) -> int:
         """Return the count of runaway jobs"""
+
+    def sprio(self) -> Iterable[str]:
+        """Get lines of sprio output showing job priority factors.
+        Each line should be pipe separated.
+        The first line defines the fieldnames. The rest are the rows.
+        Lines should not have a trailing newline.
+        If an error occurs during execution, RuntimeError should be raised.
+        """
 
 
 class SlurmCliClient(SlurmClient):
@@ -318,3 +327,10 @@ class SlurmCliClient(SlurmClient):
         for st in lines:
             return int(st)
         raise Exception(f"Could not count sacctmgr show runaway lines: {lines}")
+
+    def sprio(self) -> Iterable[str]:
+        # Sort by partition (r) and priority descending (-y) for consistent ordering
+        yield SPRIO_HEADER
+        yield from _gen_lines(
+            self.__popen(["sprio", "-h", "--sort=r,-y", "-o", SPRIO_FORMAT_SPEC])
+        )
