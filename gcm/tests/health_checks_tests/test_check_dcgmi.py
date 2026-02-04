@@ -54,6 +54,17 @@ diag_pass_output = FakeShellCommandOut(
     0,
     '{"DCGM GPU Diagnostic": {"test_categories": [{"category": "Deployment", "tests": [{"name": "Blacklist", "results": [{"status": "Pass"}]}, {"name": "NVML Library", "results": [{"status": "Pass"}]}, {"name": "CUDA Main Library", "results": [{"status": "Pass"}]}, {"name": "Permissions and OS Blocks", "results": [{"status": "Pass"}]}, {"name": "Persistence Mode", "results": [{"status": "Pass"}]}, {"name": "Environment Variables", "results": [{"status": "Pass"}]}, {"name": "Page Retirement/Row Remap", "results": [{"status": "Pass"}]}, {"name": "Graphics Processes", "results": [{"status": "Pass"}]}, {"name": "Inforom", "results": [{"status": "Pass"}]}]}]}}',
 )
+# DCGM 4.x uses "DCGM Diagnostic" instead of "DCGM GPU Diagnostic" and has test_summary
+diag_pass_output_v4 = FakeShellCommandOut(
+    [],
+    0,
+    '{"DCGM Diagnostic": {"test_categories": [{"category": "Deployment", "tests": [{"name": "software", "results": [{"entity_group": "GPU", "entity_group_id": 1, "entity_id": 0, "status": "Pass"}], "test_summary": {"status": "Pass"}}]}]}}',
+)
+diag_fail_output_v4 = FakeShellCommandOut(
+    [],
+    0,
+    '{"DCGM Diagnostic": {"test_categories": [{"category": "Deployment", "tests": [{"name": "software", "results": [{"entity_group": "GPU", "entity_group_id": 1, "entity_id": 0, "status": "Fail"}], "test_summary": {"status": "Fail"}}]}]}}',
+)
 diag_fail_output = FakeShellCommandOut(
     [],
     0,
@@ -77,6 +88,7 @@ non_fatal_error_code_output = FakeShellCommandOut(
     "dcgmi_shell_command_tester, expected",
     [
         (diag_pass_output, (ExitCode.OK, "All checks passed")),
+        (diag_pass_output_v4, (ExitCode.OK, "All checks passed")),  # DCGM 4.x format
         (
             diag_fail_output,
             (
@@ -84,6 +96,10 @@ non_fatal_error_code_output = FakeShellCommandOut(
                 "Persistence Mode failed.\nEnvironment Variables warning",
             ),
         ),
+        (
+            diag_fail_output_v4,
+            (ExitCode.CRITICAL, "software failed"),
+        ),  # DCGM 4.x fail format
         (diag_warn_output, (ExitCode.WARN, "Persistence Mode warning")),
         (empty_output, (ExitCode.WARN, "dcgmi diag FAILED to execute")),
         (

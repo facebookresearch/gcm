@@ -196,6 +196,20 @@ class DCGMImpl:
         return piped_shell_command(cmd, timeout_secs)
 
 
+def _get_test_status(test: dict) -> str:
+    """Get the overall status from a test result.
+
+    DCGM 4.x uses test_summary.status for aggregated results.
+    DCGM 3.x uses results[0].status.
+    """
+    if "test_summary" in test and "status" in test["test_summary"]:
+        return test["test_summary"]["status"]
+    # Fallback for DCGM 3.x format
+    if test.get("results") and len(test["results"]) > 0:
+        return test["results"][0].get("status", "")
+    return ""
+
+
 def process_dcgmi_diag_output(
     output: str, error_code: int, exclude_category: List[str]
 ) -> Tuple[ExitCode, str]:
@@ -208,25 +222,33 @@ def process_dcgmi_diag_output(
         return ExitCode.WARN, "dcgmi diag FAILED to execute.\n"
 
     output_dict = json.loads(output)
+    # DCGM 3.x uses "DCGM GPU Diagnostic", DCGM 4.x uses "DCGM Diagnostic"
+    diag_key = None
+    for key in ["DCGM GPU Diagnostic", "DCGM Diagnostic"]:
+        if key in output_dict:
+            diag_key = key
+            break
+
     if (
         len(output_dict) == 0
-        or "DCGM GPU Diagnostic" not in output_dict
-        or "test_categories" not in output_dict["DCGM GPU Diagnostic"]
+        or diag_key is None
+        or "test_categories" not in output_dict[diag_key]
     ):
         return ExitCode.WARN, "dcgmi diag FAILED to execute.\n"
 
     msg: str = ""
     exit_code: ExitCode = ExitCode.OK
 
-    for category in output_dict["DCGM GPU Diagnostic"]["test_categories"]:
+    for category in output_dict[diag_key]["test_categories"]:
         for test in category["tests"]:
             if test["name"] in exclude_category:
                 continue
 
-            if test["results"][0]["status"] == "Fail":
+            status = _get_test_status(test)
+            if status == "Fail":
                 msg += f"{test['name']} failed.\n"
                 exit_code = ExitCode.CRITICAL
-            elif test["results"][0]["status"] == "Warn":
+            elif status == "Warn":
                 msg += f"{test['name']} warning.\n"
                 if exit_code < ExitCode.WARN:
                     exit_code = ExitCode.WARN
