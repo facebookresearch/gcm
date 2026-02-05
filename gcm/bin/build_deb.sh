@@ -24,7 +24,7 @@ git archive --format tar.gz --prefix "$prefix" HEAD > "${builddir}/${tarball}"
 cd "$builddir"
 tar xf "$tarball"
 cd "$prefix"
-pyox=$(which pyoxidizer)
-bin=$(dirname "$pyox")
+pyinstaller_bin=$(which pyinstaller)
+bin=$(dirname "$pyinstaller_bin")
 # assume all tools are installed in $bin
 debuild --prepend-path "$bin" -b -us -uc

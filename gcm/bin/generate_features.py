@@ -23,10 +23,9 @@ common_code = """#
 # - Run `ufmt format gcm`
 
 import logging
+import tomllib
 from pathlib import Path
 from typing import Any, ClassVar, Dict, Optional
-
-import tomli
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +44,12 @@ class {class_name}:
         if {class_name}.config_path is not None:
             try:
                 with {class_name}.config_path.open("rb") as f:
-                    features = tomli.load(f)
-            except tomli.TOMLDecodeError as e:
+                    features = tomllib.load(f)
+            except tomllib.TOMLDecodeError as e:
                 logger.exception(
                     f"Error reading toml file. {{{class_name}.config_path}} does not contain valid TOML. Error: {{e}}"
                 )
-                raise tomli.TOMLDecodeError(
+                raise tomllib.TOMLDecodeError(
                     f"{{{class_name}.config_path}} does not contain valid TOML.",
                 ) from e
         else:
@@ -97,16 +96,16 @@ def generate_file() -> None:
                     body += (
                         f"{indent}def {get_func_name}(self) -> {attr_type.__name__}:\n"
                     )
-                    body += f"{indent*2}try:\n"
-                    body += f"{indent*3}features = self.load_config()\n"
-                    body += f"{indent*2}except Exception:\n"
-                    body += f"{indent*3}return {default_value}\n"
-                    body += f"{indent*2}value = features.get('{name}', {{}}).get('{attr_name}', {default_value})\n"
+                    body += f"{indent * 2}try:\n"
+                    body += f"{indent * 3}features = self.load_config()\n"
+                    body += f"{indent * 2}except Exception:\n"
+                    body += f"{indent * 3}return {default_value}\n"
+                    body += f"{indent * 2}value = features.get('{name}', {{}}).get('{attr_name}', {default_value})\n"
                     body += (
-                        f"{indent*2}if not isinstance(value, {attr_type.__name__}):\n"
+                        f"{indent * 2}if not isinstance(value, {attr_type.__name__}):\n"
                     )
-                    body += f"{indent*3}raise TypeError(f'Expected {attr_type.__name__} value for {name}.{attr_name}, got {{type(value).__name__}} instead.')\n"
-                    body += f"{indent*2}return value\n"
+                    body += f"{indent * 3}raise TypeError(f'Expected {attr_type.__name__} value for {name}.{attr_name}, got {{type(value).__name__}} instead.')\n"
+                    body += f"{indent * 2}return value\n"
                     body += "\n"
 
                 outfile = os.path.join(

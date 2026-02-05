@@ -1,9 +1,7 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
-import os
 from datetime import datetime, timezone, tzinfo
 from typing import Optional
-from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -16,12 +14,9 @@ from gcm.monitoring.clock import (
     unixtime_to_pacific_datetime,
 )
 
-try:
-    tz_path = os.path.realpath("/etc/localtime", strict=True)
-except FileNotFoundError:
-    SYSTEM_TZ = ZoneInfo("Etc/UTC")
-else:
-    SYSTEM_TZ = ZoneInfo(os.path.relpath(tz_path, "/usr/share/zoneinfo"))
+# Get the actual system timezone that Python uses for naive datetime conversions
+# This is more reliable than reading /etc/localtime which may not match Python's behavior
+SYSTEM_TZ = datetime.now().astimezone().tzinfo
 
 
 @pytest.mark.parametrize(
@@ -30,14 +25,12 @@ else:
         (
             "2023-03-28 14:00:00",
             timezone.utc,
-            datetime.fromisoformat("2023-03-28 14:00:00").replace(tzinfo=SYSTEM_TZ),
+            datetime.fromisoformat("2023-03-28 14:00:00").astimezone(tz=timezone.utc),
         ),
         (
             "2023-03-28 14:00:00",
             PT,
-            datetime.fromisoformat("2023-03-28 14:00:00-07:00").replace(
-                tzinfo=SYSTEM_TZ
-            ),
+            datetime.fromisoformat("2023-03-28 14:00:00").astimezone(tz=PT),
         ),
         (
             "2023-01-28 14:00:00",

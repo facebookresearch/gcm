@@ -8,19 +8,19 @@ All rights reserved.
 
 A dev environment with Nvidia GPUs and slurm CLI commands provides a good foundation for GCM development.
 
-The pinned dependencies were generated using Python 3.10, therefore it is recommended that you use 3.10 in your development environment.
+The pinned dependencies were generated using Python 3.12, therefore it is recommended that you use 3.12 in your development environment.
 
 You can create the environment via conda:
 ```shell
-conda create -y --name py310 python==3.10
-conda activate py310
+conda create -y --name py312 python==3.12
+conda activate py312
 # Common Conda Troubleshooting:
 # if you're having issues activating the conda env
 source activate base
 # binaries like pip, nox should be pointing inside your conda env (`which pip`), if it's not:
 conda install pip
 conda deactivate
-conda activate py310
+conda activate py312
 ```
 
 Once you have a local copy of this repo, first install pinned development dependencies:
@@ -133,23 +133,20 @@ pip install --no-deps -e .  # because this project is not specified in dev-requi
 ```
 
 ## Single-file binaries
-Using `pyoxidizer`, `gcm` and `health_checks` are also available as a single-file binary in order to facilitate distribution to various platforms.
+Using `pyinstaller`, `gcm` and `health_checks` are also available as standalone executables in order to facilitate distribution to various platforms.
 Currently only Linux is supported.
-There are two flavors: debug and release.
 
-To build debug:
+To build:
 ```shell
 make gcm # or use `make health_checks` for Health Checks
 ```
-The resulting binary should be `./build/x86_64-unknown-linux-gnu/debug/gcm/gcm`.
-Possible output: https://gist.github.com/calebho/d3f3829ab5f4f294f3f09255b2ab55fa
+The resulting binary should be `./dist/gcm/gcm`.
 
-Similarly, to build release:
+Similarly, to build health_checks:
 ```shell
-make release/gcm # or `make release/health_checks`
+make health_checks
 ```
-The resulting binary should be `./build/x86_64-unknown-linux-gnu/release/gcm/gcm`.
-Possible output: https://gist.github.com/calebho/5cedc25929cf8753702a9c21e8c7b7f8
+The resulting binary should be `./dist/health_checks/health_checks`.
 
 ## Building the Debian package
 To facilitate deployment to Ubuntu clusters (e.g. FAIR Cluster), a Debian package is built containing `gcm` and various `systemd` service files.
@@ -173,13 +170,15 @@ To build the package locally,
     │   ├── build
     │   ├── debian
     │   ├── dev-requirements.txt
+    │   ├── dist
     │   ├── docs
     │   ├── gcm
     │   ├── gcm.egg-info
+    │   ├── gcm.spec
     │   ├── health_checks
+    │   ├── health_checks.spec
     │   ├── mypy.ini
     │   ├── noxfile.py
-    │   ├── pyoxidizer.bzl
     │   ├── pyproject.toml
     │   ├── requirements.txt
     │   ├── stubs

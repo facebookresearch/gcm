@@ -8,10 +8,9 @@
 # - Run `ufmt format gcm`
 
 import logging
+import tomllib
 from pathlib import Path
 from typing import Any, ClassVar, Dict, Optional
-
-import tomli
 
 logger = logging.getLogger(__name__)
 
@@ -30,12 +29,12 @@ class FeatureValueTestingFeatures:
         if FeatureValueTestingFeatures.config_path is not None:
             try:
                 with FeatureValueTestingFeatures.config_path.open("rb") as f:
-                    features = tomli.load(f)
-            except tomli.TOMLDecodeError as e:
+                    features = tomllib.load(f)
+            except tomllib.TOMLDecodeError as e:
                 logger.exception(
                     f"Error reading toml file. {FeatureValueTestingFeatures.config_path} does not contain valid TOML. Error: {e}"
                 )
-                raise tomli.TOMLDecodeError(
+                raise tomllib.TOMLDecodeError(
                     f"{FeatureValueTestingFeatures.config_path} does not contain valid TOML.",
                 ) from e
         else:

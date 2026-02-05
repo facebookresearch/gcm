@@ -2,38 +2,38 @@
 # All rights reserved.
 SHELL:=/bin/bash -o pipefail -o errexit -o nounset
 
-PYOX_DEBUG_OUT=build/x86_64-unknown-linux-gnu/debug
-PYOX_RELEASE_OUT=build/x86_64-unknown-linux-gnu/release
+# PyInstaller output directories
+PYINSTALLER_OUT=dist
 GCM_SRCS:=$(shell find gcm/ -type f -name '*py')
 VERSION:=$(shell cat gcm/version.txt)
 
 .PHONY: all
-all: gcm, health_checks
+all: gcm health_checks
 
 .PHONY: clean
-clean: clean_pyox
+clean: clean_pyinstaller
 
 .PHONY: gcm
-gcm: $(PYOX_DEBUG_OUT)/install/gcm
+gcm: $(PYINSTALLER_OUT)/gcm/gcm
 
-$(PYOX_RELEASE_OUT)/install/gcm: pyoxidizer.bzl requirements.txt $(GCM_SRCS)
-	pyoxidizer build --release --var VERSION $(VERSION) gcm resources_gcm install_gcm
+$(PYINSTALLER_OUT)/gcm/gcm: gcm.spec requirements.txt $(GCM_SRCS)
+	GCM_VERSION=$(VERSION) pyinstaller gcm.spec --noconfirm
 
 .PHONY: release/gcm
-release/gcm: $(PYOX_RELEASE_OUT)/install/gcm
+release/gcm: $(PYINSTALLER_OUT)/gcm/gcm
 
 .PHONY: health_checks
-health_checks: $(PYOX_DEBUG_OUT)/install/health_checks
+health_checks: $(PYINSTALLER_OUT)/health_checks/health_checks
 
-$(PYOX_RELEASE_OUT)/install/health_checks: pyoxidizer.bzl requirements.txt $(GCM_SRCS)
-	pyoxidizer build --release --var VERSION $(VERSION) health_checks resources_hc install_hc
+$(PYINSTALLER_OUT)/health_checks/health_checks: health_checks.spec requirements.txt $(GCM_SRCS)
+	GCM_VERSION=$(VERSION) pyinstaller health_checks.spec --noconfirm
 
 .PHONY: release/health_checks
-release/health_checks: $(PYOX_RELEASE_OUT)/install/health_checks
+release/health_checks: $(PYINSTALLER_OUT)/health_checks/health_checks
 
-.PHONY: clean_pyox
-clean_pyox:
-	rm -rf $(PYOX_DEBUG_OUT) $(PYOX_RELEASE_OUT)
+.PHONY: clean_pyinstaller
+clean_pyinstaller:
+	rm -rf $(PYINSTALLER_OUT) build
 
 requirements.txt: pyproject.toml
 	pip-compile --no-emit-options --generate-hashes --no-reuse-hashes --allow-unsafe --resolver=backtracking -o requirements.txt pyproject.toml

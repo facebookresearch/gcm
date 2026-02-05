@@ -12,7 +12,7 @@ GCM Health Checks is a Python CLI with a suite of [Health Checks](./getting_star
 
 ### Requirements
 
-- Python 3.10+
+- Python 3.12+
 - System utilities (varies by check: `nvidia-smi`, `dcgmi`, `sensors`, etc.)
 - Slurm (for job scheduler integration checks)
 

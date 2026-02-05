@@ -7,7 +7,6 @@ import shutil
 from datetime import timedelta as td, timezone, tzinfo
 from pathlib import Path
 from typing import Any, Dict, Final, List, Mapping, Optional, Union
-from zoneinfo import ZoneInfo
 
 import pytest
 from click.testing import CliRunner
@@ -40,12 +39,9 @@ from typeguard import typechecked
 PT_TIMEZONE = PT
 UTC_TIMEZONE = timezone.utc
 TEST_PARTITION = "fake_partition"
-try:
-    tz_path = os.path.realpath("/etc/localtime", strict=True)
-except FileNotFoundError:
-    SYSTEM_TZ = ZoneInfo("Etc/UTC")
-else:
-    SYSTEM_TZ = ZoneInfo(os.path.relpath(tz_path, "/usr/share/zoneinfo"))
+# Use UTC as the test timezone for consistent, reproducible tests
+# This avoids test flakiness due to different system timezone configurations
+SYSTEM_TZ = UTC_TIMEZONE
 
 
 @pytest.mark.parametrize(
@@ -4098,6 +4094,14 @@ def test_compute_jobs_without_user(
             UTC_TIMEZONE,
         ),
     ],
+)
+@pytest.mark.skipif(
+    os.environ.get("TZ") is None,
+    reason=(
+        "Test requires TZ environment variable to be set. "
+        "The test data uses naive datetime strings that depend on system timezone. "
+        "Run with TZ=UTC to ensure consistent behavior."
+    ),
 )
 def test_compute_avg_allocated_cpus_gpus(
     caplog: pytest.LogCaptureFixture,

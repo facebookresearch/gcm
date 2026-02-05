@@ -22,7 +22,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.10'
+        python-version: '3.12'
 
     - uses: actions/cache@v4
       id: cache-venv
@@ -53,18 +53,13 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.12'
 
       - name: Load cached venv
         uses: actions/cache@v4
         with:
           path: ~/.cache/venv-ci
           key: ${{ env.pythonLocation }}-${{ hashFiles('dev-requirements.txt') }}
-
-      - name: Install Rust
-        run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          cp -r $HOME/.cargo/bin/* $HOME/.cache/venv-ci/bin/
 
       - name: Install build dependencies
         run: |
@@ -147,7 +142,7 @@ jobs:
           source ~/.cache/venv-ci/bin/activate
           nox -s format
 
-  pyoxidizer-build-gcm:
+  pyinstaller-build-gcm:
     needs: setup-venv
     strategy:
       matrix:
@@ -165,9 +160,9 @@ jobs:
           make release/gcm
 
       - name: Test built binary
-        run: ./build/x86_64-unknown-linux-gnu/release/install_gcm/gcm --help
+        run: ./dist/gcm/gcm --help
 
-  pyoxidizer-build-health_checks:
+  pyinstaller-build-health_checks:
     needs: setup-venv
     strategy:
       matrix:
@@ -185,4 +180,4 @@ jobs:
           make release/health_checks
 
       - name: Test built binary
-        run: ./build/x86_64-unknown-linux-gnu/release/install_hc/health_checks --help
+        run: ./dist/health_checks/health_checks --help

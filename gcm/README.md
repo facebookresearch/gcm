@@ -41,7 +41,7 @@ health_checks --help
 ## Installation
 
 ### Requirements
-- **Python 3.10+** (currently tested on 3.10, later versions should work)
+- **Python 3.12+** (currently tested on 3.12, later versions should work)
 - **NVIDIA GPUs** (for GPU monitoring features)
 - **Slurm** (for job scheduler integration)
 
@@ -61,8 +61,8 @@ git clone https://github.com/facebookresearch/gcm
 cd gcm/gcm
 
 # Create conda environment
-conda create -y --name py310 python==3.10
-conda activate py310
+conda create -y --name py312 python==3.12
+conda activate py312
 
 # Install dependencies
 pip install -r dev-requirements.txt
@@ -142,7 +142,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## Supported Python Versions
 
-Python 3.10 or greater is required. Currently only 3.10 is tested, but later versions should work as well.
+Python 3.12 or greater is required. Currently only 3.12 is tested, but later versions should work as well.
 
 ## License
 

@@ -3,6 +3,7 @@
 import logging
 import pwd
 import textwrap
+import tomllib
 import zoneinfo
 from abc import ABC, abstractmethod
 from datetime import tzinfo
@@ -21,11 +22,9 @@ from typing import (
 )
 
 import click
-
 import daemon
-import tomli
-from gcm.exporters import registry
 
+from gcm.exporters import registry
 from gcm.monitoring.coerce import ensure_dict
 from gcm.monitoring.features.features_config import FeaturesConfig
 from gcm.monitoring.passwd import Passwd
@@ -314,8 +313,8 @@ def _set_default_map(name: str) -> _ClickCallback[Path]:
         logger.info(f"Reading config from {path}...")
         with path.open("rb") as f:
             try:
-                conf = tomli.load(f)
-            except tomli.TOMLDecodeError as e:
+                conf = tomllib.load(f)
+            except tomllib.TOMLDecodeError as e:
                 # TODO: treat default differently?
                 raise click.BadParameter(
                     f"{path} does not contain valid TOML.",
