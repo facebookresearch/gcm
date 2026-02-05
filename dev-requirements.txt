@@ -202,7 +202,9 @@ cryptography==45.0.4 \
     --hash=sha256:e00a6c10a5c53979d6242f123c0a97cff9f3abed7f064fc412c36dc521b5f257 \
     --hash=sha256:eaa3e28ea2235b33220b949c5a0d6cf79baa80eab2eb5607ca8ab7525331b9ff \
     --hash=sha256:f3fe7a5ae34d5a414957cc7f457e2b92076e72938423ac64d215722f6cf49a9e
-    # via gpucm (pyproject.toml)
+    # via
+    #   gpucm (pyproject.toml)
+    #   secretstorage
 distlib==0.4.0 \
     --hash=sha256:9659f7d87e46584a30b5780e43ac7a2143098441670ff0a49d5f9034c54a6c16 \
     --hash=sha256:feec40075be03a04501a973d81f633735b4b69f98b05450592310c0f401a4e0d
@@ -340,6 +342,12 @@ jaraco-functools==4.1.0 \
     --hash=sha256:70f7e0e2ae076498e212562325e805204fc092d7b4c17e0e86c959e249701a9d \
     --hash=sha256:ad159f13428bc4acbf5541ad6dec511f91573b90fba04df61dafa2a1231cf649
     # via keyring
+jeepney==0.9.0 \
+    --hash=sha256:97e5714520c16fc0a45695e5365a2e11b81ea79bba796e26f9f1d178cb182683 \
+    --hash=sha256:cf0e9e845622b81e4a28df94c40345400256ec608d0e55bb8a3feaa9163f5732
+    # via
+    #   keyring
+    #   secretstorage
 keyring==25.7.0 \
     --hash=sha256:be4a0b195f149690c166e850609a477c532ddbfbaed96a404d4e43f8d5e2689f \
     --hash=sha256:fe01bd85eb3f8fb3dd0405defdeac9a5b4f6f0439edbb3149577f244a2e8245b
@@ -863,6 +871,10 @@ rich==14.0.0 \
     --hash=sha256:1c9491e1951aac09caffd42f448ee3d04e58923ffe14993f6e83068dc395d7e0 \
     --hash=sha256:82f1bc23a6a21ebca4ae0c45af9bdbc492ed20231dcb63f297d6d1021a9d5725
     # via twine
+secretstorage==3.5.0 \
+    --hash=sha256:0ce65888c0725fcb2c5bc0fdb8e5438eece02c523557ea40ce0703c266248137 \
+    --hash=sha256:f04b8e4689cbce351744d5537bf6b1329c6fc68f91fa666f60a380edddcd11be
+    # via keyring
 stdlibs==2025.5.10 \
     --hash=sha256:25178d9c2b45d2680292413bf59a20293355d45056ec92d32ea6ed349ce9e2a1 \
     --hash=sha256:75d55a0b7b070ec44bd7dae5bc1ee1a6cea742122fb4253313cb4ab354f7f0c5
