@@ -54,7 +54,7 @@ sacctmgr show user <username> withassoc format=User,DefaultAccount,Account,Defau
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--cluster` | String | Auto-detected | Cluster name for metadata enrichment |
-| `--sink` | String | **Required** | Sink destination, see [Exporters](../exporters) |
+| `--sink` | String | **Required** | Sink destination, see [Exporters](../exporters/README.md) |
 | `--sink-opts` | Multiple | - | Sink-specific options |
 | `--log-level` | Choice | INFO | DEBUG, INFO, WARNING, ERROR, CRITICAL |
 | `--log-folder` | String | `/var/log/fb-monitoring` | Log directory |

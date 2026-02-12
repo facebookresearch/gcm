@@ -26,7 +26,7 @@ Collectors support pluggable sinks via the `--sink` and `--sink-opts` options:
 - `stdout`: Console output
 - `otel`: OTLP-compatible backends
 
-Check out [Exporters](../exporters).
+Check out [Exporters](../exporters/README.md).
 
 ### Common CLI Options
 All collectors share these standard options:

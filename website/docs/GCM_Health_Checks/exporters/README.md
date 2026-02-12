@@ -2,7 +2,7 @@
 
 :::tip
 
-Exporters are shared between [GCM Monitoring](../../GCM_Monitoring/getting_started) and [GCM Health Checks](../../GCM_Health_Checks/getting_started).
+Exporters are shared between [GCM Monitoring](../../GCM_Monitoring/getting_started.md) and [GCM Health Checks](../getting_started.md).
 
 :::
 

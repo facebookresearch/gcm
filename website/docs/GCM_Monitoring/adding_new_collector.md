@@ -28,7 +28,7 @@ A few things to keep in mind as you're implementing a generator of dataclasses (
 - generator is good for scaling, you're not loading all the data into memory as opposed to an iterator
 - create required schemas under [gcm/schemas](https://github.com/facebookresearch/gcm/tree/main/gcm/schemas)
 
-Sink types (2) tells the exporter what type of data you're producing, see [Telemetry types supported by GCM](#telemetry-types-supported-by-gcm). The convention is that a generator (1) produces only one of the supported types.
+Sink types (2) tells the exporter what type of data you're producing, see [Telemetry types supported by GCM](telemetry_types.md). The convention is that a generator (1) produces only one of the supported types.
 
 You can call the GCM cli and confirm that this step is working:
 

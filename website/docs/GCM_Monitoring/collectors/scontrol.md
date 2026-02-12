@@ -55,7 +55,7 @@ Published with `DataType.LOG`:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--sink` | String | **Required** | Sink destination, see [Exporters](../exporters) |
+| `--sink` | String | **Required** | Sink destination, see [Exporters](../exporters/README.md) |
 | `--sink-opts` | Multiple | - | Sink-specific configuration |
 | `--stdout` | Flag | False | Display metrics to stdout in addition to logs |
 | `--interval` | Integer | 86400 | Frequency in seconds to collect data (24 hours) |
