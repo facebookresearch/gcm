@@ -3,8 +3,10 @@
 import logging
 from dataclasses import dataclass, field
 from typing import (
+    Any,
     Collection,
     Generator,
+    Hashable,
     Literal,
     Mapping,
     Optional,
@@ -56,7 +58,7 @@ def sprio_iterator(
     field_names = next(get_stdout).strip().split("|")
     for sprio_line in get_stdout:
         values = sprio_line.strip().split("|")
-        raw_data: dict[str, str] = dict(zip(field_names, values))
+        raw_data: dict[Hashable, Any] = dict(zip(field_names, values))
         sprio_row = instantiate_dataclass(SprioRow, raw_data, logger=logger)
         derived_cluster = get_derived_cluster(
             data=raw_data,

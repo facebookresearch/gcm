@@ -1,23 +1,35 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 from dataclasses import dataclass, field, fields
-
-from typing import Callable, cast, TypeVar
+from typing import Any, Callable, cast, overload, TypeVar
 
 from gcm.monitoring.coerce import maybe_float
 from gcm.schemas.slurm.derived_cluster import DerivedCluster
 
-
 T = TypeVar("T")
 
 
-def sprio_parsed_field(format_code: str, parser: Callable[[str], T] = str) -> T:
+@overload
+def sprio_parsed_field(format_code: str) -> str: ...
+
+
+@overload
+def sprio_parsed_field(format_code: str, parser: Callable[[str], T]) -> T: ...
+
+
+def sprio_parsed_field(format_code: str, parser: Callable[[str], Any] = str) -> Any:
     """Field with sprio format code and parser metadata.
 
     Combines format_code (for generating sprio command) with parser
     (for instantiate_dataclass compatibility like parsed_field).
     """
-    return cast(T, field(default=None, metadata={"format_code": format_code, "parser": parser}))
+    return cast(
+        Any,
+        field(
+            default=None,
+            metadata={"format_code": format_code, "parser": parser},
+        ),
+    )
 
 
 @dataclass
