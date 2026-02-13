@@ -31,8 +31,9 @@ def get_datetimes(date_strs: Iterable[str]) -> List[dt.datetime]:
     that are created and destroyed is O(number of dates). This function only creates and
     destroys a single subprocess given any number of dates.
     """
+    date_strs_list = list(date_strs)
     with NamedTemporaryFile("w") as f:
-        f.write("\n".join(date_strs))
+        f.write("\n".join(date_strs_list))
         f.flush()
 
         try:
@@ -45,6 +46,10 @@ def get_datetimes(date_strs: Iterable[str]) -> List[dt.datetime]:
             )
         except subprocess.CalledProcessError as e:
             raise ValueError(e.stderr) from e
+        # Some versions of GNU date -f skip invalid lines without failing.
+        # Check stderr for errors to catch these cases.
+        if p.stderr:
+            raise ValueError(p.stderr)
         date_iso_strs = p.stdout.strip().split("\n")
         return [dt.datetime.fromisoformat(s) for s in date_iso_strs]
 
