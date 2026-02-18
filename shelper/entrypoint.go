@@ -5,6 +5,7 @@ package shelper
 import (
 	"encoding/json"
 	"log"
+	"os"
 )
 
 // GetGPU2Slurm receives a Config struct and returns a map of gpu to SlurmMetadata.
@@ -26,6 +27,12 @@ func GetGPU2Slurm(cfg *Config) (map[string]SlurmMetadata, []string, error) {
 		// T239461118: Extract jobIDs from GPU2Slurm
 		GetGPU2SlurmFromNvml(GPU2Slurm)
 	case SlurmCtld:
+		// On V3 clusters, the OS hostname is the K8s node name (e.g. "g843068")
+		// which doesn't match slurm's NodeList (e.g. "cw-h100-220-037").
+		// Use SLURMD_NODENAME when set for correct job-to-GPU attribution.
+		if slurmNodeName := os.Getenv("SLURMD_NODENAME"); slurmNodeName != "" {
+			hostname = slurmNodeName
+		}
 		_, jobIDs, err = GetJob2Pid()
 		if err != nil {
 			return GPU2Slurm, jobIDs, err
