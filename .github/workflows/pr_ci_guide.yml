@@ -1,6 +1,6 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
-name: PR Welcome Comment
+name: PR CI Guide
 
 on:
   pull_request_target:
@@ -10,7 +10,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  welcome-comment:
+  post-ci-guide:
     runs-on: ubuntu-latest
     steps:
       - name: Post CI commands guide
