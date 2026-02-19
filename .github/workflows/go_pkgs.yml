@@ -2,7 +2,7 @@
 # All rights reserved.
 name: Go packages CI
 
-on: push
+on: [push, pull_request]
 
 permissions:
   contents: read
