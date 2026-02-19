@@ -35,7 +35,7 @@ jobs:
             | \`/metaci tests\` | Runs Meta internal integration tests (pytest) | Yes — a maintainer must trigger the command **and** approve the [deployment request](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/workflows/meta_internal.yml) |
             | \`/metaci integration tests\` | Same as above (alias) | Yes |
 
-            > **Note:** Only repository maintainers (\`OWNER\` association) can trigger \`/metaci\` commands. After commenting the command, a maintainer must also navigate to the [Actions tab](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/workflows/meta_internal.yml) and approve the deployment to the \`graph-api-access\` environment before the jobs will run.
+            > **Note:** Only repository maintainers (\`OWNER\` association) can trigger \`/metaci\` commands. After commenting the command, a maintainer must also navigate to the [Actions tab](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/workflows/meta_internal.yml) and approve the deployment to the \`graph-api-access\` environment before the jobs will run. See the [approval guidelines](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/.github/workflows/meta_internal.yml#L17-L25) for what to approve or reject.
             `;
 
             await github.rest.issues.createComment({
