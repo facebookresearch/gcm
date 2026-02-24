@@ -19,6 +19,8 @@ class HealthCheckName(Enum):
     HCA_COUNT = "hca count"
     DISK_USAGE = "disk usage"
     DISK_SIZE = "disk size"
+    MCE_ERRORS = "mce errors"
+    PCIE_AER_ERRORS = "pcie aer errors"
     MOUNTED_DIR = "mounted directory"
     FILE_EXISTS = "file exists check"
     DIR_EXISTS = "directory exists check"

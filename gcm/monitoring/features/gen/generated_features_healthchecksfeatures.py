@@ -231,6 +231,34 @@ class FeatureValueHealthChecksFeatures:
             )
         return value
 
+    def get_healthchecksfeatures_disable_mce_errors(self) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_mce_errors", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_mce_errors, got {type(value).__name__} instead."
+            )
+        return value
+
+    def get_healthchecksfeatures_disable_pcie_aer_errors(self) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_pcie_aer_errors", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_pcie_aer_errors, got {type(value).__name__} instead."
+            )
+        return value
+
     def get_healthchecksfeatures_disable_disk_size(self) -> bool:
         try:
             features = self.load_config()

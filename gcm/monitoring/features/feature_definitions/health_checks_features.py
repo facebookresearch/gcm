@@ -16,6 +16,8 @@ class HealthChecksFeatures:
     disable_hca_count: bool
     disable_disk_usage: bool
     disable_disk_size: bool
+    disable_mce_errors: bool
+    disable_pcie_aer_errors: bool
     disable_mounted_dir: bool
     disable_file_exists: bool
     disable_dir_exists: bool
