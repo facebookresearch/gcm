@@ -17,6 +17,7 @@ This directory contains documentation for all GCM monitoring collectors. Collect
 - **[slurm_job_monitor](slurm_job_monitor.md)** - Real-time node and job monitoring
 - **[slurm_monitor](slurm_monitor.md)** - Comprehensive cluster-wide metrics aggregation
 - **[sprio](sprio.md)** - Collects job priority factors for pending jobs
+- **[sshare](sshare.md)** - Collects fair-share scheduling data
 
 ## Common Concepts
 

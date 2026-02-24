@@ -21,6 +21,7 @@ from gcm.monitoring.cli import (
     slurm_job_monitor,
     slurm_monitor,
     sprio,
+    sshare,
     storage,
 )
 from gcm.monitoring.click import DaemonGroup, detach_option, toml_config_option
@@ -46,6 +47,7 @@ main.add_command(sacct_backfill.main, name="sacct_backfill")
 main.add_command(scontrol.main, name="scontrol")
 main.add_command(scontrol_config.main, name="scontrol_config")
 main.add_command(sprio.main, name="sprio")
+main.add_command(sshare.main, name="sshare")
 main.add_command(storage.main, name="storage")
 
 if __name__ == "__main__":

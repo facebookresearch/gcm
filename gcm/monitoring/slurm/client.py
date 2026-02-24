@@ -131,6 +131,14 @@ class SlurmClient(Protocol):
         If an error occurs during execution, RuntimeError should be raised.
         """
 
+    def sshare(self) -> Iterable[str]:
+        """Get lines of sshare output showing fair-share data.
+        Each line should be pipe separated.
+        The first line defines the fieldnames. The rest are the rows.
+        Lines should not have a trailing newline.
+        If an error occurs during execution, RuntimeError should be raised.
+        """
+
 
 class SlurmCliClient(SlurmClient):
     def __init__(
@@ -406,3 +414,6 @@ class SlurmCliClient(SlurmClient):
         yield from _gen_lines(
             self.__popen(["sprio", "-h", "--sort=r,-y", "-o", SPRIO_FORMAT_SPEC])
         )
+
+    def sshare(self) -> Iterable[str]:
+        return _gen_lines(self.__popen(["sshare", "-a", "-P"]))
