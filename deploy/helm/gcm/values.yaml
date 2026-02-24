@@ -1,0 +1,96 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# Default values for gcm Helm chart.
+
+# -- Container image configuration
+image:
+  repository: ghcr.io/facebookresearch/gcm
+  tag: ""  # defaults to appVersion
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# -- Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# -- Pod-level security context (shared by all components)
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+
+# -- Container-level security context (shared by all components)
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# -- Monitoring collector (DaemonSet) configuration
+monitoring:
+  enabled: true
+  # Sink for collected metrics (e.g. "otel://localhost:4317")
+  sink: ""
+  # Cluster name reported in metrics
+  cluster: ""
+  # Collection interval in seconds
+  interval: 60
+  # Additional CLI arguments passed to `gcm`
+  extraArgs: []
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  # Node selector for scheduling
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  # -- Host paths to mount for Slurm / GPU access
+  hostPaths:
+    # Path to Slurm binaries on the host
+    slurm: /usr/bin
+    # Path to NVIDIA device files
+    nvidiaDevices: /dev/nvidia0
+
+# -- Health checks (CronJob) configuration
+healthChecks:
+  enabled: true
+  # Cron schedule expression (default: every 15 minutes)
+  schedule: "*/15 * * * *"
+  # Sink for health check results
+  sink: ""
+  # Cluster name reported in health check results
+  cluster: ""
+  # Additional CLI arguments passed to `health_checks`
+  extraArgs: []
+  # Prevent overlapping health check runs
+  concurrencyPolicy: Forbid
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  nodeSelector: {}
+  tolerations: []
+
+  # Number of successful/failed job runs to keep
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3

@@ -1,0 +1,70 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+name: Docker Image CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - 'docker/**'
+      - 'gcm/**'
+      - 'pyproject.toml'
+      - 'requirements.txt'
+      - '.github/workflows/docker.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-gcm:
+    strategy:
+      matrix:
+        platform: [linux/amd64, linux/arm64]
+        exclude:
+          # arm64 QEMU builds are slow; only run on push to main
+          - platform: ${{ github.event_name == 'pull_request' && 'linux/arm64' || 'exclude-nothing' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Build GCM image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile.gcm
+          platforms: ${{ matrix.platform }}
+          push: false
+          tags: gcm:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  helm-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.17.0
+
+      - name: Lint Helm chart
+        run: helm lint deploy/helm/gcm
+
+      - name: Template Helm chart
+        run: |
+          helm template test-release deploy/helm/gcm \
+            --set monitoring.sink=stdout \
+            --set monitoring.cluster=test \
+            --set healthChecks.sink=stdout \
+            --set healthChecks.cluster=test

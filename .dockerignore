@@ -1,0 +1,41 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+
+# Version control
+.git
+.gitignore
+
+# Build artifacts
+build/
+dist/
+*.egg-info
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.mypy_cache
+.venv
+.tox
+.nox
+.eggs
+
+# Development
+dev-requirements.txt
+noxfile.py
+mypy.ini
+stubs/
+Vagrantfile
+
+# Node / website
+node_modules
+website/
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store

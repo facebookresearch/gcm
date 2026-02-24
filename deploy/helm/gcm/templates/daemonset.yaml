@@ -1,0 +1,86 @@
+{{/*
+Copyright (c) Meta Platforms, Inc. and affiliates.
+All rights reserved.
+*/}}
+{{- if .Values.monitoring.enabled -}}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "gcm.fullname" . }}-monitoring
+  labels:
+    {{- include "gcm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    matchLabels:
+      {{- include "gcm.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: monitoring
+  template:
+    metadata:
+      labels:
+        {{- include "gcm.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: monitoring
+    spec:
+      serviceAccountName: {{ include "gcm.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: gcm
+          image: {{ include "gcm.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          command:
+            - gcm
+          args:
+            {{- if .Values.monitoring.sink }}
+            - --sink
+            - {{ .Values.monitoring.sink | quote }}
+            {{- end }}
+            {{- if .Values.monitoring.cluster }}
+            - --cluster
+            - {{ .Values.monitoring.cluster | quote }}
+            {{- end }}
+            {{- if .Values.monitoring.interval }}
+            - --interval
+            - {{ .Values.monitoring.interval | quote }}
+            {{- end }}
+            {{- range .Values.monitoring.extraArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "gcm.fullname" . }}
+          resources:
+            {{- toYaml .Values.monitoring.resources | nindent 12 }}
+          volumeMounts:
+            - name: slurm-bin
+              mountPath: /usr/local/slurm/bin
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: slurm-bin
+          hostPath:
+            path: {{ .Values.monitoring.hostPaths.slurm }}
+            type: Directory
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+      {{- with .Values.monitoring.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.monitoring.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.monitoring.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
