@@ -135,6 +135,11 @@ const config = {
             label: 'Discussions',
             position: 'right',
           },
+          {
+            href: 'https://discord.gg/PwUaeyxw',
+            label: 'Discord',
+            position: 'right',
+          },
         ],
       },
       footer: {
@@ -167,6 +172,10 @@ const config = {
               {
                 label: 'Discussions',
                 href: 'https://github.com/facebookresearch/gcm/discussions',
+              },
+              {
+                label: 'Discord',
+                href: 'https://discord.gg/PwUaeyxw',
               },
             ],
           },
