@@ -45,7 +45,7 @@ class SprioRow:
     Uses sprio_parsed_field which is compatible with instantiate_dataclass().
     """
 
-    JOBID: float | None = sprio_parsed_field("%i", parser=maybe_float)
+    JOBID_RAW: str | None = sprio_parsed_field("%i")
     PARTITION: str | None = sprio_parsed_field("%r")
     USER: str | None = sprio_parsed_field("%u")
     ACCOUNT: str | None = sprio_parsed_field("%o")
