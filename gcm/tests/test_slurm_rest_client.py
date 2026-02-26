@@ -1,0 +1,314 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+from unittest.mock import create_autospec, MagicMock
+
+import pytest
+import requests
+from gcm.monitoring.slurm.rest_client import SlurmRestClient
+from gcm.schemas.slurm.sdiag import Sdiag
+
+
+class TestSlurmRestClient:
+    def _make_client(
+        self,
+        session: requests.Session,
+        token: str | None = None,
+    ) -> SlurmRestClient:
+        return SlurmRestClient(
+            base_url="http://slurm.example.com",
+            token=token,
+            session=session,
+        )
+
+    def _mock_response(self, json_data: dict, status_code: int = 200) -> MagicMock:
+        response = MagicMock()
+        response.status_code = status_code
+        response.json.return_value = json_data
+        return response
+
+    def test_sinfo_returns_pipe_delimited_lines(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        session.get.return_value = self._mock_response(
+            {
+                "nodes": [
+                    {
+                        "name": "node01",
+                        "state": "idle",
+                        "cpus": 64,
+                        "memory": 256000,
+                    },
+                    {
+                        "name": "node02",
+                        "state": "allocated",
+                        "cpus": 128,
+                        "memory": 512000,
+                    },
+                ]
+            }
+        )
+
+        client = self._make_client(session)
+        lines = list(client.sinfo())
+
+        assert len(lines) == 3
+        assert lines[0] == "name|state|cpus|memory"
+        assert lines[1] == "node01|idle|64|256000"
+        assert lines[2] == "node02|allocated|128|512000"
+
+    def test_sinfo_empty_returns_empty(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        session.get.return_value = self._mock_response({"nodes": []})
+
+        client = self._make_client(session)
+        lines = list(client.sinfo())
+
+        assert lines == []
+
+    def test_sdiag_structured_returns_sdiag(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        session.get.return_value = self._mock_response(
+            {
+                "statistics": {
+                    "server_thread_count": 5,
+                    "agent_queue_size": 0,
+                    "agent_count": 2,
+                    "agent_thread_count": 4,
+                    "dbd_agent_queue_size": 1,
+                    "schedule_cycle_max": 100,
+                    "schedule_cycle_mean": 50,
+                    "schedule_cycle_sum": 500,
+                    "schedule_cycle_total": 10,
+                    "schedule_cycle_per_minute": 6,
+                    "schedule_queue_length": 20,
+                    "jobs_submitted": 1000,
+                    "jobs_started": 900,
+                    "jobs_completed": 800,
+                    "jobs_canceled": 50,
+                    "jobs_failed": 30,
+                    "jobs_pending": 100,
+                    "jobs_running": 70,
+                    "bf_backfilled_jobs": 200,
+                    "bf_cycle_mean": 10,
+                    "bf_cycle_sum": 100,
+                    "bf_cycle_max": 50,
+                    "bf_queue_len": 15,
+                }
+            }
+        )
+
+        client = self._make_client(session)
+        result = client.sdiag_structured()
+
+        assert isinstance(result, Sdiag)
+        assert result.server_thread_count == 5
+        assert result.agent_queue_size == 0
+        assert result.agent_count == 2
+        assert result.sdiag_jobs_submitted == 1000
+        assert result.sdiag_jobs_running == 70
+        assert result.bf_backfilled_jobs == 200
+        assert result.schedule_cycle_max == 100
+
+    def test_sshare_returns_pipe_delimited_lines(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        session.get.return_value = self._mock_response(
+            {
+                "shares": {
+                    "shares": [
+                        {
+                            "name": "research",
+                            "user": "alice",
+                            "shares": {"raw": 100, "normalized": 0.5},
+                            "usage": {"raw": 50000, "normalized": 0.3},
+                            "fairshare": {"factor": 0.8},
+                        },
+                        {
+                            "name": "engineering",
+                            "user": "bob",
+                            "shares": {"raw": 200, "normalized": 0.7},
+                            "usage": {"raw": 30000, "normalized": 0.2},
+                            "fairshare": {"factor": 0.9},
+                        },
+                    ]
+                }
+            }
+        )
+
+        client = self._make_client(session)
+        lines = list(client.sshare())
+
+        assert len(lines) == 3
+        assert (
+            lines[0] == "Account|User|RawShares|NormShares|RawUsage|NormUsage|FairShare"
+        )
+        assert lines[1] == "research|alice|100|0.5|50000|0.3|0.8"
+        assert lines[2] == "engineering|bob|200|0.7|30000|0.2|0.9"
+
+    def test_sshare_empty_returns_empty(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        session.get.return_value = self._mock_response({"shares": {"shares": []}})
+
+        client = self._make_client(session)
+        lines = list(client.sshare())
+
+        assert lines == []
+
+    def test_sacctmgr_qos_returns_pipe_delimited_lines(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        session.get.return_value = self._mock_response(
+            {
+                "qos": [
+                    {"name": "normal", "priority": 10, "max_wall": 86400},
+                    {"name": "high", "priority": 100, "max_wall": 172800},
+                ]
+            }
+        )
+
+        client = self._make_client(session)
+        lines = list(client.sacctmgr_qos())
+
+        assert len(lines) == 3
+        assert lines[0] == "name|priority|max_wall"
+        assert lines[1] == "normal|10|86400"
+        assert lines[2] == "high|100|172800"
+
+    def test_sacctmgr_user_returns_pipe_delimited_lines(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        session.get.return_value = self._mock_response(
+            {
+                "users": [
+                    {"name": "alice"},
+                    {"name": "bob"},
+                    {"name": "charlie"},
+                ]
+            }
+        )
+
+        client = self._make_client(session)
+        lines = list(client.sacctmgr_user())
+
+        assert len(lines) == 3
+        assert lines[0] == "alice"
+        assert lines[1] == "bob"
+        assert lines[2] == "charlie"
+
+    def test_sprio_not_implemented(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        client = self._make_client(session)
+
+        with pytest.raises(NotImplementedError, match="sprio"):
+            client.sprio()
+
+    def test_count_runaway_not_implemented(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        client = self._make_client(session)
+
+        with pytest.raises(NotImplementedError, match="count_runaway_jobs"):
+            client.count_runaway_jobs()
+
+    def test_auth_token_header(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        session.headers = {}
+        client = self._make_client(session, token="test-jwt-token-123")
+
+        assert session.headers["X-SLURM-USER-TOKEN"] == "test-jwt-token-123"
+        assert client.session is session
+
+    def test_request_error_raises_runtime_error(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        session.get.return_value = self._mock_response(
+            {"error": "internal server error"}, status_code=500
+        )
+
+        client = self._make_client(session)
+
+        with pytest.raises(RuntimeError, match="500"):
+            # sinfo is a generator; must iterate to trigger _get()
+            list(client.sinfo())
+
+    def test_sinfo_structured_returns_sinfo(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        session.get.return_value = self._mock_response(
+            {
+                "nodes": [
+                    {
+                        "name": "gpu-node-01",
+                        "alloc_cpus": 32,
+                        "cpus": 64,
+                        "gres": "gpu:a100:8",
+                        "gres_used": "gpu:a100:4",
+                        "state": "mixed",
+                        "partitions": ["gpu", "default"],
+                    },
+                ]
+            }
+        )
+
+        client = self._make_client(session)
+        result = client.sinfo_structured()
+
+        assert len(list(result.nodes)) == 1
+        node = list(result.nodes)[0]
+        assert node.name == "gpu-node-01"
+        assert node.alloc_cpus == 32
+        assert node.total_cpus == 64
+        assert node.gres == "gpu:a100:8"
+        assert node.state == "mixed"
+        assert node.partition == "gpu"
+
+    def test_scontrol_partition_returns_key_value_lines(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        session.get.return_value = self._mock_response(
+            {
+                "partitions": [
+                    {
+                        "name": "gpu",
+                        "state": "UP",
+                        "total_nodes": 10,
+                    },
+                ]
+            }
+        )
+
+        client = self._make_client(session)
+        lines = list(client.scontrol_partition())
+
+        assert len(lines) == 1
+        assert "name=gpu" in lines[0]
+        assert "state=UP" in lines[0]
+
+    def test_sacctmgr_user_info_returns_user_details(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        session.get.return_value = self._mock_response(
+            {
+                "users": [
+                    {
+                        "name": "alice",
+                        "default": {
+                            "account": "research",
+                            "qos": "normal",
+                        },
+                        "associations": [
+                            {
+                                "account": "research",
+                                "qos": ["normal", "high"],
+                            },
+                        ],
+                    }
+                ]
+            }
+        )
+
+        client = self._make_client(session)
+        lines = list(client.sacctmgr_user_info("alice"))
+
+        assert len(lines) == 2
+        assert lines[0] == "User|DefaultAccount|Account|DefaultQOS|QOS"
+        assert lines[1] == "alice|research|research|normal|normal,high"
+
+    def test_base_url_trailing_slash_stripped(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        client = SlurmRestClient(
+            base_url="http://slurm.example.com/",
+            session=session,
+        )
+        assert client.base_url == "http://slurm.example.com"
