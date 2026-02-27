@@ -1,7 +1,17 @@
 # mce
 
 ## Overview
-Detects Machine Check Exception (MCE) errors by searching dmesg for `mce:` patterns. MCE errors indicate CPU or memory hardware issues that may affect system stability.
+Detects Machine Check Exception (MCE) errors by searching dmesg for MCE-related patterns. MCE errors indicate CPU or memory hardware issues that may affect system stability.
+
+Lines are classified by severity using pattern matching against known Linux kernel MCE log formats:
+
+| Severity | Patterns | Examples |
+|----------|----------|----------|
+| **Critical** | `[Hardware Error]`, `Machine Check Exception`, `Uncorrected error`, `Fatal error`, `Processor context corrupt` | `mce: [Hardware Error]: CPU 0: Machine Check Exception: 5 Bank 9` |
+| **Warning** | `Corrected error`, `temperature above threshold`, `cpu clock throttled`, `CMCI storm` | `mce: CPU0: 1 Corrected error(s) detected. Check CMCI storm count.` |
+| **Informational** | `temperature.*normal`, `CPU is offline`, `Disabling lock` | `mce: CPU0: Core temperature/speed normal` |
+
+Unrecognized `mce:` lines default to **Warning** for safety.
 
 ## Command-Line Options
 
@@ -21,8 +31,10 @@ Detects Machine Check Exception (MCE) errors by searching dmesg for `mce:` patte
 |-----------|-----------|
 | **OK (0)** | Feature flag disabled (killswitch active) |
 | **OK (0)** | No MCE errors detected |
+| **OK (0)** | Only informational MCE events (e.g., temperature back to normal) |
 | **WARN (1)** | Command execution failed |
-| **CRITICAL (2)** | MCE errors detected |
+| **WARN (1)** | Corrected errors or thermal throttling detected |
+| **CRITICAL (2)** | Hardware errors or uncorrected MCE events detected |
 
 ## Usage Examples
 

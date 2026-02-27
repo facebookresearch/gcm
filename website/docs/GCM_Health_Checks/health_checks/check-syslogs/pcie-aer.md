@@ -1,7 +1,15 @@
 # pcie-aer
 
 ## Overview
-Detects PCIe Advanced Error Reporting (AER) errors by searching dmesg for `AER.*error` patterns. PCIe AER errors can indicate GPU communication issues on the PCIe bus. Distinguishes between correctable and uncorrectable errors for severity classification.
+Detects PCIe Advanced Error Reporting (AER) errors by searching dmesg for `AER.*error` patterns. PCIe AER errors can indicate GPU communication issues on the PCIe bus.
+
+Lines are classified by severity using pattern matching against known Linux kernel PCIe AER log formats:
+
+| Severity | Patterns | Examples |
+|----------|----------|----------|
+| **Critical** | `Uncorrectable (Fatal)`, `can't recover` | `pcieport 0000:00:03.0: AER: Uncorrectable (Fatal) error received` |
+| **Warning** | `Uncorrectable` (non-fatal) | `pcieport 0000:00:02.0: AER: Uncorrectable (Non-Fatal) error received` |
+| **Informational** | `Corrected error` | `pcieport 0000:00:01.0: AER: Corrected error received: 0000:01:00.0` |
 
 ## Command-Line Options
 
@@ -21,9 +29,10 @@ Detects PCIe Advanced Error Reporting (AER) errors by searching dmesg for `AER.*
 |-----------|-----------|
 | **OK (0)** | Feature flag disabled (killswitch active) |
 | **OK (0)** | No PCIe AER errors detected |
+| **OK (0)** | Only corrected PCIe AER errors (hardware auto-recovered) |
 | **WARN (1)** | Command execution failed |
-| **WARN (1)** | Corrected PCIe AER errors detected |
-| **CRITICAL (2)** | Uncorrectable PCIe AER errors detected |
+| **WARN (1)** | Uncorrectable non-fatal PCIe AER errors detected |
+| **CRITICAL (2)** | Fatal PCIe AER errors or unrecoverable device state |
 
 ## Usage Examples
 
