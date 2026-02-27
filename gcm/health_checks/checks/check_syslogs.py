@@ -12,13 +12,9 @@ from typing import Collection, List, Optional, Protocol, Tuple
 
 import click
 import gni_lib
-from gcm.health_checks.check_utils.mce_severity import (
-    classify_lines,
-    classify_mce_line,
-    classify_pcie_aer_line,
-    MceSeverity,
-)
+from gcm.health_checks.check_utils.mce_severity import classify_lines, classify_mce_line
 from gcm.health_checks.check_utils.output_context_manager import OutputContext
+from gcm.health_checks.check_utils.pcie_severity import classify_pcie_aer_line
 from gcm.health_checks.check_utils.telem import TelemetryContext
 from gcm.health_checks.check_utils.xid_error_codes import ErrorCause
 from gcm.health_checks.click import (
@@ -211,9 +207,9 @@ def process_mce_output(output: str, error_code: int) -> Tuple[ExitCode, str]:
         return ExitCode.OK, "No MCE errors detected."
 
     by_severity = classify_lines(output, classify_mce_line)
-    critical = len(by_severity[MceSeverity.CRITICAL])
-    warn = len(by_severity[MceSeverity.WARN])
-    info = len(by_severity[MceSeverity.INFO])
+    critical = len(by_severity[ExitCode.CRITICAL])
+    warn = len(by_severity[ExitCode.WARN])
+    info = len(by_severity[ExitCode.OK])
 
     parts: List[str] = []
     if critical:
@@ -226,19 +222,14 @@ def process_mce_output(output: str, error_code: int) -> Tuple[ExitCode, str]:
     total = critical + warn + info
     detail = ", ".join(parts)
 
-    if critical > 0:
-        return (
-            ExitCode.CRITICAL,
-            f"{total} MCE event(s) detected ({detail}).",
-        )
+    exit_code = ExitCode.OK
     if warn > 0:
-        return (
-            ExitCode.WARN,
-            f"{total} MCE event(s) detected ({detail}).",
-        )
+        exit_code = ExitCode.WARN
+    if critical > 0:
+        exit_code = ExitCode.CRITICAL
     return (
-        ExitCode.OK,
-        f"{total} MCE informational event(s) detected ({detail}).",
+        exit_code,
+        f"{total} MCE event(s) detected ({detail}).",
     )
 
 
@@ -252,9 +243,9 @@ def process_pcie_aer_output(output: str, error_code: int) -> Tuple[ExitCode, str
         return ExitCode.OK, "No PCIe AER errors detected."
 
     by_severity = classify_lines(output, classify_pcie_aer_line)
-    critical = len(by_severity[MceSeverity.CRITICAL])
-    warn = len(by_severity[MceSeverity.WARN])
-    info = len(by_severity[MceSeverity.INFO])
+    critical = len(by_severity[ExitCode.CRITICAL])
+    warn = len(by_severity[ExitCode.WARN])
+    info = len(by_severity[ExitCode.OK])
 
     parts: List[str] = []
     if critical:
@@ -267,19 +258,14 @@ def process_pcie_aer_output(output: str, error_code: int) -> Tuple[ExitCode, str
     total = critical + warn + info
     detail = ", ".join(parts)
 
-    if critical > 0:
-        return (
-            ExitCode.CRITICAL,
-            f"{total} PCIe AER error(s) detected ({detail}).",
-        )
+    exit_code = ExitCode.OK
     if warn > 0:
-        return (
-            ExitCode.WARN,
-            f"{total} PCIe AER error(s) detected ({detail}).",
-        )
+        exit_code = ExitCode.WARN
+    if critical > 0:
+        exit_code = ExitCode.CRITICAL
     return (
-        ExitCode.OK,
-        f"{total} PCIe AER corrected event(s) detected ({detail}).",
+        exit_code,
+        f"{total} PCIe AER error(s) detected ({detail}).",
     )
 
 

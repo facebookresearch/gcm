@@ -12,6 +12,7 @@ from gcm.health_checks.checks.check_syslogs import (
     process_mce_output,
     process_pcie_aer_output,
 )
+
 from gcm.health_checks.subprocess import PipedShellCommandOut, ShellCommandOut
 from gcm.health_checks.types import ExitCode
 from gcm.tests.fakes import FakeShellCommandOut
@@ -282,7 +283,7 @@ class TestProcessPcieAerOutput:
             with_mce_info_only,
             (
                 ExitCode.OK,
-                "1 MCE informational event(s) detected (1 informational).",
+                "1 MCE event(s) detected (1 informational).",
             ),
         ),
     ],
@@ -322,7 +323,7 @@ def test_mce(
             with_pcie_corrected_errors,
             (
                 ExitCode.OK,
-                "1 PCIe AER corrected event(s) detected (1 corrected).",
+                "1 PCIe AER error(s) detected (1 corrected).",
             ),
         ),
         (
