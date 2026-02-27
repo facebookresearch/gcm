@@ -6,7 +6,6 @@ from typing import Optional, Protocol, runtime_checkable, TypeVar
 
 from gcm.schemas.log import Log
 
-
 TIn_contra = TypeVar("TIn_contra", contravariant=True)
 
 
@@ -21,6 +20,8 @@ class DataIdentifier(Enum):
     STATVFS = auto()
     PURE = auto()
     GENERIC = auto()
+    K8S_POD = auto()
+    K8S_NODE = auto()
 
 
 @dataclass
