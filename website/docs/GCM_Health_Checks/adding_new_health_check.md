@@ -200,7 +200,37 @@ class HealthCheckName(Enum):
     YOUR_CHECK = "your check"
 ```
 
-## 6. Write tests
+## 6. Add the killswitch feature flag
+
+Every check must have a killswitch that allows disabling it remotely without a code deploy. Add a new boolean field to [`gcm/monitoring/features/feature_definitions/health_checks_features.py`](https://github.com/facebookresearch/gcm/blob/main/gcm/monitoring/features/feature_definitions/health_checks_features.py):
+
+```python
+class HealthChecksFeatures:
+    ...
+    disable_your_check: bool
+```
+
+After adding the field, regenerate the feature value class and format it:
+
+```shell
+python bin/generate_features.py
+ufmt format gcm
+```
+
+This generates the `FeatureValueHealthChecksFeatures` class with a `get_healthchecksfeatures_disable_your_check()` method, which you use in the Click command (see step 4). The killswitch pattern in the command body should be:
+
+```python
+ff = FeatureValueHealthChecksFeatures()
+if ff.get_healthchecksfeatures_disable_your_check():
+    exit_code = ExitCode.OK
+    msg = f"{HealthCheckName.YOUR_CHECK.value} is disabled by killswitch."
+    logger.info(msg)
+    sys.exit(exit_code.value)
+```
+
+Killswitch tests are centralized in [`test_killswitches.py`](https://github.com/facebookresearch/gcm/blob/main/gcm/tests/health_checks_tests/test_killswitches.py) — add your check there as well.
+
+## 7. Write tests
 
 Create `gcm/tests/health_checks_tests/test_check_example.py`. Tests follow a consistent pattern:
 
@@ -277,7 +307,20 @@ class TestProcessExampleOutput:
         assert exit_code == ExitCode.CRITICAL
 ```
 
-## 7. Verify
+## 8. Add website documentation
+
+Create a documentation page for your check under [`website/docs/GCM_Health_Checks/health_checks/`](https://github.com/facebookresearch/gcm/tree/main/website/docs/GCM_Health_Checks/health_checks). A template is available at [`check-example.md`](health_checks/check-example.md) — copy it and fill in your check's details.
+
+The page should include:
+- **Overview**: What the check does and what system aspect it monitors
+- **Requirements** (if any): External tools, packages, or hardware needed
+- **Command-Line Options**: Table of check-specific options (common options are inherited)
+- **Exit Conditions**: Table mapping exit codes to specific conditions
+- **Usage Examples**: Basic and telemetry-enabled invocation examples
+
+For checks that are part of a group (sub-commands), create a folder instead of a single file (e.g. `check-syslogs/` with a `README.md` and one page per sub-command).
+
+## 9. Verify
 
 Run the full validation suite before submitting your PR:
 
@@ -290,7 +333,7 @@ nox -s typecheck # mypy type checking
 
 ## How to test a new health check
 
-1. **Unit tests**: Follow step 6 above. Run with `nox -s tests` or directly: `pytest gcm/tests/health_checks_tests/test_check_example.py -v`
+1. **Unit tests**: Follow step 7 above. Run with `nox -s tests` or directly: `pytest gcm/tests/health_checks_tests/test_check_example.py -v`
 2. **Cluster execution**: Deploy the check and run it with `--sink=do_nothing` to verify it works against real system commands. Check the log files for execution details.
 
 ## Quick reference
@@ -302,7 +345,10 @@ nox -s typecheck # mypy type checking
 | Subprocess utilities | [`gcm/health_checks/subprocess.py`](https://github.com/facebookresearch/gcm/blob/main/gcm/health_checks/subprocess.py) |
 | Exit codes & types | [`gcm/health_checks/types.py`](https://github.com/facebookresearch/gcm/blob/main/gcm/health_checks/types.py) |
 | Check name enum | [`gcm/schemas/health_check/health_check_name.py`](https://github.com/facebookresearch/gcm/blob/main/gcm/schemas/health_check/health_check_name.py) |
+| Feature flags (killswitches) | [`gcm/monitoring/features/feature_definitions/health_checks_features.py`](https://github.com/facebookresearch/gcm/blob/main/gcm/monitoring/features/feature_definitions/health_checks_features.py) |
 | CLI entry point | [`gcm/health_checks/cli/health_checks.py`](https://github.com/facebookresearch/gcm/blob/main/gcm/health_checks/cli/health_checks.py) |
+| Check documentation | [`website/docs/GCM_Health_Checks/health_checks/`](https://github.com/facebookresearch/gcm/tree/main/website/docs/GCM_Health_Checks/health_checks) |
+| Documentation template | [`check-example.md`](health_checks/check-example.md) |
 | Test fakes | [`gcm/tests/fakes.py`](https://github.com/facebookresearch/gcm/blob/main/gcm/tests/fakes.py) |
 | Output utilities | [`gcm/health_checks/check_utils/output_utils.py`](https://github.com/facebookresearch/gcm/blob/main/gcm/health_checks/check_utils/output_utils.py) |
 | Telemetry context | [`gcm/health_checks/check_utils/telem.py`](https://github.com/facebookresearch/gcm/blob/main/gcm/health_checks/check_utils/telem.py) |
