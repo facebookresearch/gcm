@@ -22,14 +22,14 @@ class KubernetesApiClient(KubernetesClient):
 
     def __init__(self, *, in_cluster: bool = True) -> None:
         try:
-            import kubernetes  # noqa: F401
+            import kubernetes  # type: ignore[import-not-found]  # noqa: F401
         except ImportError:
             raise RuntimeError(
                 "The 'kubernetes' package is required for KubernetesApiClient. "
                 "Install it with: pip install 'gpucm[kubernetes]'"
             )
 
-        from kubernetes import client, config
+        from kubernetes import client, config  # type: ignore[import-not-found]
 
         if in_cluster:
             config.load_incluster_config()
