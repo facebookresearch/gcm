@@ -3,7 +3,7 @@
 ## Overview
 Detects PCIe Advanced Error Reporting (AER) errors by searching dmesg for `AER.*error` patterns. PCIe AER errors can indicate GPU communication issues on the PCIe bus.
 
-Lines are classified by severity using pattern matching against known Linux kernel PCIe AER log formats (source of truth: [`pcie_severity.py`](../../../../gcm/health_checks/check_utils/pcie_severity.py)):
+Lines are classified by severity using pattern matching against known Linux kernel PCIe AER log formats (source of truth: [`pcie_severity.py`](https://github.com/facebookresearch/gcm/blob/main/gcm/health_checks/check_utils/pcie_severity.py)):
 
 | Severity | Patterns | Examples |
 |----------|----------|----------|
