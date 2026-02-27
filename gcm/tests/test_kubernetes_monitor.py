@@ -8,7 +8,6 @@ from gcm.monitoring.cli.kubernetes_monitor import (
     collect_node_conditions,
     collect_pod_metrics,
 )
-from gcm.monitoring.clock import Clock
 from gcm.monitoring.kubernetes.client import KubernetesClient
 from gcm.monitoring.kubernetes.fake_client import KubernetesFakeClient
 from gcm.monitoring.sink.protocol import SinkImpl
@@ -20,22 +19,24 @@ from gcm.schemas.kubernetes.node import (
 from gcm.schemas.kubernetes.pod import KubernetesPodPayload, KubernetesPodRow
 
 
-class FakeClock(Clock):
+@dataclass
+class FakeClock:
+    _unixtime: int = 1740700000
+    _monotonic: float = 0.0
+
     def unixtime(self) -> int:
-        return 1740700000
+        return self._unixtime
 
+    def monotonic(self) -> float:
+        return self._monotonic
 
-class FakeSink:
-    def __init__(self) -> None:
-        self.data: list[object] = []
-
-    def write(self, data: object, additional_params: object) -> None:
-        self.data.append(data)
+    def sleep(self, duration_sec: float) -> None:
+        self._monotonic += max(0.0, duration_sec)
 
 
 @dataclass
 class FakeCliObject:
-    clock: Clock = field(default_factory=FakeClock)
+    clock: FakeClock = field(default_factory=FakeClock)
     kubernetes_client: KubernetesClient = field(default_factory=KubernetesFakeClient)
     registry: Mapping[str, Factory[SinkImpl]] = field(default_factory=dict)
     _cluster: str = "test-cluster"
@@ -65,9 +66,11 @@ class TestCollectPodMetrics(unittest.TestCase):
 
         self.assertEqual(len(results), 2)
         self.assertIsInstance(results[0], KubernetesPodPayload)
-        self.assertEqual(results[0].pod.name, "pod-1")
-        self.assertEqual(results[0].cluster, "test-cluster")
-        self.assertEqual(results[1].pod.name, "pod-2")
+        pod_payload_0 = KubernetesPodPayload(**vars(results[0]))
+        pod_payload_1 = KubernetesPodPayload(**vars(results[1]))
+        self.assertEqual(pod_payload_0.pod.name, "pod-1")
+        self.assertEqual(pod_payload_0.cluster, "test-cluster")
+        self.assertEqual(pod_payload_1.pod.name, "pod-2")
 
     def test_filters_by_namespace(self) -> None:
         pods = [
@@ -88,7 +91,8 @@ class TestCollectPodMetrics(unittest.TestCase):
         )
 
         self.assertEqual(len(results), 1)
-        self.assertEqual(results[0].pod.name, "pod-1")
+        pod_payload = KubernetesPodPayload(**vars(results[0]))
+        self.assertEqual(pod_payload.pod.name, "pod-1")
 
     def test_empty_pods(self) -> None:
         client = KubernetesFakeClient()
@@ -129,7 +133,7 @@ class TestCollectPodMetrics(unittest.TestCase):
             )
         )
 
-        payload = results[0]
+        payload = KubernetesPodPayload(**vars(results[0]))
         self.assertEqual(payload.collection_unixtime, 1740700000)
         self.assertEqual(payload.cluster, "my-cluster")
         self.assertEqual(payload.pod.restart_count, 3)
@@ -159,8 +163,10 @@ class TestCollectNodeConditions(unittest.TestCase):
 
         self.assertEqual(len(results), 2)
         self.assertIsInstance(results[0], KubernetesNodePayload)
-        self.assertEqual(results[0].node_condition.condition_type, "Ready")
-        self.assertEqual(results[1].node_condition.condition_type, "MemoryPressure")
+        node_payload_0 = KubernetesNodePayload(**vars(results[0]))
+        node_payload_1 = KubernetesNodePayload(**vars(results[1]))
+        self.assertEqual(node_payload_0.node_condition.condition_type, "Ready")
+        self.assertEqual(node_payload_1.node_condition.condition_type, "MemoryPressure")
 
     def test_empty_conditions(self) -> None:
         client = KubernetesFakeClient()
