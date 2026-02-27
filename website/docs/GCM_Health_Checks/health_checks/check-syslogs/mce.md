@@ -3,7 +3,7 @@
 ## Overview
 Detects Machine Check Exception (MCE) errors by searching dmesg for MCE-related patterns. MCE errors indicate CPU or memory hardware issues that may affect system stability.
 
-Lines are classified by severity using pattern matching against known Linux kernel MCE log formats:
+Lines are classified by severity using pattern matching against known Linux kernel MCE log formats (source of truth: [`mce_severity.py`](../../../../gcm/health_checks/check_utils/mce_severity.py)):
 
 | Severity | Patterns | Examples |
 |----------|----------|----------|

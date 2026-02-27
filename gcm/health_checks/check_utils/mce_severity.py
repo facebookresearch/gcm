@@ -1,57 +1,45 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 import re
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from gcm.health_checks.types import ExitCode
+
+# Type alias for severity pattern lists used by classify_line().
+SeverityPatterns = List[Tuple[re.Pattern[str], ExitCode]]
 
 # Map of MCE log patterns to ExitCode severity.
 #
 # Patterns are matched against individual dmesg lines containing "mce:".
 # Order matters: first match wins. More specific patterns should come first.
 #
-# Sample dmesg lines (from Linux kernel MCE subsystem):
-#
-#   [12345.678] mce: [Hardware Error]: Machine check events logged
-#   [12345.679] mce: [Hardware Error]: CPU 0: Machine Check Exception: 5 Bank 9
-#   [12345.680] mce: [Hardware Error]: RIP !SYM ...
-#   [12345.681] mce: [Hardware Error]: TSC ... ADDR ... MISC ...
-#   [12345.682] mce: [Hardware Error]: PROCESSOR 0:...
-#   [12345.683] mce: Processor context corrupt
-#   [12345.684] mce: CPU0: Core temperature above threshold, cpu clock throttled
-#   [12345.685] mce: CPU0: Core temperature/speed normal
-#   [12345.686] mce: CPU0: Package temperature above threshold, cpu clock throttled
-#   [12345.687] mce: CPU0: Package temperature/speed normal
-#   [12345.688] mce: [Hardware Error]: Machine check events logged
-#   [12345.689] mce: CPU0: 1 Corrected error(s) detected. Check CMCI storm count.
-#   [12345.690] mce: CPU is offline
-#   [12345.691] mce: Disabling lock cmpxchg
-MCE_SEVERITY_PATTERNS: List[Tuple[re.Pattern[str], ExitCode]] = [
-    # Critical: uncorrected hardware errors requiring immediate attention
-    (re.compile(r"\[Hardware Error\]", re.IGNORECASE), ExitCode.CRITICAL),
-    (re.compile(r"Processor context corrupt", re.IGNORECASE), ExitCode.CRITICAL),
-    (re.compile(r"Machine Check Exception", re.IGNORECASE), ExitCode.CRITICAL),
-    (re.compile(r"Uncorrected error", re.IGNORECASE), ExitCode.CRITICAL),
-    (re.compile(r"Fatal error", re.IGNORECASE), ExitCode.CRITICAL),
+# Sample log lines: https://gist.github.com/gustcol/6a701dc0358795cee099cec3e0e596e7
+MCE_SEVERITY_PATTERNS: SeverityPatterns = [
+    # OK: recovery messages and benign state changes
+    (re.compile(r"temperature.*normal", re.IGNORECASE), ExitCode.OK),
+    (re.compile(r"CPU is offline", re.IGNORECASE), ExitCode.OK),
+    (re.compile(r"Disabling lock", re.IGNORECASE), ExitCode.OK),
     # Warning: corrected errors and thermal throttling (not immediately dangerous
     # but indicate degraded hardware that may fail)
     (re.compile(r"Corrected error", re.IGNORECASE), ExitCode.WARN),
     (re.compile(r"temperature above threshold", re.IGNORECASE), ExitCode.WARN),
     (re.compile(r"cpu clock throttled", re.IGNORECASE), ExitCode.WARN),
     (re.compile(r"CMCI storm", re.IGNORECASE), ExitCode.WARN),
-    # OK: recovery messages and benign state changes
-    (re.compile(r"temperature.*normal", re.IGNORECASE), ExitCode.OK),
-    (re.compile(r"CPU is offline", re.IGNORECASE), ExitCode.OK),
-    (re.compile(r"Disabling lock", re.IGNORECASE), ExitCode.OK),
+    # Critical: uncorrected hardware errors requiring immediate attention
+    (re.compile(r"\[Hardware Error\]", re.IGNORECASE), ExitCode.CRITICAL),
+    (re.compile(r"Processor context corrupt", re.IGNORECASE), ExitCode.CRITICAL),
+    (re.compile(r"Machine Check Exception", re.IGNORECASE), ExitCode.CRITICAL),
+    (re.compile(r"Uncorrected error", re.IGNORECASE), ExitCode.CRITICAL),
+    (re.compile(r"Fatal error", re.IGNORECASE), ExitCode.CRITICAL),
 ]
 
 
-def classify_mce_line(line: str) -> Optional[ExitCode]:
-    """Classify a single MCE dmesg line by severity.
+def classify_line(line: str, patterns: SeverityPatterns) -> Optional[ExitCode]:
+    """Classify a single dmesg line by severity.
 
-    Returns None if no pattern matches (line is not a recognized MCE event).
+    Returns None if no pattern matches (line is not a recognized event).
     """
-    for pattern, severity in MCE_SEVERITY_PATTERNS:
+    for pattern, severity in patterns:
         if pattern.search(line):
             return severity
     return None
@@ -59,13 +47,13 @@ def classify_mce_line(line: str) -> Optional[ExitCode]:
 
 def classify_lines(
     output: str,
-    classifier: Callable[[str], Optional[ExitCode]],
+    patterns: SeverityPatterns,
 ) -> Dict[ExitCode, List[str]]:
     """Classify multiple dmesg lines and group by severity.
 
     Args:
         output: Raw dmesg output (newline-separated).
-        classifier: A callable(str) -> Optional[ExitCode].
+        patterns: List of (compiled_regex, ExitCode) tuples.
 
     Returns:
         Dict mapping ExitCode to list of matching lines.
@@ -79,7 +67,7 @@ def classify_lines(
         stripped = line.strip()
         if not stripped:
             continue
-        severity = classifier(stripped)
+        severity = classify_line(stripped, patterns)
         if severity is not None:
             result[severity].append(stripped)
         else:

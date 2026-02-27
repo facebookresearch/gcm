@@ -12,9 +12,12 @@ from typing import Collection, List, Optional, Protocol, Tuple
 
 import click
 import gni_lib
-from gcm.health_checks.check_utils.mce_severity import classify_lines, classify_mce_line
+from gcm.health_checks.check_utils.mce_severity import (
+    classify_lines,
+    MCE_SEVERITY_PATTERNS,
+)
 from gcm.health_checks.check_utils.output_context_manager import OutputContext
-from gcm.health_checks.check_utils.pcie_severity import classify_pcie_aer_line
+from gcm.health_checks.check_utils.pcie_severity import PCIE_AER_SEVERITY_PATTERNS
 from gcm.health_checks.check_utils.telem import TelemetryContext
 from gcm.health_checks.check_utils.xid_error_codes import ErrorCause
 from gcm.health_checks.click import (
@@ -206,7 +209,7 @@ def process_mce_output(output: str, error_code: int) -> Tuple[ExitCode, str]:
     if output == "":
         return ExitCode.OK, "No MCE errors detected."
 
-    by_severity = classify_lines(output, classify_mce_line)
+    by_severity = classify_lines(output, MCE_SEVERITY_PATTERNS)
     critical = len(by_severity[ExitCode.CRITICAL])
     warn = len(by_severity[ExitCode.WARN])
     info = len(by_severity[ExitCode.OK])
@@ -242,7 +245,7 @@ def process_pcie_aer_output(output: str, error_code: int) -> Tuple[ExitCode, str
     if output == "":
         return ExitCode.OK, "No PCIe AER errors detected."
 
-    by_severity = classify_lines(output, classify_pcie_aer_line)
+    by_severity = classify_lines(output, PCIE_AER_SEVERITY_PATTERNS)
     critical = len(by_severity[ExitCode.CRITICAL])
     warn = len(by_severity[ExitCode.WARN])
     info = len(by_severity[ExitCode.OK])
