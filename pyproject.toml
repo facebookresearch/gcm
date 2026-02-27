@@ -35,6 +35,7 @@ license = { text = "MIT" }
 Homepage = "https://github.com/facebookresearch/gcm"
 
 [project.optional-dependencies]
+kubernetes = ["kubernetes>=28.1.0"]
 dev = [
   "parameterized",
   "virtualenv>=20.28.1",
