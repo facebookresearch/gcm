@@ -20,6 +20,19 @@ logger = logging.getLogger(__name__)
 class Stdout:
     """Write data to stdout."""
 
+    def __init__(self, **kwargs: object) -> None:
+        """Initialize Stdout sink.
+
+        Explicit __init__ is required for compatibility with certain versions
+        of typeguard's typechecked() decorator used in monitor.py line 110.
+
+        Args:
+            **kwargs: Accepts any keyword arguments to be compatible with
+                      sink_kwargs passed from monitor.py line 117. Currently
+                      ignores all parameters as Stdout doesn't need configuration.
+        """
+        pass
+
     def _write_log(self, data: Log) -> None:
         print(
             json.dumps(
