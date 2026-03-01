@@ -3,6 +3,7 @@
 """Tests for the HealthCheckRuntime context manager."""
 
 import logging
+from typing import Callable
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -11,8 +12,10 @@ from gcm.health_checks.types import ExitCode
 from gcm.schemas.health_check.health_check_name import HealthCheckName
 
 
-def _make_runtime(**kwargs) -> HealthCheckRuntime:
-    defaults = dict(
+def _make_runtime(
+    killswitch_getter: Callable[[], bool] = lambda: False,
+) -> HealthCheckRuntime:
+    return HealthCheckRuntime(
         cluster="test_cluster",
         type="prolog",
         log_level="INFO",
@@ -22,13 +25,14 @@ def _make_runtime(**kwargs) -> HealthCheckRuntime:
         verbose_out=False,
         heterogeneous_cluster_v1=False,
         health_check_name=HealthCheckName.CHECK_SENSORS,
-        killswitch_getter=lambda: False,
+        killswitch_getter=killswitch_getter,
     )
-    defaults.update(kwargs)
-    return HealthCheckRuntime(**defaults)
 
 
-@patch("gcm.health_checks.check_utils.runtime.get_derived_cluster", return_value="derived_test")
+@patch(
+    "gcm.health_checks.check_utils.runtime.get_derived_cluster",
+    return_value="derived_test",
+)
 @patch("gcm.health_checks.check_utils.runtime.gni_lib")
 @patch("gcm.health_checks.check_utils.runtime.init_logger")
 @patch("gcm.health_checks.check_utils.runtime.socket")
@@ -52,7 +56,10 @@ def test_enter_initializes_fields(
         assert runtime.derived_cluster == "derived_test"
 
 
-@patch("gcm.health_checks.check_utils.runtime.get_derived_cluster", return_value="test_cluster")
+@patch(
+    "gcm.health_checks.check_utils.runtime.get_derived_cluster",
+    return_value="test_cluster",
+)
 @patch("gcm.health_checks.check_utils.runtime.gni_lib")
 @patch("gcm.health_checks.check_utils.runtime.init_logger")
 @patch("gcm.health_checks.check_utils.runtime.socket")
@@ -69,12 +76,17 @@ def test_killswitch_enabled_exits_ok(
 
     with pytest.raises(SystemExit) as exc_info:
         with _make_runtime(killswitch_getter=lambda: True):
-            pytest.fail("With block body should not be reached when killswitch is enabled")
+            pytest.fail(
+                "With block body should not be reached when killswitch is enabled"
+            )
 
     assert exc_info.value.code == ExitCode.OK.value
 
 
-@patch("gcm.health_checks.check_utils.runtime.get_derived_cluster", return_value="test_cluster")
+@patch(
+    "gcm.health_checks.check_utils.runtime.get_derived_cluster",
+    return_value="test_cluster",
+)
 @patch("gcm.health_checks.check_utils.runtime.gni_lib")
 @patch("gcm.health_checks.check_utils.runtime.init_logger")
 @patch("gcm.health_checks.check_utils.runtime.socket")
@@ -98,7 +110,10 @@ def test_killswitch_disabled_continues(
     assert body_executed
 
 
-@patch("gcm.health_checks.check_utils.runtime.get_derived_cluster", return_value="test_cluster")
+@patch(
+    "gcm.health_checks.check_utils.runtime.get_derived_cluster",
+    return_value="test_cluster",
+)
 @patch("gcm.health_checks.check_utils.runtime.gni_lib")
 @patch("gcm.health_checks.check_utils.runtime.init_logger")
 @patch("gcm.health_checks.check_utils.runtime.socket")
@@ -124,7 +139,10 @@ def test_finish_sets_code_and_exits(
 
 @patch("gcm.health_checks.check_utils.runtime.OutputContext")
 @patch("gcm.health_checks.check_utils.runtime.TelemetryContext")
-@patch("gcm.health_checks.check_utils.runtime.get_derived_cluster", return_value="test_cluster")
+@patch(
+    "gcm.health_checks.check_utils.runtime.get_derived_cluster",
+    return_value="test_cluster",
+)
 @patch("gcm.health_checks.check_utils.runtime.gni_lib")
 @patch("gcm.health_checks.check_utils.runtime.init_logger")
 @patch("gcm.health_checks.check_utils.runtime.socket")
@@ -153,7 +171,10 @@ def test_telemetry_and_output_contexts_entered(
     mock_output_instance.__enter__.assert_called_once()
 
 
-@patch("gcm.health_checks.check_utils.runtime.get_derived_cluster", return_value="test_cluster")
+@patch(
+    "gcm.health_checks.check_utils.runtime.get_derived_cluster",
+    return_value="test_cluster",
+)
 @patch("gcm.health_checks.check_utils.runtime.gni_lib")
 @patch("gcm.health_checks.check_utils.runtime.init_logger")
 @patch("gcm.health_checks.check_utils.runtime.socket")

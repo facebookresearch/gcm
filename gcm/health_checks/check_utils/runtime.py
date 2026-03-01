@@ -59,7 +59,9 @@ class HealthCheckRuntime(ContextManager["HealthCheckRuntime"]):
             self.gpu_node_id = gni_lib.get_gpu_node_id()
         except Exception as e:
             self.gpu_node_id = None
-            self.logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
+            self.logger.warning(
+                f"Could not get gpu_node_id, likely not a GPU host: {e}"
+            )
 
         self.derived_cluster = get_derived_cluster(
             cluster=self.cluster,
