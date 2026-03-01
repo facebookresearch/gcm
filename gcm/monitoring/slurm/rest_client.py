@@ -105,7 +105,7 @@ class SlurmRestClient(SlurmClient):
         nodes = data.get("nodes", [])
         if not nodes:
             return []
-        field_names = list(nodes[0].keys())
+        field_names = list(dict.fromkeys(k for node in nodes for k in node.keys()))
         yield "|".join(field_names)
         for node in nodes:
             yield "|".join(str(node.get(f, "")) for f in field_names)
@@ -198,7 +198,7 @@ class SlurmRestClient(SlurmClient):
         qos_list = data.get("qos", [])
         if not qos_list:
             return []
-        field_names = list(qos_list[0].keys())
+        field_names = list(dict.fromkeys(k for qos in qos_list for k in qos.keys()))
         yield "|".join(field_names)
         for qos in qos_list:
             yield "|".join(str(qos.get(f, "")) for f in field_names)
@@ -239,7 +239,7 @@ class SlurmRestClient(SlurmClient):
         jobs = data.get("jobs", [])
         if not jobs:
             return
-        field_names = list(jobs[0].keys())
+        field_names = list(dict.fromkeys(k for job in jobs for k in job.keys()))
         yield SLURM_CLI_DELIMITER.join(field_names)
         for job in jobs:
             yield SLURM_CLI_DELIMITER.join(str(job.get(f, "")) for f in field_names)
