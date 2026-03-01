@@ -110,7 +110,7 @@ class TestProcessPcieAerOutput:
         output = "[12345.678] pcieport 0000:00:01.0: AER: Corrected error received"
         exit_code, msg = process_pcie_aer_output(output, 0)
         assert exit_code == ExitCode.OK
-        assert "1 corrected" in msg
+        assert "info=1" in msg
 
     def test_uncorrectable_nonfatal_is_warn(self) -> None:
         output = (
@@ -118,13 +118,13 @@ class TestProcessPcieAerOutput:
         )
         exit_code, msg = process_pcie_aer_output(output, 0)
         assert exit_code == ExitCode.WARN
-        assert "1 uncorrectable non-fatal" in msg
+        assert "warn=1" in msg
 
     def test_uncorrectable_fatal_is_critical(self) -> None:
         output = "[12345.680] pcieport 0000:00:03.0: AER: Uncorrectable (Fatal) error"
         exit_code, msg = process_pcie_aer_output(output, 0)
         assert exit_code == ExitCode.CRITICAL
-        assert "1 fatal" in msg
+        assert "critical=1" in msg
 
     def test_cant_recover_is_critical(self) -> None:
         output = (
@@ -133,7 +133,7 @@ class TestProcessPcieAerOutput:
         )
         exit_code, msg = process_pcie_aer_output(output, 0)
         assert exit_code == ExitCode.CRITICAL
-        assert "1 fatal" in msg
+        assert "critical=1" in msg
 
     def test_mixed_corrected_and_fatal(self) -> None:
         output = (
@@ -142,15 +142,15 @@ class TestProcessPcieAerOutput:
         )
         exit_code, msg = process_pcie_aer_output(output, 0)
         assert exit_code == ExitCode.CRITICAL
-        assert "1 fatal" in msg
-        assert "1 corrected" in msg
+        assert "critical=1" in msg
+        assert "info=1" in msg
 
     def test_corrected_inside_uncorrectable_is_ok(self) -> None:
         """A line with both 'Uncorrectable' and 'Corrected error' should be OK."""
         output = "[12345.690] pcieport 0000:00:01.0: AER: Corrected error in Uncorrectable context"
         exit_code, msg = process_pcie_aer_output(output, 0)
         assert exit_code == ExitCode.OK
-        assert "1 corrected" in msg
+        assert "info=1" in msg
 
 
 @pytest.mark.parametrize(
@@ -161,35 +161,35 @@ class TestProcessPcieAerOutput:
             command_error,
             (
                 ExitCode.WARN,
-                f"dmesg command FAILED to execute. error_code: {command_error.returncode} output: {command_error.stdout}",
+                f"dmesg command FAILED to execute. error_code={command_error.returncode}, output='{command_error.stdout}'",
             ),
         ),
         (
             with_pcie_corrected_errors,
             (
                 ExitCode.OK,
-                "1 PCIe AER error(s) detected (1 corrected).",
+                "1 PCIe AER error(s) detected (info=1).",
             ),
         ),
         (
             with_pcie_uncorrectable_nonfatal,
             (
                 ExitCode.WARN,
-                "2 PCIe AER error(s) detected (1 uncorrectable non-fatal, 1 corrected).",
+                "2 PCIe AER error(s) detected (warn=1, info=1).",
             ),
         ),
         (
             with_pcie_uncorrectable_fatal,
             (
                 ExitCode.CRITICAL,
-                "2 PCIe AER error(s) detected (1 fatal, 1 corrected).",
+                "2 PCIe AER error(s) detected (critical=1, info=1).",
             ),
         ),
         (
             with_pcie_cant_recover,
             (
                 ExitCode.CRITICAL,
-                "1 PCIe AER error(s) detected (1 fatal).",
+                "1 PCIe AER error(s) detected (critical=1).",
             ),
         ),
     ],

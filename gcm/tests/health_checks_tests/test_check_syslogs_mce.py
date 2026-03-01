@@ -114,19 +114,19 @@ class TestProcessMceOutput:
         )
         exit_code, msg = process_mce_output(output, 0)
         assert exit_code == ExitCode.CRITICAL
-        assert "2 critical" in msg
+        assert "critical=2" in msg
 
     def test_corrected_errors_are_warn(self) -> None:
         output = "[12345.678] mce: CPU0: 1 Corrected error(s) detected. Check CMCI storm count."
         exit_code, msg = process_mce_output(output, 0)
         assert exit_code == ExitCode.WARN
-        assert "1 warning" in msg
+        assert "warn=1" in msg
 
     def test_info_only_is_ok(self) -> None:
         output = "[12345.680] mce: CPU0: Core temperature/speed normal"
         exit_code, msg = process_mce_output(output, 0)
         assert exit_code == ExitCode.OK
-        assert "1 informational" in msg
+        assert "info=1" in msg
 
     def test_mixed_severity_uses_highest(self) -> None:
         output = (
@@ -136,15 +136,15 @@ class TestProcessMceOutput:
         )
         exit_code, msg = process_mce_output(output, 0)
         assert exit_code == ExitCode.CRITICAL
-        assert "1 critical" in msg
-        assert "1 warning" in msg
-        assert "1 informational" in msg
+        assert "critical=1" in msg
+        assert "warn=1" in msg
+        assert "info=1" in msg
 
     def test_unknown_mce_line_defaults_to_warn(self) -> None:
         output = "[12345.690] mce: some unknown pattern here"
         exit_code, msg = process_mce_output(output, 0)
         assert exit_code == ExitCode.WARN
-        assert "1 warning" in msg
+        assert "warn=1" in msg
 
     def test_corrected_inside_hardware_error_is_warn(self) -> None:
         """A line with both [Hardware Error] and Corrected error should be WARN."""
@@ -153,7 +153,7 @@ class TestProcessMceOutput:
         )
         exit_code, msg = process_mce_output(output, 0)
         assert exit_code == ExitCode.WARN
-        assert "1 warning" in msg
+        assert "warn=1" in msg
 
 
 @pytest.mark.parametrize(
@@ -164,24 +164,24 @@ class TestProcessMceOutput:
             command_error,
             (
                 ExitCode.WARN,
-                f"dmesg command FAILED to execute. error_code: {command_error.returncode} output: {command_error.stdout}",
+                f"dmesg command FAILED to execute. error_code={command_error.returncode}, output='{command_error.stdout}'",
             ),
         ),
         (
             with_mce_hardware_errors,
-            (ExitCode.CRITICAL, "2 MCE event(s) detected (2 critical)."),
+            (ExitCode.CRITICAL, "2 MCE event(s) detected (critical=2)."),
         ),
         (
             with_mce_corrected_errors,
-            (ExitCode.WARN, "2 MCE event(s) detected (2 warning)."),
+            (ExitCode.WARN, "2 MCE event(s) detected (warn=2)."),
         ),
         (
             with_mce_info_only,
-            (ExitCode.OK, "1 MCE event(s) detected (1 informational)."),
+            (ExitCode.OK, "1 MCE event(s) detected (info=1)."),
         ),
         (
             with_mce_corrected_in_hardware_error,
-            (ExitCode.WARN, "1 MCE event(s) detected (1 warning)."),
+            (ExitCode.WARN, "1 MCE event(s) detected (warn=1)."),
         ),
     ],
     indirect=["fake_mce_tester"],

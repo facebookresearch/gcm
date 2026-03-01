@@ -204,7 +204,7 @@ def process_mce_output(output: str, error_code: int) -> Tuple[ExitCode, str]:
     if error_code > 0:
         return (
             ExitCode.WARN,
-            f"dmesg command FAILED to execute. error_code: {error_code} output: {output}",
+            f"dmesg command FAILED to execute. {error_code=}, {output=}",
         )
     if output == "":
         return ExitCode.OK, "No MCE errors detected."
@@ -216,11 +216,11 @@ def process_mce_output(output: str, error_code: int) -> Tuple[ExitCode, str]:
 
     parts: List[str] = []
     if critical:
-        parts.append(f"{critical} critical")
+        parts.append(f"{critical=}")
     if warn:
-        parts.append(f"{warn} warning")
+        parts.append(f"{warn=}")
     if info:
-        parts.append(f"{info} informational")
+        parts.append(f"{info=}")
 
     total = critical + warn + info
     detail = ", ".join(parts)
@@ -240,7 +240,7 @@ def process_pcie_aer_output(output: str, error_code: int) -> Tuple[ExitCode, str
     if error_code > 0:
         return (
             ExitCode.WARN,
-            f"dmesg command FAILED to execute. error_code: {error_code} output: {output}",
+            f"dmesg command FAILED to execute. {error_code=}, {output=}",
         )
     if output == "":
         return ExitCode.OK, "No PCIe AER errors detected."
@@ -252,11 +252,11 @@ def process_pcie_aer_output(output: str, error_code: int) -> Tuple[ExitCode, str
 
     parts: List[str] = []
     if critical:
-        parts.append(f"{critical} fatal")
+        parts.append(f"{critical=}")
     if warn:
-        parts.append(f"{warn} uncorrectable non-fatal")
+        parts.append(f"{warn=}")
     if info:
-        parts.append(f"{info} corrected")
+        parts.append(f"{info=}")
 
     total = critical + warn + info
     detail = ", ".join(parts)
