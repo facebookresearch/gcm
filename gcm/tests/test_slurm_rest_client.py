@@ -64,37 +64,39 @@ class TestSlurmRestClient:
 
         assert lines == []
 
+    def _sdiag_stats(self) -> dict:
+        return {
+            "statistics": {
+                "server_thread_count": 5,
+                "agent_queue_size": 0,
+                "agent_count": 2,
+                "agent_thread_count": 4,
+                "dbd_agent_queue_size": 1,
+                "schedule_cycle_max": 100,
+                "schedule_cycle_mean": 50,
+                "schedule_cycle_sum": 500,
+                "schedule_cycle_total": 10,
+                "schedule_cycle_per_minute": 6,
+                "schedule_queue_length": 20,
+                "jobs_submitted": 1000,
+                "jobs_started": 900,
+                "jobs_completed": 800,
+                "jobs_canceled": 50,
+                "jobs_failed": 30,
+                "jobs_pending": 100,
+                "jobs_running": 70,
+                "bf_backfilled_jobs": 200,
+                "bf_cycle_mean": 10,
+                "bf_cycle_sum": 100,
+                "bf_cycle_max": 50,
+                "bf_queue_len": 15,
+            }
+        }
+
     def test_sdiag_structured_returns_sdiag(self) -> None:
         session = create_autospec(requests.Session, instance=True)
-        session.get.return_value = self._mock_response(
-            {
-                "statistics": {
-                    "server_thread_count": 5,
-                    "agent_queue_size": 0,
-                    "agent_count": 2,
-                    "agent_thread_count": 4,
-                    "dbd_agent_queue_size": 1,
-                    "schedule_cycle_max": 100,
-                    "schedule_cycle_mean": 50,
-                    "schedule_cycle_sum": 500,
-                    "schedule_cycle_total": 10,
-                    "schedule_cycle_per_minute": 6,
-                    "schedule_queue_length": 20,
-                    "jobs_submitted": 1000,
-                    "jobs_started": 900,
-                    "jobs_completed": 800,
-                    "jobs_canceled": 50,
-                    "jobs_failed": 30,
-                    "jobs_pending": 100,
-                    "jobs_running": 70,
-                    "bf_backfilled_jobs": 200,
-                    "bf_cycle_mean": 10,
-                    "bf_cycle_sum": 100,
-                    "bf_cycle_max": 50,
-                    "bf_queue_len": 15,
-                }
-            }
-        )
+        session.get.return_value = self._mock_response(self._sdiag_stats())
+        session.post.return_value = self._mock_response({})
 
         client = self._make_client(session)
         result = client.sdiag_structured()
@@ -107,6 +109,30 @@ class TestSlurmRestClient:
         assert result.sdiag_jobs_running == 70
         assert result.bf_backfilled_jobs == 200
         assert result.schedule_cycle_max == 100
+
+    def test_sdiag_resets_counters_after_collection(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        session.get.return_value = self._mock_response(self._sdiag_stats())
+        session.post.return_value = self._mock_response({})
+
+        client = self._make_client(session)
+        client.sdiag_structured()
+
+        session.post.assert_called_once_with(
+            "http://slurm.example.com/slurm/v0.0.40/diag",
+            timeout=30,
+            verify=True,
+        )
+
+    def test_sdiag_reset_failure_logs_warning(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        session.get.return_value = self._mock_response(self._sdiag_stats())
+        session.post.return_value = self._mock_response({}, status_code=403)
+
+        client = self._make_client(session)
+        # Should not raise — just log a warning
+        result = client.sdiag_structured()
+        assert isinstance(result, Sdiag)
 
     def test_sshare_returns_pipe_delimited_lines(self) -> None:
         session = create_autospec(requests.Session, instance=True)

@@ -112,7 +112,7 @@ class SlurmRestClient(SlurmClient):
     def sdiag_structured(self) -> Sdiag:
         data = self._get(f"/slurm/{self.api_version}/diag")
         stats = data.get("statistics", {})
-        return Sdiag(
+        result = Sdiag(
             server_thread_count=stats.get("server_thread_count"),
             agent_queue_size=stats.get("agent_queue_size"),
             agent_count=stats.get("agent_count"),
@@ -137,6 +137,33 @@ class SlurmRestClient(SlurmClient):
             bf_cycle_max=stats.get("bf_cycle_max"),
             bf_queue_len=stats.get("bf_queue_len"),
         )
+
+        # Reset sdiag counters after collection, matching CLI behavior
+        self._reset_sdiag_counters()
+
+        return result
+
+    def _reset_sdiag_counters(self) -> None:
+        """Reset sdiag counters after collection via REST API.
+
+        This requires appropriate permissions (typically root or SlurmUser).
+        If the reset fails, a warning is logged.
+        """
+        url = f"{self.base_url}/slurm/{self.api_version}/diag"
+        try:
+            response = self.session.post(
+                url,
+                timeout=self.timeout,
+                verify=self.verify_ssl,
+            )
+            if response.status_code != 200:
+                logger.warning(
+                    "Failed to reset sdiag counters: %s %s",
+                    response.status_code,
+                    url,
+                )
+        except requests.RequestException as e:
+            logger.warning("Failed to reset sdiag counters: %s", e)
 
     def sinfo_structured(self) -> Sinfo:
         data = self._get(f"/slurm/{self.api_version}/nodes")
