@@ -4,7 +4,6 @@
 
 import importlib.util
 import shutil
-from io import StringIO
 from pathlib import Path
 
 import pytest
@@ -14,9 +13,13 @@ import pytest
 # individual functions without making it a package.
 # ---------------------------------------------------------------------------
 
-_BIN_SCRIPT = Path(__file__).resolve().parent.parent.parent / "bin" / "create_new_health_check.py"
+_BIN_SCRIPT = (
+    Path(__file__).resolve().parent.parent.parent / "bin" / "create_new_health_check.py"
+)
 
-spec = importlib.util.spec_from_file_location("create_new_health_check", str(_BIN_SCRIPT))
+spec = importlib.util.spec_from_file_location(
+    "create_new_health_check", str(_BIN_SCRIPT)
+)
 scaffold = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(scaffold)
 
@@ -48,9 +51,12 @@ def scaffold_env(tmp_path: Path):
     # Copy real source files that the scaffold modifies
     shutil.copy(_REAL_ROOT / "gcm/health_checks/checks/__init__.py", checks_dir)
     shutil.copy(_REAL_ROOT / "gcm/health_checks/cli/health_checks.py", cli_dir)
-    shutil.copy(_REAL_ROOT / "gcm/schemas/health_check/health_check_name.py", schema_dir)
     shutil.copy(
-        _REAL_ROOT / "gcm/monitoring/features/feature_definitions/health_checks_features.py",
+        _REAL_ROOT / "gcm/schemas/health_check/health_check_name.py", schema_dir
+    )
+    shutil.copy(
+        _REAL_ROOT
+        / "gcm/monitoring/features/feature_definitions/health_checks_features.py",
         features_dir,
     )
 
@@ -74,13 +80,13 @@ def test_validate_name_valid() -> None:
 @pytest.mark.parametrize(
     "bad_name",
     [
-        "Check_ntp_sync",       # uppercase first letter
-        "CHECK_NTP_SYNC",       # all uppercase
-        "ntp_sync",             # missing check_ prefix
-        "check_Ntp_Sync",       # mixed case after prefix
-        "check ntp sync",       # spaces
-        "check_",               # nothing after prefix
-        "",                     # empty string
+        "Check_ntp_sync",  # uppercase first letter
+        "CHECK_NTP_SYNC",  # all uppercase
+        "ntp_sync",  # missing check_ prefix
+        "check_Ntp_Sync",  # mixed case after prefix
+        "check ntp sync",  # spaces
+        "check_",  # nothing after prefix
+        "",  # empty string
     ],
 )
 def test_validate_name_invalid(bad_name: str) -> None:
@@ -144,7 +150,9 @@ def test_create_check_file_group(scaffold_env: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_create_files_idempotent(scaffold_env: Path, capsys: pytest.CaptureFixture) -> None:
+def test_create_files_idempotent(
+    scaffold_env: Path, capsys: pytest.CaptureFixture
+) -> None:
     """Running the file-creation helpers twice does not raise and prints skip."""
     scaffold.create_check_file("check_ntp_sync", group=False, dry_run=False)
     scaffold.create_test_file("check_ntp_sync", dry_run=False)
@@ -167,14 +175,31 @@ def test_create_files_idempotent(scaffold_env: Path, capsys: pytest.CaptureFixtu
 def test_dry_run_no_changes(scaffold_env: Path, capsys: pytest.CaptureFixture) -> None:
     """dry_run=True must not create or modify any files."""
     check_dest = scaffold_env / "gcm" / "health_checks" / "checks" / "check_ntp_sync.py"
-    test_dest = scaffold_env / "gcm" / "tests" / "health_checks_tests" / "test_check_ntp_sync.py"
+    test_dest = (
+        scaffold_env
+        / "gcm"
+        / "tests"
+        / "health_checks_tests"
+        / "test_check_ntp_sync.py"
+    )
     doc_dest = (
-        scaffold_env / "website" / "docs" / "GCM_Health_Checks" / "health_checks" / "check-ntp-sync.md"
+        scaffold_env
+        / "website"
+        / "docs"
+        / "GCM_Health_Checks"
+        / "health_checks"
+        / "check-ntp-sync.md"
     )
 
-    init_before = (scaffold_env / "gcm" / "health_checks" / "checks" / "__init__.py").read_text()
-    cli_before = (scaffold_env / "gcm" / "health_checks" / "cli" / "health_checks.py").read_text()
-    enum_before = (scaffold_env / "gcm" / "schemas" / "health_check" / "health_check_name.py").read_text()
+    init_before = (
+        scaffold_env / "gcm" / "health_checks" / "checks" / "__init__.py"
+    ).read_text()
+    cli_before = (
+        scaffold_env / "gcm" / "health_checks" / "cli" / "health_checks.py"
+    ).read_text()
+    enum_before = (
+        scaffold_env / "gcm" / "schemas" / "health_check" / "health_check_name.py"
+    ).read_text()
     features_before = (
         scaffold_env
         / "gcm"
@@ -198,9 +223,15 @@ def test_dry_run_no_changes(scaffold_env: Path, capsys: pytest.CaptureFixture) -
     assert not doc_dest.exists()
 
     # Existing files unchanged
-    assert (scaffold_env / "gcm" / "health_checks" / "checks" / "__init__.py").read_text() == init_before
-    assert (scaffold_env / "gcm" / "health_checks" / "cli" / "health_checks.py").read_text() == cli_before
-    assert (scaffold_env / "gcm" / "schemas" / "health_check" / "health_check_name.py").read_text() == enum_before
+    assert (
+        scaffold_env / "gcm" / "health_checks" / "checks" / "__init__.py"
+    ).read_text() == init_before
+    assert (
+        scaffold_env / "gcm" / "health_checks" / "cli" / "health_checks.py"
+    ).read_text() == cli_before
+    assert (
+        scaffold_env / "gcm" / "schemas" / "health_check" / "health_check_name.py"
+    ).read_text() == enum_before
     assert (
         scaffold_env
         / "gcm"
@@ -226,7 +257,9 @@ def test_update_init(scaffold_env: Path) -> None:
     init_path = scaffold_env / "gcm" / "health_checks" / "checks" / "__init__.py"
     content = init_path.read_text()
 
-    assert "from gcm.health_checks.checks.check_ntp_sync import check_ntp_sync" in content
+    assert (
+        "from gcm.health_checks.checks.check_ntp_sync import check_ntp_sync" in content
+    )
     assert '"check_ntp_sync"' in content
 
     # Verify import is in alphabetical position: check_ntp_sync should come
@@ -247,7 +280,12 @@ def test_update_init_idempotent(scaffold_env: Path) -> None:
 
     assert content.count("check_ntp_sync") == content.count("check_ntp_sync")
     # Specifically, the import line must appear exactly once.
-    assert content.count("from gcm.health_checks.checks.check_ntp_sync import check_ntp_sync") == 1
+    assert (
+        content.count(
+            "from gcm.health_checks.checks.check_ntp_sync import check_ntp_sync"
+        )
+        == 1
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -259,7 +297,9 @@ def test_update_enum(scaffold_env: Path) -> None:
     """update_enum adds the CHECK_NTP_SYNC entry in alphabetical order."""
     scaffold.update_enum("check_ntp_sync", dry_run=False)
 
-    enum_path = scaffold_env / "gcm" / "schemas" / "health_check" / "health_check_name.py"
+    enum_path = (
+        scaffold_env / "gcm" / "schemas" / "health_check" / "health_check_name.py"
+    )
     content = enum_path.read_text()
 
     assert 'CHECK_NTP_SYNC = "check ntp sync"' in content
@@ -276,7 +316,9 @@ def test_update_enum_idempotent(scaffold_env: Path) -> None:
     scaffold.update_enum("check_ntp_sync", dry_run=False)
     scaffold.update_enum("check_ntp_sync", dry_run=False)
 
-    enum_path = scaffold_env / "gcm" / "schemas" / "health_check" / "health_check_name.py"
+    enum_path = (
+        scaffold_env / "gcm" / "schemas" / "health_check" / "health_check_name.py"
+    )
     content = enum_path.read_text()
 
     assert content.count("CHECK_NTP_SYNC") == 1

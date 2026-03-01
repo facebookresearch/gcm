@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_CHECK_PREFIX = "check_"
+_PREFIX_LEN = len(_CHECK_PREFIX)
 
 # ---------------------------------------------------------------------------
 # Templates
@@ -251,7 +253,7 @@ def test_{check_name}(
     assert result.exit_code == expected_exit_code.value
 '''
 
-DOC_FILE = '''\
+DOC_FILE = """\
 # {dash_name}
 
 ## Overview
@@ -292,7 +294,7 @@ health_checks {dash_name} \\
   [CLUSTER] \\
   app
 ```
-'''
+"""
 
 
 # ---------------------------------------------------------------------------
@@ -333,7 +335,7 @@ def _render(template: str, **kwargs: str) -> str:
 
 
 def create_check_file(check_name: str, group: bool, dry_run: bool) -> None:
-    name = check_name[len("check_"):]
+    name = check_name[_PREFIX_LEN:]
     upper_name = name.upper()
     pascal_name = to_pascal_case(name)
 
@@ -361,15 +363,11 @@ def create_check_file(check_name: str, group: bool, dry_run: bool) -> None:
 
 
 def create_test_file(check_name: str, dry_run: bool) -> None:
-    name = check_name[len("check_"):]
+    name = check_name[_PREFIX_LEN:]
     pascal_name = to_pascal_case(name)
 
     dest = (
-        PROJECT_ROOT
-        / "gcm"
-        / "tests"
-        / "health_checks_tests"
-        / f"test_{check_name}.py"
+        PROJECT_ROOT / "gcm" / "tests" / "health_checks_tests" / f"test_{check_name}.py"
     )
 
     if dest.exists():
@@ -427,14 +425,12 @@ def update_init(check_name: str, dry_run: bool) -> None:
     init_path = PROJECT_ROOT / "gcm" / "health_checks" / "checks" / "__init__.py"
     content = init_path.read_text()
 
-    import_line = (
-        f"from gcm.health_checks.checks.{check_name} import {check_name}\n"
-    )
+    import_line = f"from gcm.health_checks.checks.{check_name} import {check_name}\n"
     all_entry = f'    "{check_name}",\n'
 
     # --- import block ---
     if import_line.strip() in content:
-        print(f"Skipping __init__.py import: already exists")
+        print("Skipping __init__.py import: already exists")
     else:
         # Find all existing check_ import lines and insert in alphabetical order.
         import_pattern = re.compile(
@@ -471,7 +467,7 @@ def update_init(check_name: str, dry_run: bool) -> None:
 
     # --- __all__ entry ---
     if f'"{check_name}"' in content:
-        print(f"Skipping __init__.py __all__: already exists")
+        print("Skipping __init__.py __all__: already exists")
     else:
         # Append before the closing ].
         content = content.replace(
@@ -488,9 +484,7 @@ def update_init(check_name: str, dry_run: bool) -> None:
 
 def update_cli(check_name: str, dry_run: bool) -> None:
     """Add entry to list_of_checks in health_checks.py."""
-    cli_path = (
-        PROJECT_ROOT / "gcm" / "health_checks" / "cli" / "health_checks.py"
-    )
+    cli_path = PROJECT_ROOT / "gcm" / "health_checks" / "cli" / "health_checks.py"
     content = cli_path.read_text()
 
     entry = f"    checks.{check_name},\n"
@@ -517,7 +511,7 @@ def update_enum(check_name: str, dry_run: bool) -> None:
     )
     content = enum_path.read_text()
 
-    name = check_name[len("check_"):]
+    name = check_name[_PREFIX_LEN:]
     upper_name = name.upper()
     space_name = name.replace("_", " ")
     enum_key = f"CHECK_{upper_name}"
@@ -680,8 +674,8 @@ def main() -> None:
             f"{check_name.replace('_', '-')}.md"
         )
         print(
-            f"  4. Regenerate feature flags if needed "
-            f"(health_checks_features.py may need regen)."
+            "  4. Regenerate feature flags if needed "
+            "(health_checks_features.py may need regen)."
         )
 
 
