@@ -47,8 +47,9 @@ The REST client supports all `SlurmClient` Protocol methods except where noted:
 | `sacctmgr_user_info()` | `GET /slurmdb/{version}/users/{name}` | Returns pipe-delimited user details |
 | `sacct_running()` | `GET /slurmdb/{version}/jobs?state=running` | Returns delimiter-separated lines |
 | `scontrol_partition()` | `GET /slurm/{version}/partitions` | Returns key=value lines |
-| `scontrol_config()` | `GET /slurmdb/{version}/config` | Returns key = value lines |
 | `sshare()` | `GET /slurm/{version}/shares` | Returns pipe-delimited fair-share data |
+| `sshare_structured()` | `GET /slurm/{version}/shares` | Returns `SshareRow` instances |
+| `scontrol_config()` | — | **Not available** via REST API (`/slurmdb/config` is slurmdbd, not slurmctld) |
 | `sprio()` | — | **Not available** via REST API |
 | `count_runaway_jobs()` | — | **Not available** via REST API |
 
@@ -120,6 +121,7 @@ client = SlurmRestClient(
 ## Limitations
 
 - **`sprio()`**: The Slurm REST API does not expose a priority factors endpoint. Use `SlurmCliClient` for priority data.
+- **`scontrol_config()`**: The `/slurmdb/config` endpoint returns slurmdbd configuration, not slurmctld configuration. Use `SlurmCliClient` for controller config.
 - **`count_runaway_jobs()`**: Requires `sacctmgr show runaway` which is not available via the REST API. Use `SlurmCliClient` for runaway job detection.
 - **Field mapping**: The `squeue()` method maps REST API field names to CLI field names. Some version-dependent fields may require updates to the mapping table.
 - **API version compatibility**: Tested with Slurm REST API v0.0.40+. Earlier versions may have different response schemas.

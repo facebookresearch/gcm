@@ -226,15 +226,12 @@ class SlurmRestClient(SlurmClient):
             pairs = [f"{k}={v}" for k, v in part.items()]
             yield " ".join(pairs)
 
-    def scontrol_config(self) -> Iterable[str]:
-        data = self._get(f"/slurmdb/{self.api_version}/config")
-        # Flatten config into key = value lines matching scontrol show config
-        config = data.get("config", data)
-        if isinstance(config, dict):
-            for key, value in config.items():
-                yield f"{key} = {value}"
-        else:
-            yield str(config)
+    def scontrol_config(self) -> NoReturn:
+        raise NotImplementedError(
+            "scontrol_config is not available via Slurm REST API; "
+            "the /slurmdb/config endpoint returns slurmdbd config, "
+            "not slurmctld config. Use SlurmCliClient"
+        )
 
     def count_runaway_jobs(self) -> NoReturn:
         raise NotImplementedError(
