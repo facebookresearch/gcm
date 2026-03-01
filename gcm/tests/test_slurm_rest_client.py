@@ -6,6 +6,7 @@ import pytest
 import requests
 from gcm.monitoring.slurm.rest_client import SlurmRestClient
 from gcm.schemas.slurm.sdiag import Sdiag
+from gcm.schemas.slurm.sshare import SshareRow
 
 
 class TestSlurmRestClient:
@@ -330,6 +331,34 @@ class TestSlurmRestClient:
         assert len(lines) == 2
         assert lines[0] == "User|DefaultAccount|Account|DefaultQOS|QOS"
         assert lines[1] == "alice|research|research|normal|normal,high"
+
+    def test_sshare_structured_returns_sshare_rows(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        session.get.return_value = self._mock_response(
+            {
+                "shares": {
+                    "shares": [
+                        {
+                            "name": "research",
+                            "user": "alice",
+                            "shares": {"raw": 100, "normalized": 0.5},
+                            "usage": {"raw": 50000, "normalized": 0.3},
+                            "fairshare": {"factor": 0.8},
+                        },
+                    ]
+                }
+            }
+        )
+
+        client = self._make_client(session)
+        rows = list(client.sshare_structured())
+
+        assert len(rows) == 1
+        assert isinstance(rows[0], SshareRow)
+        assert rows[0].Account == "research"
+        assert rows[0].User == "alice"
+        assert rows[0].RawShares == "100"
+        assert rows[0].FairShare == "0.8"
 
     def test_base_url_trailing_slash_stripped(self) -> None:
         session = create_autospec(requests.Session, instance=True)

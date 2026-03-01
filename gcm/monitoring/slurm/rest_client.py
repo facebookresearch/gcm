@@ -22,6 +22,7 @@ from gcm.schemas.slurm.sdiag import Sdiag
 from gcm.schemas.slurm.sinfo import Sinfo
 from gcm.schemas.slurm.sinfo_node import SinfoNode
 from gcm.schemas.slurm.squeue import JobData, REST_TO_SQUEUE_FIELD_MAP
+from gcm.schemas.slurm.sshare import SshareRow
 
 logger = logging.getLogger(__name__)
 
@@ -289,4 +290,18 @@ class SlurmRestClient(SlurmClient):
                     str(share.get("usage", {}).get("normalized", "")),
                     str(share.get("fairshare", {}).get("factor", "")),
                 ]
+            )
+
+    def sshare_structured(self) -> Iterable[SshareRow]:
+        data = self._get(f"/slurm/{self.api_version}/shares")
+        shares = data.get("shares", {}).get("shares", [])
+        for share in shares:
+            yield SshareRow(
+                Account=str(share.get("name", "")),
+                User=str(share.get("user", "")),
+                RawShares=str(share.get("shares", {}).get("raw", "")),
+                NormShares=str(share.get("shares", {}).get("normalized", "")),
+                RawUsage=str(share.get("usage", {}).get("raw", "")),
+                NormUsage=str(share.get("usage", {}).get("normalized", "")),
+                FairShare=str(share.get("fairshare", {}).get("factor", "")),
             )
