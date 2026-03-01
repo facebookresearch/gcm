@@ -3,7 +3,16 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Generator, Hashable, Iterable, Mapping, Optional
+from typing import (
+    Any,
+    Callable,
+    Generator,
+    Hashable,
+    Iterable,
+    Mapping,
+    NoReturn,
+    Optional,
+)
 
 import requests
 from gcm.monitoring.dataclass_utils import instantiate_dataclass
@@ -12,54 +21,9 @@ from gcm.monitoring.slurm.constants import SLURM_CLI_DELIMITER
 from gcm.schemas.slurm.sdiag import Sdiag
 from gcm.schemas.slurm.sinfo import Sinfo
 from gcm.schemas.slurm.sinfo_node import SinfoNode
-from gcm.schemas.slurm.squeue import JobData
-
-try:
-    from _typeshed import DataclassInstance
-except ImportError:
-    from typing import Any as DataclassInstance  # type: ignore[assignment, misc]
+from gcm.schemas.slurm.squeue import JobData, REST_TO_SQUEUE_FIELD_MAP
 
 logger = logging.getLogger(__name__)
-
-# Maps Slurm REST API job field names to CLI squeue field names.
-# The REST API uses lowercase/snake_case names while the CLI uses
-# uppercase names specified in JOB_DATA_SLURM_FIELDS.
-_REST_TO_SQUEUE_FIELD_MAP: dict[str, str] = {
-    "job_id": "JOBID",
-    "array_job_id": "JOBARRAYID",
-    "name": "NAME",
-    "time_limit": "TIMELIMIT",
-    "minimum_cpus_per_node": "MINCPUS",
-    "minimum_memory_per_node": "MINMEMORY",
-    "command": "COMMAND",
-    "priority": "PRIORITY",
-    "job_state": "STATE",
-    "user_name": "USERNAME",
-    "cpus": "NUMCPUS",
-    "node_count": "NUMNODES",
-    "time_left": "TIMELEFT",
-    "time_used": "TIMEUSED",
-    "nodes": "NODELIST",
-    "dependency": "DEPENDENCY",
-    "excluded_nodes": "EXCNODES",
-    "start_time": "STARTTIME",
-    "submit_time": "SUBMITTIME",
-    "eligible_time": "ELIGIBLETIME",
-    "accrue_time": "ACCRUETIME",
-    "pending_time": "PENDINGTIME",
-    "comment": "COMMENT",
-    "partition": "PARTITION",
-    "account": "ACCOUNT",
-    "qos": "QOS",
-    "state_reason": "REASON",
-    "tres_alloc_str": "TRES-ALLOC",
-    "tres_per_node": "TRES-PER-NODE",
-    "reservation": "RESERVATION",
-    "requeue": "REQUEUE",
-    "features": "FEATURE",
-    "restart_cnt": "RESTARTCNT",
-    "scheduled_nodes": "SCHEDNODES",
-}
 
 
 class SlurmRestClient(SlurmClient):
@@ -110,7 +74,7 @@ class SlurmRestClient(SlurmClient):
     def _map_job_fields(self, job: dict[str, Any]) -> dict[Hashable, Any]:
         """Map REST API job fields to CLI squeue field names."""
         row: dict[Hashable, Any] = {}
-        for rest_key, squeue_key in _REST_TO_SQUEUE_FIELD_MAP.items():
+        for rest_key, squeue_key in REST_TO_SQUEUE_FIELD_MAP.items():
             value = job.get(rest_key, "")
             # Handle nested dicts (e.g. time_limit may be {"number": N, ...})
             if isinstance(value, dict):
@@ -125,7 +89,7 @@ class SlurmRestClient(SlurmClient):
         derived_cluster_fetcher: Callable[[Mapping[Hashable, str | int]], str],
         logger: logging.Logger,
         attributes: Optional[dict[Hashable, Any]] = None,
-    ) -> Iterable[DataclassInstance]:
+    ) -> Iterable[JobData]:
         data = self._get(f"/slurm/{self.api_version}/jobs")
         jobs = data.get("jobs", [])
         for job in jobs:
@@ -270,13 +234,13 @@ class SlurmRestClient(SlurmClient):
         else:
             yield str(config)
 
-    def count_runaway_jobs(self) -> int:
+    def count_runaway_jobs(self) -> NoReturn:
         raise NotImplementedError(
             "count_runaway_jobs is not available via Slurm REST API; "
             "use SlurmCliClient"
         )
 
-    def sprio(self) -> Iterable[str]:
+    def sprio(self) -> NoReturn:
         raise NotImplementedError(
             "sprio is not available via Slurm REST API; use SlurmCliClient"
         )
