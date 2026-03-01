@@ -4,7 +4,9 @@
 
 import importlib.util
 import shutil
+from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -20,7 +22,9 @@ _BIN_SCRIPT = (
 spec = importlib.util.spec_from_file_location(
     "create_new_health_check", str(_BIN_SCRIPT)
 )
-scaffold = importlib.util.module_from_spec(spec)
+assert spec is not None, f"Could not load spec from {_BIN_SCRIPT}"
+assert spec.loader is not None, "spec.loader is None"
+scaffold: Any = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(scaffold)
 
 # ---------------------------------------------------------------------------
@@ -32,7 +36,7 @@ _REAL_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 @pytest.fixture
-def scaffold_env(tmp_path: Path):
+def scaffold_env(tmp_path: Path) -> Iterator[Path]:
     """Set up temp directory with copies of files the scaffold modifies."""
     # Mirror required directory structure
     checks_dir = tmp_path / "gcm" / "health_checks" / "checks"
