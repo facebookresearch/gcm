@@ -1,11 +1,13 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
+import logging
 from unittest.mock import create_autospec, MagicMock
 
 import pytest
 import requests
 from gcm.monitoring.slurm.rest_client import SlurmRestClient
 from gcm.schemas.slurm.sdiag import Sdiag
+from gcm.schemas.slurm.squeue import JobData
 from gcm.schemas.slurm.sshare import SshareRow
 
 
@@ -341,6 +343,89 @@ class TestSlurmRestClient:
         assert rows[0].User == "alice"
         assert rows[0].RawShares == "100"
         assert rows[0].FairShare == "0.8"
+
+    def test_squeue_returns_job_data(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        session.get.return_value = self._mock_response(
+            {
+                "jobs": [
+                    {
+                        "job_id": 12345,
+                        "array_job_id": 12345,
+                        "name": "train_model",
+                        "time_limit": {"number": 3600, "set": True},
+                        "minimum_cpus_per_node": 4,
+                        "minimum_memory_per_node": "16000M",
+                        "command": "/home/alice/train.sh",
+                        "priority": 1000.0,
+                        "job_state": "RUNNING",
+                        "user_name": "alice",
+                        "cpus": 8,
+                        "node_count": 1,
+                        "time_left": "1:00:00",
+                        "time_used": "0:30:00",
+                        "nodes": "gpu-node-01",
+                        "dependency": "",
+                        "excluded_nodes": "",
+                        "start_time": "2024-01-15T10:00:00",
+                        "submit_time": "2024-01-15T09:50:00",
+                        "eligible_time": "2024-01-15T09:55:00",
+                        "accrue_time": "2024-01-15T09:55:00",
+                        "pending_time": 0,
+                        "comment": "",
+                        "partition": "gpu",
+                        "account": "research",
+                        "qos": "normal",
+                        "state_reason": "None",
+                        "tres_alloc_str": "cpu=8,node=1",
+                        "tres_per_node": "",
+                        "reservation": "",
+                        "requeue": "0",
+                        "features": "",
+                        "restart_cnt": 0,
+                        "scheduled_nodes": "",
+                    },
+                ]
+            }
+        )
+
+        client = self._make_client(session)
+        test_logger = logging.getLogger("test")
+        jobs = list(
+            client.squeue(
+                derived_cluster_fetcher=lambda row: "test-cluster",
+                logger=test_logger,
+                attributes={"collection_unixtime": 1700000100, "cluster": "prod"},
+            )
+        )
+
+        assert len(jobs) == 1
+        job = jobs[0]
+        assert isinstance(job, JobData)
+        assert job.JOBID_RAW == "12345"
+        assert job.NAME == "train_model"
+        assert job.STATE == "RUNNING"
+        assert job.USER == "alice"
+        assert job.PARTITION == "gpu"
+        assert job.ACCOUNT == "research"
+        assert job.QOS == "normal"
+        assert job.derived_cluster == "test-cluster"
+        assert job.PENDING_RESOURCES == "False"
+
+    def test_squeue_empty_returns_empty(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        session.get.return_value = self._mock_response({"jobs": []})
+
+        client = self._make_client(session)
+        test_logger = logging.getLogger("test")
+        jobs = list(
+            client.squeue(
+                derived_cluster_fetcher=lambda row: "test-cluster",
+                logger=test_logger,
+            )
+        )
+
+        assert jobs == []
 
     def test_base_url_trailing_slash_stripped(self) -> None:
         session = create_autospec(requests.Session, instance=True)
