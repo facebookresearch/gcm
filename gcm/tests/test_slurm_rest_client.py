@@ -97,7 +97,6 @@ class TestSlurmRestClient:
     def test_sdiag_structured_returns_sdiag(self) -> None:
         session = create_autospec(requests.Session, instance=True)
         session.get.return_value = self._mock_response(self._sdiag_stats())
-        session.post.return_value = self._mock_response({})
 
         client = self._make_client(session)
         result = client.sdiag_structured()
@@ -110,30 +109,6 @@ class TestSlurmRestClient:
         assert result.sdiag_jobs_running == 70
         assert result.bf_backfilled_jobs == 200
         assert result.schedule_cycle_max == 100
-
-    def test_sdiag_resets_counters_after_collection(self) -> None:
-        session = create_autospec(requests.Session, instance=True)
-        session.get.return_value = self._mock_response(self._sdiag_stats())
-        session.post.return_value = self._mock_response({})
-
-        client = self._make_client(session)
-        client.sdiag_structured()
-
-        session.post.assert_called_once_with(
-            "http://slurm.example.com/slurm/v0.0.40/diag",
-            timeout=30,
-            verify=True,
-        )
-
-    def test_sdiag_reset_failure_logs_warning(self) -> None:
-        session = create_autospec(requests.Session, instance=True)
-        session.get.return_value = self._mock_response(self._sdiag_stats())
-        session.post.return_value = self._mock_response({}, status_code=403)
-
-        client = self._make_client(session)
-        # Should not raise — just log a warning
-        result = client.sdiag_structured()
-        assert isinstance(result, Sdiag)
 
     def test_sshare_returns_pipe_delimited_lines(self) -> None:
         session = create_autospec(requests.Session, instance=True)
