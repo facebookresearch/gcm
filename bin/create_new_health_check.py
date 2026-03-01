@@ -1,0 +1,689 @@
+#!/usr/bin/env python3
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+"""Scaffold tool for creating new GCM health checks."""
+
+import argparse
+import re
+import sys
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+# ---------------------------------------------------------------------------
+# Templates
+# ---------------------------------------------------------------------------
+
+CHECK_FILE_SIMPLE = '''\
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+"""TODO: describe what {check_name} checks."""
+
+import sys
+from collections.abc import Collection
+from dataclasses import dataclass
+from typing import Optional, Protocol
+
+import click
+
+from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
+from gcm.health_checks.click import (
+    common_arguments,
+    telemetry_argument,
+)
+from gcm.health_checks.types import CHECK_TYPE, CheckEnv, ExitCode, LOG_LEVEL
+from gcm.monitoring.click import heterogeneous_cluster_v1_option
+from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import (
+    FeatureValueHealthChecksFeatures,
+)
+from gcm.schemas.health_check.health_check_name import HealthCheckName
+from typeguard import typechecked
+
+
+class {PascalName}Check(CheckEnv, Protocol):
+    """Provide a class stub definition."""
+
+    ...
+
+
+@dataclass
+class {PascalName}CheckImpl:
+    """Implement the {check_name} check."""
+
+    cluster: str
+    type: str
+    log_level: str
+    log_folder: str
+
+    def run(self) -> None:
+        """TODO: implement the check logic."""
+        raise NotImplementedError
+
+
+@click.command()
+@common_arguments
+@telemetry_argument
+@heterogeneous_cluster_v1_option
+@click.pass_obj
+@typechecked
+def {check_name}(
+    obj: Optional[{PascalName}Check],
+    cluster: str,
+    type: CHECK_TYPE,
+    log_level: LOG_LEVEL,
+    log_folder: str,
+    sink: str,
+    sink_opts: Collection[str],
+    verbose_out: bool,
+    heterogeneous_cluster_v1: bool,
+) -> None:
+    """TODO: short description of {check_name}."""
+    if not obj:
+        obj = {PascalName}CheckImpl(cluster, type, log_level, log_folder)
+
+    with HealthCheckRuntime(
+        cluster=cluster,
+        type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.CHECK_{UPPER_NAME},
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures()
+        .get_healthchecksfeatures_disable_check_{name}(),
+    ) as rt:
+        # TODO: implement check logic, call rt.finish(ExitCode.OK, "msg") when done
+        rt.finish(ExitCode.UNKNOWN, "Not implemented yet")
+'''
+
+CHECK_FILE_GROUP = '''\
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+"""TODO: describe what {check_name} checks."""
+
+import sys
+from collections.abc import Collection
+from dataclasses import dataclass
+from typing import Optional, Protocol
+
+import click
+
+from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
+from gcm.health_checks.click import (
+    common_arguments,
+    telemetry_argument,
+)
+from gcm.health_checks.types import CHECK_TYPE, CheckEnv, ExitCode, LOG_LEVEL
+from gcm.monitoring.click import heterogeneous_cluster_v1_option
+from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import (
+    FeatureValueHealthChecksFeatures,
+)
+from gcm.schemas.health_check.health_check_name import HealthCheckName
+from typeguard import typechecked
+
+
+class {PascalName}Check(CheckEnv, Protocol):
+    """Provide a class stub definition."""
+
+    ...
+
+
+@dataclass
+class {PascalName}CheckImpl:
+    """Implement the {check_name} check."""
+
+    cluster: str
+    type: str
+    log_level: str
+    log_folder: str
+
+    def run(self) -> None:
+        """TODO: implement the check logic."""
+        raise NotImplementedError
+
+
+@click.group()
+def {check_name}() -> None:
+    """TODO: short description of the {check_name} group."""
+    pass
+
+
+@{check_name}.command()
+@common_arguments
+@telemetry_argument
+@heterogeneous_cluster_v1_option
+@click.pass_obj
+@typechecked
+def example_subcommand(
+    obj: Optional[{PascalName}Check],
+    cluster: str,
+    type: CHECK_TYPE,
+    log_level: LOG_LEVEL,
+    log_folder: str,
+    sink: str,
+    sink_opts: Collection[str],
+    verbose_out: bool,
+    heterogeneous_cluster_v1: bool,
+) -> None:
+    """TODO: short description of this subcommand."""
+    if not obj:
+        obj = {PascalName}CheckImpl(cluster, type, log_level, log_folder)
+
+    with HealthCheckRuntime(
+        cluster=cluster,
+        type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.CHECK_{UPPER_NAME},
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures()
+        .get_healthchecksfeatures_disable_check_{name}(),
+    ) as rt:
+        # TODO: implement check logic, call rt.finish(ExitCode.OK, "msg") when done
+        rt.finish(ExitCode.UNKNOWN, "Not implemented yet")
+'''
+
+TEST_FILE = '''\
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+"""Test the {check_name} health-check."""
+
+import logging
+from dataclasses import dataclass
+from pathlib import Path
+
+import pytest
+from click.testing import CliRunner
+from gcm.health_checks.checks.{check_name} import {check_name}
+from gcm.health_checks.types import ExitCode
+
+
+@dataclass
+class Fake{PascalName}CheckImpl:
+    """Supply pregenerated output instead of running the real check."""
+
+    cluster: str = "test cluster"
+    type: str = "prolog"
+    log_level: str = "INFO"
+    log_folder: str = "/tmp"
+
+    def run(self) -> None:
+        """No-op for testing."""
+        pass
+
+
+@pytest.fixture
+def {name}_tester(
+    request: pytest.FixtureRequest,
+) -> Fake{PascalName}CheckImpl:
+    """Create Fake{PascalName}CheckImpl object."""
+    return Fake{PascalName}CheckImpl()
+
+
+@pytest.mark.parametrize(
+    ("expected_exit_code",),
+    [
+        # TODO: add real test cases
+        (ExitCode.UNKNOWN,),
+    ],
+)
+def test_{check_name}(
+    caplog: pytest.LogCaptureFixture,
+    tmp_path: Path,
+    expected_exit_code: ExitCode,
+) -> None:
+    """Invoke the {check_name} command."""
+    runner = CliRunner(mix_stderr=False)
+    caplog.at_level(logging.INFO)
+
+    fake_impl = Fake{PascalName}CheckImpl()
+    result = runner.invoke(
+        {check_name},
+        f"fair_cluster prolog --log-folder={{tmp_path}} --sink=do_nothing",
+        obj=fake_impl,
+    )
+
+    assert result.exit_code == expected_exit_code.value
+'''
+
+DOC_FILE = '''\
+# {dash_name}
+
+## Overview
+TODO: describe what this health check monitors.
+
+## Command-Line Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--sink` | String | do_nothing | Telemetry sink destination |
+| `--sink-opts` | Multiple | - | Sink-specific configuration |
+| `--verbose-out` | Flag | False | Display detailed output |
+| `--log-level` | Choice | INFO | DEBUG, INFO, WARNING, ERROR, CRITICAL |
+| `--log-folder` | String | `/var/log/fb-monitoring` | Log directory |
+| `--heterogeneous-cluster-v1` | Flag | False | Enable heterogeneous cluster support |
+
+## Exit Conditions
+
+| Exit Code | Description |
+|-----------|-------------|
+| **OK (0)** | Feature flag disabled (killswitch active) |
+| **OK (0)** | TODO: describe passing condition |
+| **CRITICAL (2)** | TODO: describe failing condition |
+| **UNKNOWN (3)** | Check not yet implemented |
+
+## Usage Examples
+
+### Basic Check
+```shell
+health_checks {dash_name} [CLUSTER] app
+```
+
+### With Telemetry
+```shell
+health_checks {dash_name} \\
+  --sink otel \\
+  --sink-opts "log_resource_attributes={{\'attr_1\': \'value1\'}}" \\
+  [CLUSTER] \\
+  app
+```
+'''
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def validate_name(name: str) -> str:
+    """Validate check_name and return it if valid, else exit with error."""
+    if not re.match(r"^check_[a-z][a-z0-9_]*$", name):
+        print(
+            f"Error: '{name}' is not a valid check name.\n"
+            "Name must be lowercase with underscores only and match: "
+            "^check_[a-z][a-z0-9_]*$\n"
+            "Example: check_ntp_sync",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    return name
+
+
+def to_pascal_case(snake: str) -> str:
+    """Convert snake_case to PascalCase."""
+    return "".join(word.capitalize() for word in snake.split("_"))
+
+
+def _render(template: str, **kwargs: str) -> str:
+    """Simple {key} substitution without touching unrelated braces."""
+    result = template
+    for key, value in kwargs.items():
+        result = result.replace("{" + key + "}", value)
+    return result
+
+
+# ---------------------------------------------------------------------------
+# File-creation helpers
+# ---------------------------------------------------------------------------
+
+
+def create_check_file(check_name: str, group: bool, dry_run: bool) -> None:
+    name = check_name[len("check_"):]
+    upper_name = name.upper()
+    pascal_name = to_pascal_case(name)
+
+    dest = PROJECT_ROOT / "gcm" / "health_checks" / "checks" / f"{check_name}.py"
+
+    if dest.exists():
+        print(f"Skipping check file: {dest} already exists")
+        return
+
+    template = CHECK_FILE_GROUP if group else CHECK_FILE_SIMPLE
+    content = _render(
+        template,
+        check_name=check_name,
+        name=name,
+        UPPER_NAME=upper_name,
+        PascalName=pascal_name,
+    )
+
+    if dry_run:
+        print(f"[dry-run] Would create: {dest}")
+        return
+
+    dest.write_text(content)
+    print(f"Created: {dest}")
+
+
+def create_test_file(check_name: str, dry_run: bool) -> None:
+    name = check_name[len("check_"):]
+    pascal_name = to_pascal_case(name)
+
+    dest = (
+        PROJECT_ROOT
+        / "gcm"
+        / "tests"
+        / "health_checks_tests"
+        / f"test_{check_name}.py"
+    )
+
+    if dest.exists():
+        print(f"Skipping test file: {dest} already exists")
+        return
+
+    content = _render(
+        TEST_FILE,
+        check_name=check_name,
+        name=name,
+        PascalName=pascal_name,
+    )
+
+    if dry_run:
+        print(f"[dry-run] Would create: {dest}")
+        return
+
+    dest.write_text(content)
+    print(f"Created: {dest}")
+
+
+def create_doc_file(check_name: str, dry_run: bool) -> None:
+    dash_name = check_name.replace("_", "-")
+
+    dest = (
+        PROJECT_ROOT
+        / "website"
+        / "docs"
+        / "GCM_Health_Checks"
+        / "health_checks"
+        / f"{dash_name}.md"
+    )
+
+    if dest.exists():
+        print(f"Skipping doc file: {dest} already exists")
+        return
+
+    content = _render(DOC_FILE, dash_name=dash_name)
+
+    if dry_run:
+        print(f"[dry-run] Would create: {dest}")
+        return
+
+    dest.write_text(content)
+    print(f"Created: {dest}")
+
+
+# ---------------------------------------------------------------------------
+# File-modification helpers
+# ---------------------------------------------------------------------------
+
+
+def update_init(check_name: str, dry_run: bool) -> None:
+    """Add import and __all__ entry to checks/__init__.py (alphabetical)."""
+    init_path = PROJECT_ROOT / "gcm" / "health_checks" / "checks" / "__init__.py"
+    content = init_path.read_text()
+
+    import_line = (
+        f"from gcm.health_checks.checks.{check_name} import {check_name}\n"
+    )
+    all_entry = f'    "{check_name}",\n'
+
+    # --- import block ---
+    if import_line.strip() in content:
+        print(f"Skipping __init__.py import: already exists")
+    else:
+        # Find all existing check_ import lines and insert in alphabetical order.
+        import_pattern = re.compile(
+            r"^from gcm\.health_checks\.checks\.check_\S+ import \S+$",
+            re.MULTILINE,
+        )
+        existing = list(import_pattern.finditer(content))
+        if existing:
+            # Find the correct insertion point.
+            inserted = False
+            for match in existing:
+                if import_line.strip() < match.group().strip():
+                    # Insert before this match.
+                    pos = match.start()
+                    content = content[:pos] + import_line + content[pos:]
+                    inserted = True
+                    break
+            if not inserted:
+                # Insert after the last existing import.
+                last = existing[-1]
+                pos = last.end() + 1  # after the newline
+                content = content[:pos] + import_line + content[pos:]
+        else:
+            # No existing check_ imports; prepend before __all__.
+            content = import_line + content
+
+        if dry_run:
+            print(f"[dry-run] Would add import to {init_path}")
+        else:
+            init_path.write_text(content)
+            print(f"Updated imports in {init_path}")
+            # Re-read after writing so __all__ update is consistent.
+            content = init_path.read_text()
+
+    # --- __all__ entry ---
+    if f'"{check_name}"' in content:
+        print(f"Skipping __init__.py __all__: already exists")
+    else:
+        # Append before the closing ].
+        content = content.replace(
+            "]\n",
+            f"{all_entry}]\n",
+            1,
+        )
+        if dry_run:
+            print(f"[dry-run] Would add __all__ entry to {init_path}")
+        else:
+            init_path.write_text(content)
+            print(f"Updated __all__ in {init_path}")
+
+
+def update_cli(check_name: str, dry_run: bool) -> None:
+    """Add entry to list_of_checks in health_checks.py."""
+    cli_path = (
+        PROJECT_ROOT / "gcm" / "health_checks" / "cli" / "health_checks.py"
+    )
+    content = cli_path.read_text()
+
+    entry = f"    checks.{check_name},\n"
+
+    if f"checks.{check_name}" in content:
+        print(f"Skipping health_checks.py: checks.{check_name} already exists")
+        return
+
+    # Insert before the closing ] of list_of_checks.
+    content = content.replace("]\n\nfor check", f"{entry}]\n\nfor check", 1)
+
+    if dry_run:
+        print(f"[dry-run] Would add checks.{check_name} to {cli_path}")
+        return
+
+    cli_path.write_text(content)
+    print(f"Updated {cli_path}")
+
+
+def update_enum(check_name: str, dry_run: bool) -> None:
+    """Add entry to HealthCheckName enum in alphabetical order."""
+    enum_path = (
+        PROJECT_ROOT / "gcm" / "schemas" / "health_check" / "health_check_name.py"
+    )
+    content = enum_path.read_text()
+
+    name = check_name[len("check_"):]
+    upper_name = name.upper()
+    space_name = name.replace("_", " ")
+    enum_key = f"CHECK_{upper_name}"
+    enum_value = f"check {space_name}"
+    new_line = f'    {enum_key} = "{enum_value}"\n'
+
+    if enum_key in content:
+        print(f"Skipping health_check_name.py: {enum_key} already exists")
+        return
+
+    # Find existing CHECK_ entries and insert alphabetically.
+    check_pattern = re.compile(r"^    CHECK_\w+ = \".+\"$", re.MULTILINE)
+    existing = list(check_pattern.finditer(content))
+
+    if existing:
+        inserted = False
+        for match in existing:
+            existing_key = match.group().strip().split(" = ")[0]
+            if enum_key < existing_key:
+                pos = match.start()
+                content = content[:pos] + new_line + content[pos:]
+                inserted = True
+                break
+        if not inserted:
+            # Append after last CHECK_ entry.
+            last = existing[-1]
+            pos = last.end() + 1
+            content = content[:pos] + new_line + content[pos:]
+    else:
+        # No existing CHECK_ entries; append before end of class.
+        content = content.rstrip("\n") + "\n" + new_line
+
+    if dry_run:
+        print(f"[dry-run] Would add {enum_key} to {enum_path}")
+        return
+
+    enum_path.write_text(content)
+    print(f"Updated {enum_path}")
+
+
+def update_features(check_name: str, dry_run: bool) -> None:
+    """Add disable_check_{name} field to HealthChecksFeatures alphabetically."""
+    features_path = (
+        PROJECT_ROOT
+        / "gcm"
+        / "monitoring"
+        / "features"
+        / "feature_definitions"
+        / "health_checks_features.py"
+    )
+    content = features_path.read_text()
+
+    field_name = f"disable_{check_name}"
+    new_line = f"    {field_name}: bool\n"
+
+    if field_name in content:
+        print(f"Skipping health_checks_features.py: {field_name} already exists")
+        return
+
+    # Find all disable_ field lines and insert alphabetically.
+    field_pattern = re.compile(r"^    disable_\w+: bool$", re.MULTILINE)
+    existing = list(field_pattern.finditer(content))
+
+    if existing:
+        inserted = False
+        for match in existing:
+            existing_field = match.group().strip().split(":")[0]
+            if field_name < existing_field:
+                pos = match.start()
+                content = content[:pos] + new_line + content[pos:]
+                inserted = True
+                break
+        if not inserted:
+            # Append after the last disable_ field.
+            last = existing[-1]
+            pos = last.end() + 1
+            content = content[:pos] + new_line + content[pos:]
+    else:
+        content = content.rstrip("\n") + "\n" + new_line
+
+    if dry_run:
+        print(f"[dry-run] Would add {field_name} to {features_path}")
+        return
+
+    features_path.write_text(content)
+    print(f"Updated {features_path}")
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Scaffold a new GCM health check.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  python bin/create_new_health_check.py check_ntp_sync\n"
+            "  python bin/create_new_health_check.py check_ntp_sync --group\n"
+            "  python bin/create_new_health_check.py check_ntp_sync --dry-run\n"
+        ),
+    )
+    parser.add_argument(
+        "check_name",
+        help=(
+            "Snake_case name of the new health check (e.g. check_ntp_sync). "
+            "Must start with 'check_' and contain only lowercase letters and underscores."
+        ),
+    )
+    parser.add_argument(
+        "--group",
+        action="store_true",
+        default=False,
+        help="Generate a @click.group() command instead of a @click.command().",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help="Print what would be created/modified without writing any files.",
+    )
+
+    args = parser.parse_args()
+    check_name = validate_name(args.check_name)
+
+    if args.dry_run:
+        print(f"[dry-run] Scaffolding health check: {check_name}")
+
+    # 1. Create check file
+    create_check_file(check_name, group=args.group, dry_run=args.dry_run)
+    # 2. Create test file
+    create_test_file(check_name, dry_run=args.dry_run)
+    # 3. Create doc file
+    create_doc_file(check_name, dry_run=args.dry_run)
+    # 4. Update checks/__init__.py
+    update_init(check_name, dry_run=args.dry_run)
+    # 5. Update health_checks.py CLI
+    update_cli(check_name, dry_run=args.dry_run)
+    # 6. Update health_check_name.py enum
+    update_enum(check_name, dry_run=args.dry_run)
+    # 7. Update health_checks_features.py feature flags
+    update_features(check_name, dry_run=args.dry_run)
+
+    if not args.dry_run:
+        print(f"\nDone! Health check '{check_name}' scaffolded successfully.")
+        print("Next steps:")
+        print(
+            f"  1. Implement the check logic in "
+            f"gcm/health_checks/checks/{check_name}.py"
+        )
+        print(
+            f"  2. Update the test in "
+            f"gcm/tests/health_checks_tests/test_{check_name}.py"
+        )
+        print(
+            f"  3. Update the doc stub in "
+            f"website/docs/GCM_Health_Checks/health_checks/"
+            f"{check_name.replace('_', '-')}.md"
+        )
+        print(
+            f"  4. Regenerate feature flags if needed "
+            f"(health_checks_features.py may need regen)."
+        )
+
+
+if __name__ == "__main__":
+    main()
