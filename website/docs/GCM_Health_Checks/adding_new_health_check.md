@@ -26,7 +26,7 @@ Preview changes without modifying files:
 python bin/create_new_health_check.py check_my_check --dry-run
 ```
 
-The tool creates the check file, test file, and documentation stub, registers the check in all required locations, and automatically runs `generate_features.py` and `ufmt format gcm`. You still need to implement the actual check logic (steps 2-4) and run verification (step 9).
+The tool creates the check file, test file, and documentation stub, registers the check in all required locations, and automatically runs `generate_features.py` and `ufmt format gcm`. You still need to implement the actual check logic (steps 2-4), write real tests (step 7), fill in the documentation (step 8), add your check to `test_killswitches.py` (step 6), and run verification (step 9).
 
 ## 1. Create the check file
 

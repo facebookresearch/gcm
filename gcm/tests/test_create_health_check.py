@@ -282,8 +282,7 @@ def test_update_init_idempotent(scaffold_env: Path) -> None:
     init_path = scaffold_env / "gcm" / "health_checks" / "checks" / "__init__.py"
     content = init_path.read_text()
 
-    assert content.count("check_ntp_sync") == content.count("check_ntp_sync")
-    # Specifically, the import line must appear exactly once.
+    # The import line must appear exactly once.
     assert (
         content.count(
             "from gcm.health_checks.checks.check_ntp_sync import check_ntp_sync"
@@ -399,3 +398,18 @@ def test_update_cli_idempotent(scaffold_env: Path) -> None:
     content = cli_path.read_text()
 
     assert content.count("checks.check_ntp_sync") == 1
+
+
+def test_update_cli_warns_on_missing_anchor(
+    scaffold_env: Path, capsys: pytest.CaptureFixture
+) -> None:
+    """update_cli warns when the expected anchor string is absent."""
+    cli_path = scaffold_env / "gcm" / "health_checks" / "cli" / "health_checks.py"
+    # Remove the anchor that update_cli relies on.
+    cli_path.write_text("# empty file with no anchor\n")
+
+    scaffold.update_cli("check_ntp_sync", dry_run=False)
+
+    captured = capsys.readouterr()
+    assert "Warning" in captured.err
+    assert "checks.check_ntp_sync" not in cli_path.read_text()

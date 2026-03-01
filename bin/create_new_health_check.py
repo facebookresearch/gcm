@@ -22,7 +22,6 @@ CHECK_FILE_SIMPLE = '''\
 # All rights reserved.
 """TODO: describe what {check_name} checks."""
 
-import sys
 from collections.abc import Collection
 from dataclasses import dataclass
 from typing import Optional, Protocol
@@ -106,7 +105,6 @@ CHECK_FILE_GROUP = '''\
 # All rights reserved.
 """TODO: describe what {check_name} checks."""
 
-import sys
 from collections.abc import Collection
 from dataclasses import dataclass
 from typing import Optional, Protocol
@@ -463,23 +461,32 @@ def update_init(check_name: str, dry_run: bool) -> None:
         else:
             init_path.write_text(content)
             print(f"Updated imports in {init_path}")
-            # Re-read after writing so __all__ update is consistent.
-            content = init_path.read_text()
+
+    # Re-read on-disk content so __all__ check is consistent regardless
+    # of whether the import block was written or skipped due to dry-run.
+    content = init_path.read_text()
 
     # --- __all__ entry ---
     if f'"{check_name}"' in content:
         print("Skipping __init__.py __all__: already exists")
     else:
         # Append before the closing ].
-        content = content.replace(
+        new_content = content.replace(
             "]\n",
             f"{all_entry}]\n",
             1,
         )
+        if new_content == content:
+            print(
+                f"Warning: could not find insertion point in {init_path}. "
+                "Please add the __all__ entry manually.",
+                file=sys.stderr,
+            )
+            return
         if dry_run:
             print(f"[dry-run] Would add __all__ entry to {init_path}")
         else:
-            init_path.write_text(content)
+            init_path.write_text(new_content)
             print(f"Updated __all__ in {init_path}")
 
 
@@ -495,13 +502,20 @@ def update_cli(check_name: str, dry_run: bool) -> None:
         return
 
     # Insert before the closing ] of list_of_checks.
-    content = content.replace("]\n\nfor check", f"{entry}]\n\nfor check", 1)
+    new_content = content.replace("]\n\nfor check", f"{entry}]\n\nfor check", 1)
+    if new_content == content:
+        print(
+            f"Warning: could not find insertion point in {cli_path}. "
+            "Please add the entry manually.",
+            file=sys.stderr,
+        )
+        return
 
     if dry_run:
         print(f"[dry-run] Would add checks.{check_name} to {cli_path}")
         return
 
-    cli_path.write_text(content)
+    cli_path.write_text(new_content)
     print(f"Updated {cli_path}")
 
 
@@ -606,7 +620,7 @@ def update_features(check_name: str, dry_run: bool) -> None:
 # ---------------------------------------------------------------------------
 
 
-def run_post_scaffold(check_name: str) -> None:
+def run_post_scaffold() -> None:
     """Run feature generation and code formatting after scaffolding."""
     gen_script = PROJECT_ROOT / "bin" / "generate_features.py"
     if gen_script.exists():
@@ -694,7 +708,7 @@ def main() -> None:
 
     if not args.dry_run:
         # 8. Regenerate feature flags and format generated code
-        run_post_scaffold(check_name)
+        run_post_scaffold()
 
         print(f"\nDone! Health check '{check_name}' scaffolded successfully.")
         print("Next steps:")
