@@ -5,6 +5,7 @@
 
 import argparse
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -601,6 +602,40 @@ def update_features(check_name: str, dry_run: bool) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Post-scaffold automation
+# ---------------------------------------------------------------------------
+
+
+def run_post_scaffold(check_name: str) -> None:
+    """Run feature generation and code formatting after scaffolding."""
+    gen_script = PROJECT_ROOT / "bin" / "generate_features.py"
+    if gen_script.exists():
+        print("Running feature generation...")
+        result = subprocess.run(
+            [sys.executable, str(gen_script)],
+            cwd=str(PROJECT_ROOT),
+        )
+        if result.returncode != 0:
+            print(
+                f"Warning: generate_features.py exited with code {result.returncode}",
+                file=sys.stderr,
+            )
+    else:
+        print(f"Skipping feature generation: {gen_script} not found")
+
+    print("Running ufmt format...")
+    result = subprocess.run(
+        [sys.executable, "-m", "ufmt", "format", "gcm"],
+        cwd=str(PROJECT_ROOT),
+    )
+    if result.returncode != 0:
+        print(
+            f"Warning: ufmt format exited with code {result.returncode}",
+            file=sys.stderr,
+        )
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -658,6 +693,9 @@ def main() -> None:
     update_features(check_name, dry_run=args.dry_run)
 
     if not args.dry_run:
+        # 8. Regenerate feature flags and format generated code
+        run_post_scaffold(check_name)
+
         print(f"\nDone! Health check '{check_name}' scaffolded successfully.")
         print("Next steps:")
         print(
@@ -672,10 +710,6 @@ def main() -> None:
             f"  3. Update the doc stub in "
             f"website/docs/GCM_Health_Checks/health_checks/"
             f"{check_name.replace('_', '-')}.md"
-        )
-        print(
-            "  4. Regenerate feature flags if needed "
-            "(health_checks_features.py may need regen)."
         )
 
 

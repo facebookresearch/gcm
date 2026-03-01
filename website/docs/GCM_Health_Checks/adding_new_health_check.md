@@ -26,13 +26,7 @@ Preview changes without modifying files:
 python bin/create_new_health_check.py check_my_check --dry-run
 ```
 
-Then run feature generation and formatting:
-```bash
-python bin/generate_features.py
-ufmt format gcm
-```
-
-The tool creates the check file, test file, and documentation stub, and registers the check in all required locations (steps 1, 5, 6, 7, and 8 below). You still need to implement the actual check logic (steps 2-4) and run verification (step 9).
+The tool creates the check file, test file, and documentation stub, registers the check in all required locations, and automatically runs `generate_features.py` and `ufmt format gcm`. You still need to implement the actual check logic (steps 2-4) and run verification (step 9).
 
 ## 1. Create the check file
 
