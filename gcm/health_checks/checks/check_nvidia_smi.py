@@ -784,17 +784,6 @@ class TemperatureRequiredOption(click.Option):
 @click.option("--gpu_num", type=click.INT, default=8)
 @click.option(
     "--gpu_app_freq",
-    type=click.INT,
-    default=1155,
-    help="Select what the GPU application frequency should be (MHz).",
-)
-@click.option(
-    "--gpu_app_mem_freq",
-    type=click.INT,
-    default=1593,
-    help="Select what the GPU memory application frequency should be (MHz).",
-)
-@click.option(
     "--expected-graphics-freq",
     type=click.IntRange(min=0),
     default=1155,
@@ -802,6 +791,7 @@ class TemperatureRequiredOption(click.Option):
     help="Expected GPU graphics application clock frequency (MHz).",
 )
 @click.option(
+    "--gpu_app_mem_freq",
     "--expected-memory-freq",
     type=click.IntRange(min=0),
     default=1593,
@@ -893,8 +883,6 @@ def check_nvidia_smi(
     gpu_num: int,
     gpu_app_freq: int,
     gpu_app_mem_freq: int,
-    expected_graphics_freq: int,
-    expected_memory_freq: int,
     warn_delta_mhz: int,
     critical_delta_mhz: int,
     gpu_temperature_threshold: Optional[int],
@@ -994,8 +982,8 @@ def check_nvidia_smi(
             HealthCheckName.NVIDIA_SMI_CLOCK_POLICY,
             lambda: check_clock_policy(
                 device_telemetry,
-                expected_graphics_freq,
-                expected_memory_freq,
+                gpu_app_freq,
+                gpu_app_mem_freq,
                 warn_delta_mhz,
                 critical_delta_mhz,
                 logger,
