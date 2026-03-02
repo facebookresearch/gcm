@@ -7,7 +7,6 @@ import sys
 import time
 from contextlib import ExitStack
 from dataclasses import dataclass
-
 from typing import (
     Any,
     Callable,
@@ -21,7 +20,6 @@ from typing import (
 )
 
 import click
-
 import gni_lib
 import psutil
 from gcm.health_checks.check_utils.output_context_manager import OutputContext
@@ -35,7 +33,6 @@ from gcm.health_checks.env_variables import EnvCtx
 from gcm.health_checks.measurement_units import convert_bytes
 from gcm.health_checks.types import CHECK_TYPE, CheckEnv, ExitCode
 from gcm.monitoring.click import heterogeneous_cluster_v1_option
-
 from gcm.monitoring.device_telemetry_client import (
     DeviceTelemetryClient,
     DeviceTelemetryException,
@@ -49,7 +46,6 @@ from gcm.monitoring.utils.monitor import init_logger
 from gcm.schemas.gpu.application_clock_policy import ClockPolicy, evaluate_clock_policy
 from gcm.schemas.gpu.process import ProcessInfo
 from gcm.schemas.health_check.health_check_name import HealthCheckName
-
 from typeguard import typechecked
 
 
@@ -184,7 +180,7 @@ def kill_processes(
 
     # Wait for them to terminate (up to 'timeout' seconds)
     gone, alive = psutil.wait_procs(procs, timeout=timeout)
-    (_, exit_code, msg) = attempt_check_running_procs(
+    _, exit_code, msg = attempt_check_running_procs(
         attempt, devices, msg, device_telemetry
     )
 
@@ -224,7 +220,7 @@ def check_and_kill_running_procs(
         # This will restore the environment variable on exit
         with EnvCtx({"CUDA_VISIBLE_DEVICES": None}):
             for attempt in range(retry_count):
-                (pids, attempt_exit_code, msg) = attempt_check_running_procs(
+                pids, attempt_exit_code, msg = attempt_check_running_procs(
                     attempt, devices, msg, device_telemetry
                 )
                 if attempt_exit_code == ExitCode.OK:
@@ -238,7 +234,7 @@ def check_and_kill_running_procs(
         if force_kill_process and pids:
             proc_pids = [p_id.pid for p_id in pids]
             msg += f"running_procs check: force killed pids: {proc_pids}\n"
-            (is_killed, msg) = kill_processes(
+            is_killed, msg = kill_processes(
                 proc_pids, retry_count, devices, msg, device_telemetry
             )
             if is_killed:
