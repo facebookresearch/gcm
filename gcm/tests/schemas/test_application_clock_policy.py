@@ -1,3 +1,5 @@
+import pytest
+
 from gcm.health_checks.types import ExitCode
 from gcm.monitoring.device_telemetry_client import ApplicationClockInfo
 from gcm.schemas.gpu.application_clock_policy import ClockPolicy, evaluate_clock_policy
