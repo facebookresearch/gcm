@@ -18,7 +18,6 @@ from requests.exceptions import RequestException
 
 from typing_extensions import Never
 
-
 logger = logging.getLogger(__name__)
 
 

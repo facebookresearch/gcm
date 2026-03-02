@@ -6,7 +6,6 @@ from typing import Optional, Protocol, runtime_checkable, TypeVar
 
 from gcm.schemas.log import Log
 
-
 TIn_contra = TypeVar("TIn_contra", contravariant=True)
 
 

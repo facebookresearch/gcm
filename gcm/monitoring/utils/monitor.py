@@ -2,6 +2,7 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 """Utility functions for the various monitors."""
+
 from __future__ import annotations
 
 import inspect
