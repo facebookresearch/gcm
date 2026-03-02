@@ -64,4 +64,10 @@ def test_evaluate_clock_policy_invalid_thresholds() -> None:
     except ValueError:
         return
 
-    raise AssertionError("Expected ValueError for invalid threshold ordering")
+    with pytest.raises(ValueError):
+        ClockPolicy(
+            expected_graphics_freq=1155,
+            expected_memory_freq=1593,
+            warn_delta_mhz=50,
+            critical_delta_mhz=40,
+        )
