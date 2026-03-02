@@ -11,7 +11,9 @@ def test_evaluate_clock_policy_ok() -> None:
         critical_delta_mhz=75,
     )
 
-    result = evaluate_clock_policy(ApplicationClockInfo(graphics_freq=1155, memory_freq=1593), policy)
+    result = evaluate_clock_policy(
+        ApplicationClockInfo(graphics_freq=1155, memory_freq=1593), policy
+    )
 
     assert result.compliant
     assert result.severity == ExitCode.OK
@@ -27,7 +29,9 @@ def test_evaluate_clock_policy_warn() -> None:
         critical_delta_mhz=75,
     )
 
-    result = evaluate_clock_policy(ApplicationClockInfo(graphics_freq=1200, memory_freq=1593), policy)
+    result = evaluate_clock_policy(
+        ApplicationClockInfo(graphics_freq=1200, memory_freq=1593), policy
+    )
 
     assert not result.compliant
     assert result.severity == ExitCode.WARN
@@ -41,7 +45,9 @@ def test_evaluate_clock_policy_critical() -> None:
         critical_delta_mhz=75,
     )
 
-    result = evaluate_clock_policy(ApplicationClockInfo(graphics_freq=1250, memory_freq=1593), policy)
+    result = evaluate_clock_policy(
+        ApplicationClockInfo(graphics_freq=1250, memory_freq=1593), policy
+    )
 
     assert not result.compliant
     assert result.severity == ExitCode.CRITICAL
