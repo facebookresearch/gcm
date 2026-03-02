@@ -1,0 +1,45 @@
+name: 💬 Request for comments (RFC).
+description: Ask for feedback on major architectural changes or design choices.
+title: "[RFC]: "
+labels: ["RFC"]
+
+body:
+- type: markdown
+  attributes:
+    value: >
+      #### Please take a look at previous [RFCs](https://github.com/facebookresearch/gcm/issues?q=label%3ARFC+sort%3Aupdated-desc) for reference.
+- type: textarea
+  attributes:
+    label: Motivation.
+    description: >
+      The motivation of the RFC.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Proposed Change.
+    description: >
+      The proposed change of the RFC. Be as descriptive as you want, add links, add images or anything that helps reviewers.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: CC List.
+    description: >
+      The list of people you want to CC.
+  validations:
+    required: false
+- type: textarea
+  attributes:
+    label: Any Other Things.
+    description: >
+      Any other things you would like to mention.
+  validations:
+    required: false
+- type: checkboxes
+  id: askllm
+  attributes:
+    label: Before submitting a new RFC...
+    options:
+      - label: Make sure you already searched for relevant issues, and previous RFCs.
+        required: true
