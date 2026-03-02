@@ -5,6 +5,7 @@ This directory contains documentation for all GCM monitoring collectors. Collect
 ## Collectors
 
 - **[nvml_monitor](nvml_monitor.md)** - Collects GPU metrics using NVIDIA NVML library
+- **[rocm_monitor](rocm_monitor.md)** - Collects GPU metrics from AMD GPUs via amd-smi/rocm-smi (ROCm)
 - **[sacct_backfill](sacct_backfill.md)** - Backfills historical job data in time-chunked batches
 - **[sacct_backfill_server](sacct_backfill_server.md)** - Coordination server for multi-cluster backfills
 - **[sacct_publish](sacct_publish.md)** - Transforms and publishes sacct output to sinks

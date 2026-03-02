@@ -12,10 +12,16 @@ def get_gpu_devices(
     device_telemetry: DeviceTelemetryClient, type: CHECK_TYPE
 ) -> List[int]:
     """Get the list of GPU devices. If the type is prolog/epilog only get
-    the GPU devices that the user has been allocated."""
+    the GPU devices that the user has been allocated.
+    Uses SLURM_JOB_GPUS first, then CUDA_VISIBLE_DEVICES (NVIDIA), then
+    ROCR_VISIBLE_DEVICES (AMD/ROCm)."""
 
     if type == "prolog" or type == "epilog":
-        devices_env = os.getenv("SLURM_JOB_GPUS") or os.getenv("CUDA_VISIBLE_DEVICES")
+        devices_env = (
+            os.getenv("SLURM_JOB_GPUS")
+            or os.getenv("CUDA_VISIBLE_DEVICES")
+            or os.getenv("ROCR_VISIBLE_DEVICES")
+        )
         if not devices_env:
             return []
         else:
