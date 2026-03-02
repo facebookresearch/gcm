@@ -51,7 +51,9 @@ class {class_name}:
                     f"Error reading toml file. {{{class_name}.config_path}} does not contain valid TOML. Error: {{e}}"
                 )
                 raise tomli.TOMLDecodeError(
-                    f"{{{class_name}.config_path}} does not contain valid TOML.",
+                    msg=f"{{{class_name}.config_path}} does not contain valid TOML. {{e.msg}}",
+                    doc=e.doc,
+                    pos=e.pos,
                 ) from e
         else:
             raise ValueError(
