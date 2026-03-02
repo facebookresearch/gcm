@@ -54,15 +54,6 @@ def test_evaluate_clock_policy_critical() -> None:
 
 
 def test_evaluate_clock_policy_invalid_thresholds() -> None:
-    try:
-        ClockPolicy(
-            expected_graphics_freq=1155,
-            expected_memory_freq=1593,
-            warn_delta_mhz=50,
-            critical_delta_mhz=40,
-        )
-    except ValueError:
-        return
 
     with pytest.raises(ValueError):
         ClockPolicy(
