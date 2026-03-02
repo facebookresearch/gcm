@@ -84,7 +84,10 @@ def get_device_metrics_basic(handle: GPUDevice) -> DeviceMetrics:
     if memory_info is not None:
         memory_total = memory_info.total / (1024 * 1024)
         memory_used = memory_info.used / (1024 * 1024)
-        metrics.mem_used_percent = int(memory_used / memory_total * 100)
+        if memory_total > 0:
+            metrics.mem_used_percent = int(memory_used / memory_total * 100)
+        else:
+            metrics.mem_used_percent = 0
 
     metrics.temperature = log_error(handle.get_temperature)()
 
@@ -92,7 +95,7 @@ def get_device_metrics_basic(handle: GPUDevice) -> DeviceMetrics:
     power_limit = log_error(handle.get_enforced_power_limit)()
     if power_draw is not None:
         metrics.power_draw = power_draw
-        if power_limit is not None:
+        if power_limit is not None and power_limit > 0:
             metrics.power_used_percent = int(power_draw / power_limit * 100)
 
     @log_error

@@ -46,6 +46,35 @@ def _run_cmd(args: List[str], timeout_secs: int = 30) -> str:
     return out.stdout or ""
 
 
+def _extract_json_from_stdout(raw: str) -> str:
+    """Extract JSON from amd-smi stdout; it may print warnings or info before the JSON."""
+    raw = (raw or "").strip()
+    if not raw:
+        return raw
+    # Find first { or [ (amd-smi typically returns an object).
+    start_obj = raw.find("{")
+    start_arr = raw.find("[")
+    if start_obj == -1 and start_arr == -1:
+        return raw
+    if start_obj == -1:
+        start, open_ch, close_ch = start_arr, "[", "]"
+    elif start_arr == -1:
+        start, open_ch, close_ch = start_obj, "{", "}"
+    else:
+        start = min(start_obj, start_arr)
+        open_ch = raw[start]
+        close_ch = "]" if open_ch == "[" else "}"
+    depth = 0
+    for i in range(start, len(raw)):
+        if raw[i] == open_ch:
+            depth += 1
+        elif raw[i] == close_ch:
+            depth -= 1
+            if depth == 0:
+                return raw[start : i + 1]
+    return raw[start:]
+
+
 def _find_rocm_tool() -> Optional[str]:
     """Return 'amd-smi' or 'rocm-smi' if available, else None."""
     for name in ("amd-smi", "rocm-smi"):
@@ -221,10 +250,18 @@ class ROCmDeviceTelemetryClient:
 
     def _amd_smi_get_count(self) -> int:
         out = _run_cmd([self._tool, "list", "--json"], self._timeout)
-        data = json.loads(out)
-        # Format: {"system": {"host_driver_version": "...", "gpus": [{"gpu_id": 0, ...}, ...]}}
-        # or {"gpus": [...]} depending on version.
-        gpus = data.get("gpus") or data.get("system", {}).get("gpus") or []
+        json_str = _extract_json_from_stdout(out)
+        if not json_str:
+            raise DeviceTelemetryException(
+                "amd-smi list --json produced no JSON output. Check amd-smi and GPU visibility."
+            )
+        data = json.loads(json_str)
+        # Format: {"system": {"host_driver_version": "...", "gpus": [...]}} or {"gpus": [...]}
+        # depending on version; some amd-smi versions return a top-level array of GPU objects.
+        if isinstance(data, list):
+            gpus = data
+        else:
+            gpus = data.get("gpus") or data.get("system", {}).get("gpus") or []
         if isinstance(gpus, dict):
             gpus = list(gpus.values()) if gpus else []
         return len(gpus)
@@ -274,7 +311,7 @@ class ROCmDeviceTelemetryClient:
                 [self._tool, "metric", "--gpu", str(index), "--json"],
                 self._timeout,
             )
-            data = json.loads(out)
+            data = json.loads(_extract_json_from_stdout(out))
             # Nested by gpu_id or in a list.
             if isinstance(data, dict):
                 metrics = data.get(str(index)) or data.get("gpu_metrics") or data
@@ -287,7 +324,7 @@ class ROCmDeviceTelemetryClient:
                 [self._tool, "static", "-v", "--gpu", str(index), "--json"],
                 self._timeout,
             )
-            data = json.loads(out)
+            data = json.loads(_extract_json_from_stdout(out))
             vram = data.get("vram") or data.get("VRAM") or {}
             if isinstance(vram, dict):
                 memory = vram
@@ -301,7 +338,7 @@ class ROCmDeviceTelemetryClient:
                 [self._tool, "process", "--gpu", str(index), "--json"],
                 self._timeout,
             )
-            data = json.loads(out)
+            data = json.loads(_extract_json_from_stdout(out))
             if isinstance(data, list):
                 processes = data
             elif isinstance(data, dict):
