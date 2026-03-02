@@ -33,6 +33,7 @@ class HealthCheckName(Enum):
     PACKAGE_VERSION = "package version"
     AIRSTORE_CREDENTIAL_COUNT = "airstore credential count"
     NCCL_TESTS = "nccl-tests"
+    RCCL_TESTS = "rccl-tests"
     NVIDIA_SMI = "nvidia smi"
     NVIDIA_SMI_GPU_NUM = "nvidia smi gpu_num"
     NVIDIA_SMI_CLOCK_FREQ = "nvidia smi clock_freq"

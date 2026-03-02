@@ -25,6 +25,7 @@ disable_slurm_cluster_avail = true
 disable_service_status = true
 disable_package_version = true
 disable_nccl_tests = true
+disable_rccl_tests = true
 disable_nvidia_smi = false
 disable_nvidia_smi_gpu_num = true
 disable_nvidia_smi_clock_freq = true

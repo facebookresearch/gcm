@@ -69,6 +69,7 @@ $ health_checks --features-config=$features_path --config=$config_path check-dcg
 - [check-syslogs](#check-syslogs)
 - [cuda-memtest](#cuda-memtest)
 - [check-nccl](#check-nccl)
+- [check-rccl](#check-rccl)
 - [check-hca](#check-hca)
 - [check-storage](#check-storage)
 - [check-ipmitool](#check-ipmitool)
@@ -209,6 +210,28 @@ $ health_checks check-nccl fair_cluster prolog -p all_reduce --pairwise --hostli
 # Quick pairwise all_reduce_perf nccl test - each node is covered by only one pair.
 # SLURM_JOB_NODELIST env var can be use be directly passed on to the hostlist option if running within slurm.
 $ health_checks check-nccl fair_cluster prolog -p all_reduce --pairwise-quick --hostlist=$SLURM_JOB_NODELIST --nccl-tdir /shared/home/abinesh/nccl-tests/build/ --critical-threshold 100 --sink=do_nothing
+```
+
+# check-rccl <div id='check-rccl'/>
+Run RCCL (ROCm Communication Collectives Library) tests on AMD GPU nodes. Analogous to check-nccl for NVIDIA nodes.
+1. Run single node RCCL tests (e.g. from ROCm/rccl-tests build)
+2. Run pairwise RCCL tests
+
+File: `gcm/health_checks/checks/check_rccl.py`
+
+Example of execution:
+```shell
+# For a list of the available options
+$ health_checks check-rccl --help
+
+# Single node all_reduce_perf RCCL test
+$ health_checks check-rccl fair_cluster prolog -p all_reduce --rccl-tdir /opt/rccl-tests/build/ --critical-threshold 18 --sink=do_nothing
+
+# Pairwise all_reduce_perf RCCL test (hostlist required)
+$ health_checks check-rccl fair_cluster prolog -p all_reduce --pairwise --hostlist=node-[1-4] --rccl-tdir /opt/rccl-tests/build/ --critical-threshold 100 --sink=do_nothing
+
+# Quick pairwise - each node covered once. SLURM_JOB_NODELIST can be used when running inside SLURM.
+$ health_checks check-rccl fair_cluster prolog -p all_reduce --pairwise-quick --hostlist=$SLURM_JOB_NODELIST --rccl-tdir /opt/rccl-tests/build/ --critical-threshold 100 --sink=do_nothing
 ```
 
 # check-hca <div id='check-hca'/>
