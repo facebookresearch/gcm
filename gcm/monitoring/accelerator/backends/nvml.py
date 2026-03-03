@@ -1,0 +1,178 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Callable, Optional, TypeVar
+
+from gcm.monitoring.accelerator.backend import (
+    AcceleratorBackend,
+    BackendName,
+    DeviceHandle,
+    ProbeResult,
+)
+from gcm.monitoring.accelerator.errors import (
+    BackendUnavailableError,
+    UnsupportedOperationError,
+)
+from gcm.monitoring.accelerator.metrics import (
+    Capability,
+    CapabilitySet,
+    MetricRequest,
+    MetricSet,
+)
+from gcm.monitoring.accelerator.probe import find_and_load_library
+from gcm.monitoring.device_telemetry_client import (
+    DeviceTelemetryClient,
+    DeviceTelemetryException,
+)
+from gcm.schemas.gpu.application_clock import ApplicationClockInfo
+from gcm.schemas.gpu.memory import GPUMemory
+from gcm.schemas.gpu.utilization import GPUUtilization
+
+_NAMES = ["nvidia-ml"]
+_PATHS = [
+    "/usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1",
+    "/usr/lib64/libnvidia-ml.so.1",
+    "/usr/lib/libnvidia-ml.so.1",
+]
+
+_T = TypeVar("_T")
+
+
+def _default_nvml_client_factory() -> DeviceTelemetryClient:
+    # Keep the import lazy so this package can still be imported in
+    # environments where pynvml is unavailable.
+    from gcm.monitoring.device_telemetry_nvml import NVMLDeviceTelemetryClient
+
+    return NVMLDeviceTelemetryClient()
+
+
+@dataclass
+class NVMLBackend(AcceleratorBackend):
+    telemetry_client_factory: Callable[[], DeviceTelemetryClient] = (
+        _default_nvml_client_factory
+    )
+    _client: Optional[DeviceTelemetryClient] = field(
+        default=None, init=False, repr=False
+    )
+
+    def name(self) -> BackendName:
+        return BackendName.NVML
+
+    def _ensure_client(self) -> DeviceTelemetryClient:
+        if self._client is None:
+            self._client = self.telemetry_client_factory()
+        return self._client
+
+    def probe(self) -> ProbeResult:
+        path = find_and_load_library(_NAMES, _PATHS)
+        if path is None:
+            raise BackendUnavailableError("NVML shared library not found")
+        client = self._ensure_client()
+        try:
+            client.get_device_count()
+        except DeviceTelemetryException as e:
+            raise BackendUnavailableError("NVML initialization failed") from e
+        return ProbeResult(
+            backend=self.name(),
+            healthy=True,
+            reason="ready",
+            library_path=path,
+            probed_at=datetime.now(timezone.utc),
+        )
+
+    def enumerate_devices(self) -> list[DeviceHandle]:
+        client = self._ensure_client()
+        try:
+            device_count = client.get_device_count()
+            devices: list[DeviceHandle] = []
+            for index in range(device_count):
+                model: Optional[str] = None
+                try:
+                    model = client.get_device_by_index(index).get_vbios_version()
+                except DeviceTelemetryException:
+                    # Model metadata can be absent without blocking telemetry.
+                    model = None
+                devices.append(
+                    DeviceHandle(
+                        backend=self.name(),
+                        id=str(index),
+                        vendor="nvidia",
+                        model=model,
+                    )
+                )
+            return devices
+        except DeviceTelemetryException as e:
+            raise UnsupportedOperationError("NVML enumerate_devices failed") from e
+
+    def capabilities(self, device: DeviceHandle) -> CapabilitySet:
+        del device
+        return CapabilitySet(
+            values={
+                Capability.UTILIZATION,
+                Capability.MEMORY,
+                Capability.POWER,
+                Capability.THERMALS,
+                Capability.CLOCKS,
+                Capability.ECC,
+                Capability.PROCESSES,
+            }
+        )
+
+    @staticmethod
+    def _safe_call(func: Callable[[], _T]) -> _T | None:
+        try:
+            return func()
+        except DeviceTelemetryException:
+            return None
+
+    def read_metrics(self, device: DeviceHandle, request: MetricRequest) -> MetricSet:
+        del request
+        client = self._ensure_client()
+        try:
+            index = int(device.id)
+            handle = client.get_device_by_index(index)
+        except (ValueError, DeviceTelemetryException) as e:
+            raise UnsupportedOperationError(
+                f"invalid NVML device id: {device.id}"
+            ) from e
+
+        utilization: GPUUtilization | None = self._safe_call(
+            handle.get_utilization_rates
+        )
+        memory: GPUMemory | None = self._safe_call(handle.get_memory_info)
+        temperature: int | None = self._safe_call(handle.get_temperature)
+        power_usage: int | None = self._safe_call(handle.get_power_usage)
+        power_limit: int | None = self._safe_call(handle.get_enforced_power_limit)
+        clocks: ApplicationClockInfo | None = self._safe_call(handle.get_clock_freq)
+        ecc_corrected: int | None = self._safe_call(
+            handle.get_ecc_corrected_volatile_total
+        )
+        ecc_uncorrected: int | None = self._safe_call(
+            handle.get_ecc_uncorrected_volatile_total
+        )
+
+        return MetricSet(
+            timestamp=datetime.now(timezone.utc),
+            core_util_pct=(float(utilization.gpu) if utilization is not None else None),
+            mem_util_pct=(
+                float(utilization.memory) if utilization is not None else None
+            ),
+            mem_total_bytes=(int(memory.total) if memory is not None else None),
+            mem_used_bytes=(int(memory.used) if memory is not None else None),
+            temp_c=(float(temperature) if temperature is not None else None),
+            power_w=(float(power_usage) / 1000.0 if power_usage is not None else None),
+            power_limit_w=(
+                float(power_limit) / 1000.0 if power_limit is not None else None
+            ),
+            sm_clock_mhz=(int(clocks.graphics_freq) if clocks is not None else None),
+            mem_clock_mhz=(int(clocks.memory_freq) if clocks is not None else None),
+            ecc_corrected=(int(ecc_corrected) if ecc_corrected is not None else None),
+            ecc_uncorrected=(
+                int(ecc_uncorrected) if ecc_uncorrected is not None else None
+            ),
+        )
+
+    def close(self) -> None:
+        self._client = None
+        return None

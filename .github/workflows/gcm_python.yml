@@ -116,6 +116,23 @@ jobs:
           source ~/.cache/venv-ci/bin/activate
           nox -s tests
 
+  accelerator-hal-tests:
+    needs: setup-venv
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Common Setup
+        uses: ./.github/actions/common-setup
+
+      - name: pytest accelerator hal
+        run: |
+          source ~/.cache/venv-ci/bin/activate
+          pytest -q gcm/tests/test_accelerator_hal.py
+
   nox-typecheck:
     needs: setup-venv
     strategy:

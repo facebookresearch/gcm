@@ -24,7 +24,7 @@ jobs:
             | Workflow | What it runs |
             |---|---|
             | **GPU Cluster Monitoring Python CI** | lint, tests, typecheck, format, deb build, pyoxidizer builds |
-            | **Go packages CI** | shelper tests, format, lint |
+            | **Go packages CI** | slurmprocessor tests, format, lint |
 
             ---
 
