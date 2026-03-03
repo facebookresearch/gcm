@@ -6,7 +6,11 @@ from typing import cast
 import pytest
 
 from gcm.monitoring.accelerator.backend import BackendName, DeviceHandle, ProbeResult
+from gcm.monitoring.accelerator.backends.levelzero import LevelZeroBackend
+from gcm.monitoring.accelerator.backends.neuron import NeuronBackend
 from gcm.monitoring.accelerator.backends.nvml import NVMLBackend
+from gcm.monitoring.accelerator.backends.rocm import ROCmBackend
+from gcm.monitoring.accelerator.backends.tpu import TPUBackend
 from gcm.monitoring.accelerator.errors import (
     BackendOperationError,
     BackendUnavailableError,
@@ -15,6 +19,7 @@ from gcm.monitoring.accelerator.errors import (
 from gcm.monitoring.accelerator.manager import AcceleratorManager
 from gcm.monitoring.accelerator.metrics import Capability, MetricRequest
 from gcm.monitoring.accelerator.probe import find_and_load_library
+from gcm.monitoring.accelerator.registry import default_backend_factories
 from gcm.monitoring.device_telemetry_client import (
     DeviceTelemetryClient,
     DeviceTelemetryException,
@@ -318,3 +323,22 @@ def test_probe_fallback_when_discovered_library_unloadable(
     monkeypatch.setattr("gcm.monitoring.accelerator.probe.CDLL", _fake_cdll)
     selected = find_and_load_library(["nvidia-ml"], ["/fallback/libnvidia-ml.so"])
     assert selected == "/fallback/libnvidia-ml.so"
+
+
+def test_registry_includes_expected_backends() -> None:
+    factories = default_backend_factories()
+    assert BackendName.NVML in factories
+    assert BackendName.ROCM_SMI in factories
+    assert BackendName.LEVEL_ZERO in factories
+    assert BackendName.TPU in factories
+    assert BackendName.NEURON in factories
+
+
+def test_stub_backend_capability_contracts() -> None:
+    device = DeviceHandle(backend=BackendName.ROCM_SMI, id="0", vendor="any")
+    backends = [ROCmBackend(), LevelZeroBackend(), TPUBackend(), NeuronBackend()]
+    for backend in backends:
+        capabilities = backend.capabilities(device)
+        assert capabilities.supports(Capability.UTILIZATION)
+        assert capabilities.supports(Capability.MEMORY)
+        assert capabilities.supports(Capability.POWER)

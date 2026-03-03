@@ -13,6 +13,7 @@ class BackendName(str, Enum):
     ROCM_SMI = "rocm_smi"
     LEVEL_ZERO = "level_zero"
     TPU = "tpu"
+    NEURON = "neuron"
 
 
 @dataclass(frozen=True)

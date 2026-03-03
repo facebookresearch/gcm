@@ -18,6 +18,7 @@ gcm/monitoring/accelerator/
     rocm.py
     levelzero.py
     tpu.py
+    neuron.py
 ```
 
 ## Design notes
@@ -50,7 +51,6 @@ gcm/monitoring/accelerator/
 
 ## Migration note
 
-- The previous Go `shelper` path has been removed from this repository.
 - HAL behavior is Python-first to simplify integration and testability.
 - If needed later, vendor-specific FFI logic can move into Rust/C++ sidecar
   workers without changing the Python HAL interface.
