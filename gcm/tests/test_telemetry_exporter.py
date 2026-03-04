@@ -31,7 +31,7 @@ def test_telemetry_json(tmp_path) -> None:
     lines = path.read_text().strip().split("\n")
     assert len(lines) == 1
     data = json.loads(lines[0])
-    assert data["timestamp"] == "2025-03-04T21:31:22"
+    assert data["timestamp"] == "2025-03-04T18:51:22"  # UTC for ts=1741114282
     assert data["hostname"] == "node-42"
     assert data["gpu_id"] == 3
     assert data["job_id"] == 91283
@@ -61,7 +61,7 @@ def test_telemetry_csv(tmp_path) -> None:
         reader = csv.DictReader(f)
         rows = list(reader)
     assert len(rows) == 1
-    assert rows[0]["timestamp"] == "2025-03-04T21:31:22"
+    assert rows[0]["timestamp"] == "2025-03-04T18:51:22"  # UTC for ts=1741114282
     assert rows[0]["hostname"] == "node-1"
     assert rows[0]["gpu_id"] == "0"
     assert rows[0]["gpu_util"] == "50"
