@@ -2,21 +2,29 @@
 # All rights reserved.
 """Structured telemetry export (JSON/CSV) for offline analysis."""
 
+from __future__ import annotations
+
 import csv
 import json
 import os
 from dataclasses import asdict
 from datetime import datetime
-from typing import Literal
+from typing import cast, Literal, TYPE_CHECKING
 
 from gcm.exporters import register
+
+if TYPE_CHECKING:
+    from _typeshed import DataclassInstance
 from gcm.monitoring.dataclass_utils import remove_none_dict_factory
 from gcm.monitoring.sink.protocol import SinkAdditionalParams
 from gcm.schemas.log import Log
 
 
 def _snapshot(ts: int, msg: object) -> dict:
-    d = asdict(msg, dict_factory=remove_none_dict_factory)
+    d = asdict(
+        cast("DataclassInstance", msg),
+        dict_factory=remove_none_dict_factory,
+    )
     d["timestamp"] = datetime.utcfromtimestamp(ts).strftime("%Y-%m-%dT%H:%M:%S")
     return d
 

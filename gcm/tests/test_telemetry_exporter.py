@@ -2,6 +2,7 @@
 # All rights reserved.
 import csv
 import json
+from pathlib import Path
 
 from gcm.exporters.telemetry import Telemetry
 from gcm.monitoring.sink.protocol import DataType, SinkAdditionalParams
@@ -9,7 +10,7 @@ from gcm.schemas.device_metrics import DevicePlusJobMetrics
 from gcm.schemas.log import Log
 
 
-def test_telemetry_json(tmp_path) -> None:
+def test_telemetry_json(tmp_path: Path) -> None:
     path = tmp_path / "telemetry.json"
     sink = Telemetry(file_path=str(path), format="json")
     msg = DevicePlusJobMetrics(
@@ -41,7 +42,7 @@ def test_telemetry_json(tmp_path) -> None:
     assert data["power_draw"] == 310
 
 
-def test_telemetry_csv(tmp_path) -> None:
+def test_telemetry_csv(tmp_path: Path) -> None:
     path = tmp_path / "telemetry.csv"
     sink = Telemetry(file_path=str(path), format="csv")
     msg = DevicePlusJobMetrics(
@@ -67,12 +68,16 @@ def test_telemetry_csv(tmp_path) -> None:
     assert rows[0]["gpu_util"] == "50"
 
 
-def test_telemetry_csv_append(tmp_path) -> None:
+def test_telemetry_csv_append(tmp_path: Path) -> None:
     path = tmp_path / "telemetry.csv"
     sink = Telemetry(file_path=str(path), format="csv")
     msg = DevicePlusJobMetrics(gpu_id=0, hostname="n1", gpu_util=10)
-    sink.write(Log(ts=1000, message=[msg]), SinkAdditionalParams(data_type=DataType.LOG))
-    sink.write(Log(ts=2000, message=[msg]), SinkAdditionalParams(data_type=DataType.LOG))
+    sink.write(
+        Log(ts=1000, message=[msg]), SinkAdditionalParams(data_type=DataType.LOG)
+    )
+    sink.write(
+        Log(ts=2000, message=[msg]), SinkAdditionalParams(data_type=DataType.LOG)
+    )
     with open(path) as f:
         rows = list(csv.DictReader(f))
     assert len(rows) == 2
