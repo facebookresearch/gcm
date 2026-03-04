@@ -6,7 +6,7 @@ from gcm.monitoring.clock import time_to_time_aware
 from gcm.monitoring.coerce import maybe_float, maybe_int
 from gcm.monitoring.slurm.nodelist_parsers import nodelist
 from gcm.monitoring.slurm.parsing import (
-    convert_memory_to_mb,
+    maybe_parse_memory_to_bytes,
     parse_gres_or_tres,
     parse_value_from_tres,
 )
@@ -27,7 +27,9 @@ class JobData(DerivedCluster):
     JOBID_RAW: str = parsed_field(parser=str, field_name="JOBID")
     NAME: str = parsed_field(parser=str)
     TIME_LIMIT: str = parsed_field(parser=str, field_name="TIMELIMIT")
-    MIN_MEMORY: int = parsed_field(parser=convert_memory_to_mb, field_name="MINMEMORY")
+    MIN_MEMORY: int | None = parsed_field(
+        parser=maybe_parse_memory_to_bytes, field_name="MINMEMORY"
+    )
     COMMAND: str = parsed_field(parser=str)
     PRIORITY: float | None = parsed_field(parser=maybe_float)
     STATE: str = parsed_field(parser=str)
