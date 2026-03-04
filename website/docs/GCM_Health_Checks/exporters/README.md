@@ -25,6 +25,7 @@ GCM includes several built-in exporters for different use cases:
 | [Graph API](graph_api.md) | `graph_api` | Meta's internal backends |
 | [OpenTelemetry](otel.md) | `otel` | OTLP-compatible backends |
 | [Stdout](stdout.md) | `stdout` | Terminal output |
+| [Telemetry](telemetry.md) | `telemetry` | Structured JSON/CSV for offline analysis |
 | [Webhook](webhook.md) | `webhook` | HTTP endpoint forwarding |
 
 ## Plugin System
