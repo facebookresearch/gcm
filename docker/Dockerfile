@@ -93,6 +93,12 @@ RUN apt-get update && \
         pciutils && \
     rm -rf /var/lib/apt/lists/*
 
+# Create unversioned libnvidia-ml.so symlink for gni_lib (GPU Node ID).
+# The NVIDIA container runtime injects libnvidia-ml.so.1 but not the
+# unversioned .so, which cffi/dlopen-based libraries need.
+RUN ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 \
+           /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
+
 # Copy installed Python packages from builder
 COPY --from=builder /install /usr/local
 
