@@ -24,6 +24,21 @@ helm install gcm deploy/helm/gcm \
   --set healthChecks.sink=otel
 ```
 
+Monitoring and health checks are independent — you can deploy either or both:
+
+```shell
+# Health checks only
+helm install gcm deploy/helm/gcm \
+  --set monitoring.enabled=false \
+  --set healthChecks.cluster=my-cluster
+
+# Monitoring only
+helm install gcm deploy/helm/gcm \
+  --set healthChecks.enabled=false \
+  --set monitoring.sink=otel \
+  --set monitoring.cluster=my-cluster
+```
+
 ## Components
 
 ### Monitoring DaemonSet
