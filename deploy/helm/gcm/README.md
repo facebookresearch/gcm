@@ -107,8 +107,7 @@ helm install gcm deploy/helm/gcm \
   --set monitoring.extraArgs[1]=otel_endpoint=http://otel-collector:4318
 
 # Send health check results to OpenTelemetry
-# The otel sink reads OTEL_EXPORTER_OTLP_ENDPOINT from the environment
-# if no endpoint is passed explicitly.
+# The otel sink supports standard OTEL_EXPORTER_* environment variables.
 helm install gcm deploy/helm/gcm \
   --set healthChecks.sink=otel \
   --set healthChecks.cluster=my-cluster
