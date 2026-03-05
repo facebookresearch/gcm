@@ -69,7 +69,47 @@ docker run --rm \
   gcm:latest check-nvidia-smi -c gpu_num --sink stdout my-cluster app
 ```
 
-For continuous health checks without Kubernetes, use the NPD-GCM image which runs all 6 checks on a schedule. See the [Helm chart README](deploy/helm/gcm/README.md) for the full list of checks, or run standalone with Docker Compose / systemd.
+### Slurm Prolog/Epilog Integration
+
+The standalone `docker run` health check commands are designed for integration with job schedulers like Slurm. Each check exits with `0` (healthy) or non-zero (problem detected), which is exactly what Slurm prolog/epilog scripts expect.
+
+**Prolog** — run checks before each job starts. If a check fails, Slurm rejects the job from that node and reschedules it elsewhere. Useful checks for prolog:
+
+```shell
+# Check for leftover GPU processes from previous jobs
+docker run --rm --gpus=all --pid=host --privileged \
+  --entrypoint health_checks gcm:latest \
+  check-nvidia-smi -c running_procs --sink stdout my-cluster app
+
+# Check GPU memory is free
+docker run --rm --gpus=all --pid=host --privileged \
+  --entrypoint health_checks gcm:latest \
+  check-nvidia-smi -c gpu_mem_usage --gpu_mem_usage_threshold=1000 --sink stdout my-cluster app
+
+# Verify expected GPU count
+docker run --rm --gpus=all --pid=host --privileged \
+  --entrypoint health_checks gcm:latest \
+  check-nvidia-smi -c gpu_num --gpu_num=8 --sink stdout my-cluster app
+```
+
+**Epilog** — run checks after each job completes. If a check fails, drain or taint the node for investigation:
+
+```shell
+# Check for zombie GPU processes left behind
+docker run --rm --gpus=all --pid=host --privileged \
+  --entrypoint health_checks gcm:latest \
+  check-process check-zombie --sink stdout my-cluster app
+
+# Check for accumulated ECC errors
+docker run --rm --gpus=all --pid=host --privileged \
+  --entrypoint health_checks gcm:latest \
+  check-nvidia-smi -c ecc_uncorrected_volatile_total \
+  --ecc_uncorrected_volatile_threshold=0 --sink stdout my-cluster app
+```
+
+These are complementary to continuous monitoring — prolog/epilog checks catch issues at job boundaries (leftover processes, memory not freed), while continuous checks (via the [NPD-GCM Helm chart](deploy/helm/gcm/README.md)) detect degradation over time (XID errors, NVLink failures, ECC accumulation).
+
+For Kubernetes environments, use the Helm chart instead — it deploys an NPD DaemonSet that runs 6 checks continuously on every GPU node.
 
 ### Privileged Access for GPU Health Checks
 
