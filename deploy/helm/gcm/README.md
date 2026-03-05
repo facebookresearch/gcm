@@ -94,14 +94,7 @@ See [values.yaml](values.yaml) for all configurable parameters. The key ones to 
 
 ### Sinks
 
-The `sink` parameter controls where metrics and health check results are sent. Available sinks:
-
-| Sink | Description |
-|------|-------------|
-| `stdout` | Print to stdout (default for health checks) |
-| `otel` | Export via OpenTelemetry OTLP to a collector |
-| `file` | Write to local files |
-| `webhook` | POST to an HTTP endpoint |
+The `sink` parameter controls where metrics and health check results are sent. Run `gcm nvml_monitor --help` or `health_checks --help` to see all available sinks and their options.
 
 Sink-specific options can be passed via `monitoring.extraArgs`:
 
