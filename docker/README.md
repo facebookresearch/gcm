@@ -43,13 +43,19 @@ docker build -f docker/Dockerfile \
 
 ### Usage
 
-Run the monitoring collector (entrypoint defaults to `gcm`):
+Run the monitoring collector:
 
 ```shell
-docker run --rm gcm:latest nvml_monitor --sink=stdout --once --cluster=my-cluster
+docker run --rm \
+  --gpus=all \
+  --pid=host \
+  -u 0 \
+  gcm:latest nvml_monitor --sink=stdout --cluster=my-cluster --interval=60
 ```
 
-Run health checks (requires privileged access for GPU checks):
+The monitoring collector requires `--gpus=all` for NVML GPU access, `--pid=host` and root (`-u 0`) to read `/proc/<pid>/environ` for Slurm job association. Add `--once` to collect a single sample and exit.
+
+Run a single health check:
 
 ```shell
 docker run --rm \
@@ -62,6 +68,8 @@ docker run --rm \
   --entrypoint health_checks \
   gcm:latest check-nvidia-smi -c gpu_num --sink stdout my-cluster app
 ```
+
+For continuous health checks without Kubernetes, use the NPD-GCM image which runs all 6 checks on a schedule. See the [Helm chart README](deploy/helm/gcm/README.md) for the full list of checks, or run standalone with Docker Compose / systemd.
 
 ### Privileged Access for GPU Health Checks
 
