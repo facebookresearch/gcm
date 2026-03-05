@@ -111,7 +111,9 @@ helm install gcm deploy/helm/gcm \
 # Health checks: send results to an OpenTelemetry collector
 helm install gcm deploy/helm/gcm \
   --set healthChecks.sink=otel \
-  --set healthChecks.cluster=my-cluster
+  --set healthChecks.cluster=my-cluster \
+  --set monitoring.extraArgs[0]=-o \
+  --set monitoring.extraArgs[1]=otel_endpoint=http://otel-collector:4318
 ```
 
 Run `gcm nvml_monitor --help` or `health_checks --help` to see all sinks and their options.
