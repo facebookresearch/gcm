@@ -73,6 +73,44 @@ See [values.yaml](values.yaml) for all configurable parameters.
 | `healthChecks.concurrency` | Max concurrent checks | `3` |
 | `healthChecks.gpuCount` | Expected GPU count per node (for gpu_num check) | `8` |
 | `healthChecks.prometheus.port` | Prometheus metrics port | `20257` |
+| `monitoring.nodeSelector` | Node labels for monitoring DaemonSet scheduling | `{}` |
+| `monitoring.tolerations` | Tolerations for monitoring DaemonSet | `[{key: nvidia.com/gpu}]` |
+| `monitoring.affinity` | Affinity rules for monitoring DaemonSet | `{}` |
+| `healthChecks.nodeSelector` | Node labels for health checks DaemonSet scheduling | `{}` |
+| `healthChecks.tolerations` | Tolerations for health checks DaemonSet | `[{key: nvidia.com/gpu}]` |
+| `healthChecks.affinity` | Affinity rules for health checks DaemonSet | `{}` |
+
+## Node Scheduling
+
+By default, both DaemonSets tolerate `nvidia.com/gpu` taints and schedule on **all** nodes. This works for clusters where the NVIDIA device plugin taints GPU nodes.
+
+For clusters that use **labels** instead of taints to identify GPU nodes, use `nodeSelector` to restrict scheduling:
+
+```shell
+helm install gcm deploy/helm/gcm \
+  --set monitoring.nodeSelector."nvidia\.com/gpu\.present"=true \
+  --set healthChecks.nodeSelector."nvidia\.com/gpu\.present"=true
+```
+
+For clusters with **custom taints** on GPU nodes, add the corresponding tolerations:
+
+```yaml
+# values.yaml
+monitoring:
+  tolerations:
+    - key: "nvidia.com/gpu"
+      operator: Exists
+    - key: "dedicated"
+      value: "gpu-workload"
+      effect: "NoSchedule"
+healthChecks:
+  tolerations:
+    - key: "nvidia.com/gpu"
+      operator: Exists
+    - key: "dedicated"
+      value: "gpu-workload"
+      effect: "NoSchedule"
+```
 
 ## Security
 
