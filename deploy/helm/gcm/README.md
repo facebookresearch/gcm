@@ -80,32 +80,17 @@ The DaemonSet runs 6 health checks every 5 minutes (configurable):
 
 ## Configuration
 
-See [values.yaml](values.yaml) for all configurable parameters.
+See [values.yaml](values.yaml) for all configurable parameters. The key ones to set:
 
 | Parameter | Description | Default |
 |---|---|---|
-| `image.repository` | Monitoring container image | `ghcr.io/facebookresearch/gcm` |
-| `image.tag` | Image tag (defaults to chart appVersion) | `""` |
 | `monitoring.enabled` | Deploy the monitoring DaemonSet | `true` |
 | `monitoring.sink` | Exporter sink for metrics | `""` |
 | `monitoring.cluster` | Cluster name for metrics | `""` |
-| `monitoring.interval` | Collection interval in seconds | `60` |
 | `healthChecks.enabled` | Deploy the NPD health checks DaemonSet | `true` |
-| `healthChecks.image.repository` | NPD-GCM combined image | `ghcr.io/facebookresearch/gcm-npd` |
-| `healthChecks.image.tag` | NPD-GCM image tag | `""` |
 | `healthChecks.cluster` | Cluster name for health checks | `""` |
 | `healthChecks.sink` | Sink for health check results | `"stdout"` |
-| `healthChecks.invokeInterval` | Check interval in seconds | `300` |
-| `healthChecks.timeout` | Check timeout in seconds | `120` |
-| `healthChecks.concurrency` | Max concurrent checks | `3` |
-| `healthChecks.gpuCount` | Expected GPU count per node (for gpu_num check) | `8` |
-| `healthChecks.prometheus.port` | Prometheus metrics port | `20257` |
-| `monitoring.nodeSelector` | Node labels for monitoring DaemonSet scheduling | `{}` |
-| `monitoring.tolerations` | Tolerations for monitoring DaemonSet | `[{key: nvidia.com/gpu}]` |
-| `monitoring.affinity` | Affinity rules for monitoring DaemonSet | `{}` |
-| `healthChecks.nodeSelector` | Node labels for health checks DaemonSet scheduling | `{}` |
-| `healthChecks.tolerations` | Tolerations for health checks DaemonSet | `[{key: nvidia.com/gpu}]` |
-| `healthChecks.affinity` | Affinity rules for health checks DaemonSet | `{}` |
+| `healthChecks.gpuCount` | Expected GPU count per node | `8` |
 
 ## Node Scheduling
 
