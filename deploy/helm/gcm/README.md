@@ -71,12 +71,21 @@ The DaemonSet runs 6 health checks every 5 minutes (configurable):
 
 | Check | Description | NPD Condition |
 |-------|-------------|---------------|
-| XID Errors | Scans syslogs for NVIDIA XID errors | `XidErrorsProblem` |
-| ECC Errors | Checks uncorrected/corrected ECC counters | `SmiEccProblem` |
-| GPU Disconnected | Verifies expected GPU count is visible | `SmiDisconnectedProblem` |
-| Zombie Processes | Detects zombie GPU processes | `ProcZombieProblem` |
-| DCGM NVLink Status | Checks NVLink health via DCGM | `DcgmiNvlinkStatusProblem` |
-| DCGM Diag Level 1 | Runs DCGM level 1 diagnostics | `DcgmiDiagProblem` |
+| XID Errors | Scans syslogs for NVIDIA XID errors | `GcmXidErrorsProblem` |
+| ECC Errors | Checks uncorrected/corrected ECC counters | `GcmSmiEccProblem` |
+| GPU Disconnected | Verifies expected GPU count is visible | `GcmSmiDisconnectedProblem` |
+| Zombie Processes | Detects zombie GPU processes | `GcmProcZombieProblem` |
+| DCGM NVLink Status | Checks NVLink health via DCGM | `GcmDcgmiNvlinkStatusProblem` |
+| DCGM Diag Level 1 | Runs DCGM level 1 diagnostics | `GcmDcgmiDiagProblem` |
+
+Query GCM health conditions on a node:
+
+```shell
+# List all GCM conditions on a node (all prefixed with "Gcm")
+kubectl get node <node-name> -o jsonpath='{range .status.conditions[*]}{.type}{"\t"}{.status}{"\t"}{.message}{"\n"}{end}' | grep Gcm
+```
+
+NPD also exposes Prometheus metrics on port 20257 for integration with monitoring systems.
 
 ## Configuration
 

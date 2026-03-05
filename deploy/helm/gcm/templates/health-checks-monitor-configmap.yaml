@@ -25,76 +25,76 @@ data:
       "metricsReporting": true,
       "conditions": [
         {
-          "type": "XidErrorsProblem",
-          "reason": "XidErrorsCheckPassed",
+          "type": "GcmXidErrorsProblem",
+          "reason": "GcmXidErrorsCheckPassed",
           "message": "XID errors check passed"
         },
         {
-          "type": "SmiEccProblem",
-          "reason": "SmiEccCheckPassed",
+          "type": "GcmSmiEccProblem",
+          "reason": "GcmSmiEccCheckPassed",
           "message": "nvidia-smi ECC check passed"
         },
         {
-          "type": "SmiDisconnectedProblem",
-          "reason": "SmiDisconnectedCheckPassed",
+          "type": "GcmSmiDisconnectedProblem",
+          "reason": "GcmSmiDisconnectedCheckPassed",
           "message": "nvidia-smi GPU connectivity check passed"
         },
         {
-          "type": "ProcZombieProblem",
-          "reason": "ProcZombieCheckPassed",
+          "type": "GcmProcZombieProblem",
+          "reason": "GcmProcZombieCheckPassed",
           "message": "Zombie process check passed"
         },
         {
-          "type": "DcgmiNvlinkStatusProblem",
-          "reason": "DcgmiNvlinkStatusCheckPassed",
+          "type": "GcmDcgmiNvlinkStatusProblem",
+          "reason": "GcmDcgmiNvlinkStatusCheckPassed",
           "message": "DCGM NVLink status check passed"
         },
         {
-          "type": "DcgmiDiagProblem",
-          "reason": "DcgmiDiagCheckPassed",
+          "type": "GcmDcgmiDiagProblem",
+          "reason": "GcmDcgmiDiagCheckPassed",
           "message": "DCGM diagnostics check passed"
         }
       ],
       "rules": [
         {
           "type": "permanent",
-          "condition": "XidErrorsProblem",
-          "reason": "XidErrorsCheckFailed",
+          "condition": "GcmXidErrorsProblem",
+          "reason": "GcmXidErrorsCheckFailed",
           "path": "/scripts/run_health_check.sh",
           "args": ["check-syslogs", "xid"]
         },
         {
           "type": "permanent",
-          "condition": "SmiEccProblem",
-          "reason": "SmiEccCheckFailed",
+          "condition": "GcmSmiEccProblem",
+          "reason": "GcmSmiEccCheckFailed",
           "path": "/scripts/run_health_check.sh",
           "args": ["check-nvidia-smi", "-c", "ecc_uncorrected_volatile_total", "-c", "ecc_corrected_volatile_total", "--ecc_uncorrected_volatile_threshold=0", "--ecc_corrected_volatile_threshold=50000000"]
         },
         {
           "type": "permanent",
-          "condition": "SmiDisconnectedProblem",
-          "reason": "SmiDisconnectedCheckFailed",
+          "condition": "GcmSmiDisconnectedProblem",
+          "reason": "GcmSmiDisconnectedCheckFailed",
           "path": "/scripts/run_health_check.sh",
           "args": ["check-nvidia-smi", "-c", "gpu_num", "--gpu_num={{ .Values.healthChecks.gpuCount }}"]
         },
         {
           "type": "permanent",
-          "condition": "ProcZombieProblem",
-          "reason": "ProcZombieCheckFailed",
+          "condition": "GcmProcZombieProblem",
+          "reason": "GcmProcZombieCheckFailed",
           "path": "/scripts/run_health_check.sh",
           "args": ["check-process", "check-zombie"]
         },
         {
           "type": "permanent",
-          "condition": "DcgmiNvlinkStatusProblem",
-          "reason": "DcgmiNvlinkStatusCheckFailed",
+          "condition": "GcmDcgmiNvlinkStatusProblem",
+          "reason": "GcmDcgmiNvlinkStatusCheckFailed",
           "path": "/scripts/run_health_check.sh",
           "args": ["check-dcgmi", "nvlink", "-c", "nvlink_status", "--host", "${NODE_IP}"]
         },
         {
           "type": "permanent",
-          "condition": "DcgmiDiagProblem",
-          "reason": "DcgmiDiagCheckFailed",
+          "condition": "GcmDcgmiDiagProblem",
+          "reason": "GcmDcgmiDiagCheckFailed",
           "path": "/scripts/run_health_check.sh",
           "args": ["check-dcgmi", "diag", "--diag_level=1", "--host", "${NODE_IP}"]
         }
