@@ -29,7 +29,6 @@ out/
 debian/gcm/
 debian/.debhelper/
 .env
-templates/
 
 # Source: https://github.com/github/gitignore/blob/main/Python.gitignore
 # Byte-compiled / optimized / DLL files
