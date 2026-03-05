@@ -38,7 +38,19 @@ The DaemonSet runs as root with `hostPID: true` so it can read the environment o
 
 ### Health Checks DaemonSet (NPD-GCM)
 
-Runs [Node Problem Detector](https://github.com/kubernetes/node-problem-detector) with GCM health checks as custom plugin monitors on every GPU node. NPD manages scheduling, retries, and exposes results as Kubernetes node conditions and Prometheus metrics.
+Runs [Node Problem Detector](https://github.com/kubernetes/node-problem-detector) with GCM health checks as custom plugin monitors on every GPU node. NPD and GCM health checks run together in a single pod:
+
+```
+DaemonSet (one per node, controlled by nodeSelector/tolerations)
+  └── Pod
+       └── Container: node-problem-detector (NPD)
+            ├── Invokes: health_checks check-syslogs xid ...
+            ├── Invokes: health_checks check-nvidia-smi ...
+            ├── Invokes: health_checks check-dcgmi ...
+            └── ...
+```
+
+NPD is the scheduler — it runs each GCM health check as a subprocess at a configurable interval, manages retries and concurrency, and reports results as Kubernetes node conditions and Prometheus metrics. GCM `health_checks` does the actual GPU inspection.
 
 The DaemonSet runs 6 health checks every 5 minutes (configurable):
 
