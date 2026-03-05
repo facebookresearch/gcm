@@ -70,18 +70,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PATH="/usr/local/slurm/bin:${PATH}"
 
 # Install DCGM client libraries (required for check-dcgmi checks)
+# NOTE: Using [trusted=yes] because NVIDIA's repo GPG key uses SHA1,
+# which Debian rejects as of Feb 2026. Revert to signed-by once NVIDIA
+# updates their signing key.
 ARG DCGM_VERSION=4.4.2-1
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        curl \
-        gnupg2 && \
-    curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/3bf863cc.pub \
-        | gpg --dearmor -o /usr/share/keyrings/cuda-archive-keyring.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/cuda-archive-keyring.gpg allow-insecure=yes] https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/ /" \
+    apt-get install -y --no-install-recommends curl && \
+    echo "deb [trusted=yes] https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/ /" \
         > /etc/apt/sources.list.d/cuda.list && \
-    apt-get update --allow-insecure-repositories && \
-    apt-get install -y --no-install-recommends --allow-unauthenticated datacenter-gpu-manager-4-core="1:${DCGM_VERSION}" && \
-    apt-get purge -y curl gnupg2 && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends datacenter-gpu-manager-4-core="1:${DCGM_VERSION}" && \
+    apt-get purge -y curl && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
