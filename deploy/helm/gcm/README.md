@@ -146,8 +146,6 @@ Both components require elevated privileges to access GPU hardware and host proc
 - **Monitoring DaemonSet**: Runs as root (UID 0) with `hostPID: true`. Root is needed to read `/proc/<pid>/environ` of GPU compute processes for Slurm job association. `hostPID` is needed because NVML reports GPU process PIDs in the host PID namespace. GPU metrics (utilization, temperature, etc.) are collected via NVML, which requires access to the NVIDIA device files.
 - **Health Checks DaemonSet**: Runs as **privileged** with `hostPID` and `hostNetwork` enabled. GPU health checks need direct access to GPU devices, host PCI topology, syslog files, DCGM diagnostics, and host process visibility. The health checks DaemonSet has its own dedicated ServiceAccount with minimal RBAC permissions (node status patching for NPD conditions).
 
-Both DaemonSets tolerate `nvidia.com/gpu` taints by default to ensure they schedule on GPU nodes.
-
 ## Building the NPD Image
 
 The health checks DaemonSet uses a combined NPD+GCM image. Build it after building the base GCM image:

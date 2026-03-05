@@ -107,7 +107,7 @@ docker run --rm --gpus=all --pid=host --privileged \
   --ecc_uncorrected_volatile_threshold=0 --sink stdout my-cluster app
 ```
 
-These are complementary to continuous monitoring — job-boundary checks catch issues like leftover processes and memory not freed, while continuous checks (via the [NPD-GCM Helm chart](deploy/helm/gcm/README.md)) detect degradation over time (XID errors, NVLink failures, ECC accumulation).
+These are complementary to continuous monitoring — job-boundary checks catch issues like leftover processes and memory not freed, while continuous checks (via the [NPD-GCM Helm chart](../deploy/helm/gcm/README.md)) detect degradation over time (XID errors, NVLink failures, ECC accumulation).
 
 ### Privileged Access for GPU Health Checks
 
