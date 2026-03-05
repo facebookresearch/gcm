@@ -92,6 +92,44 @@ See [values.yaml](values.yaml) for all configurable parameters. The key ones to 
 | `healthChecks.sink` | Sink for health check results | `"stdout"` |
 | `healthChecks.gpuCount` | Expected GPU count per node | `8` |
 
+### Sinks
+
+The `sink` parameter controls where metrics and health check results are sent. Available sinks:
+
+| Sink | Description |
+|------|-------------|
+| `stdout` | Print to stdout (default for health checks) |
+| `otel` | Export via OpenTelemetry OTLP to a collector |
+| `file` | Write to local files |
+| `webhook` | POST to an HTTP endpoint |
+
+Sink-specific options can be passed via `monitoring.extraArgs`:
+
+```shell
+# Send monitoring metrics to an OpenTelemetry collector
+helm install gcm deploy/helm/gcm \
+  --set monitoring.sink=otel \
+  --set monitoring.cluster=my-cluster \
+  --set monitoring.extraArgs[0]=-o \
+  --set monitoring.extraArgs[1]=otel_endpoint=http://otel-collector:4318
+
+# Send health check results to OpenTelemetry
+# The otel sink reads OTEL_EXPORTER_OTLP_ENDPOINT from the environment
+# if no endpoint is passed explicitly.
+helm install gcm deploy/helm/gcm \
+  --set healthChecks.sink=otel \
+  --set healthChecks.cluster=my-cluster
+
+# Send monitoring metrics to a file
+helm install gcm deploy/helm/gcm \
+  --set monitoring.sink=file \
+  --set monitoring.cluster=my-cluster \
+  --set monitoring.extraArgs[0]=-o \
+  --set monitoring.extraArgs[1]=file_path=/tmp/gcm-metrics.log
+```
+
+Run `gcm nvml_monitor --help` or `health_checks --help` to see all sinks and their options.
+
 ## Node Scheduling
 
 By default, both DaemonSets tolerate `nvidia.com/gpu` taints and schedule on **all** nodes. This works for clusters where the NVIDIA device plugin taints GPU nodes.
