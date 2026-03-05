@@ -69,11 +69,11 @@ docker run --rm \
   gcm:latest check-nvidia-smi -c gpu_num --sink stdout my-cluster app
 ```
 
-### Slurm Prolog/Epilog Integration
+### Job Scheduler Integration
 
 Each health check exits with `0` (healthy) or non-zero (problem detected), making them easy to integrate into job schedulers like Slurm, CI pipelines, or any automation that needs to verify GPU node health.
 
-**Prolog** — run checks before each job starts. If a check fails, Slurm rejects the job from that node and reschedules it elsewhere. Useful checks for prolog:
+For example, checks can run **before a job starts** to verify the node is ready (no leftover processes, memory is free, all GPUs visible):
 
 ```shell
 # Check for leftover GPU processes from previous jobs
@@ -92,7 +92,7 @@ docker run --rm --gpus=all --pid=host --privileged \
   check-nvidia-smi -c gpu_num --gpu_num=8 --sink stdout my-cluster app
 ```
 
-**Epilog** — run checks after each job completes. If a check fails, drain or taint the node for investigation:
+Or **after a job completes** to check if the node is still healthy:
 
 ```shell
 # Check for zombie GPU processes left behind
@@ -107,9 +107,9 @@ docker run --rm --gpus=all --pid=host --privileged \
   --ecc_uncorrected_volatile_threshold=0 --sink stdout my-cluster app
 ```
 
-These are complementary to continuous monitoring — prolog/epilog checks catch issues at job boundaries (leftover processes, memory not freed), while continuous checks (via the [NPD-GCM Helm chart](deploy/helm/gcm/README.md)) detect degradation over time (XID errors, NVLink failures, ECC accumulation).
+These are complementary to continuous monitoring — job-boundary checks catch issues like leftover processes and memory not freed, while continuous checks (via the [NPD-GCM Helm chart](deploy/helm/gcm/README.md)) detect degradation over time (XID errors, NVLink failures, ECC accumulation).
 
-For Kubernetes environments, use the Helm chart instead — it deploys an NPD DaemonSet that runs 6 checks continuously on every GPU node.
+For Kubernetes environments, use the Helm chart instead — it deploys an NPD DaemonSet that runs checks continuously on every GPU node.
 
 ### Privileged Access for GPU Health Checks
 
