@@ -109,8 +109,6 @@ docker run --rm --gpus=all --pid=host --privileged \
 
 These are complementary to continuous monitoring — job-boundary checks catch issues like leftover processes and memory not freed, while continuous checks (via the [NPD-GCM Helm chart](deploy/helm/gcm/README.md)) detect degradation over time (XID errors, NVLink failures, ECC accumulation).
 
-For Kubernetes environments, use the Helm chart instead — it deploys an NPD DaemonSet that runs checks continuously on every GPU node.
-
 ### Privileged Access for GPU Health Checks
 
 GPU health checks require host-level access to function correctly. The following flags are needed:
