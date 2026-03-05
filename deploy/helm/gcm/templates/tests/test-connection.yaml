@@ -1,0 +1,39 @@
+{{/*
+Copyright (c) Meta Platforms, Inc. and affiliates.
+All rights reserved.
+*/}}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "gcm.fullname" . }}-test"
+  labels:
+    {{- include "gcm.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  securityContext:
+    {{- toYaml .Values.podSecurityContext | nindent 4 }}
+  containers:
+    - name: gcm-test
+      image: {{ include "gcm.image" . }}
+      imagePullPolicy: {{ .Values.image.pullPolicy }}
+      securityContext:
+        {{- toYaml .Values.securityContext | nindent 8 }}
+      command: ["gcm", "--help"]
+      volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+    - name: health-checks-test
+      image: {{ include "gcm.image" . }}
+      imagePullPolicy: {{ .Values.image.pullPolicy }}
+      securityContext:
+        {{- toYaml .Values.securityContext | nindent 8 }}
+      command: ["health_checks", "--help"]
+      volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+  volumes:
+    - name: tmp
+      emptyDir:
+        sizeLimit: 64Mi
+  restartPolicy: Never
