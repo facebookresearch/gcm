@@ -71,7 +71,7 @@ docker run --rm \
 
 ### Slurm Prolog/Epilog Integration
 
-The standalone `docker run` health check commands are designed for integration with job schedulers like Slurm. Each check exits with `0` (healthy) or non-zero (problem detected), which is exactly what Slurm prolog/epilog scripts expect.
+Each health check exits with `0` (healthy) or non-zero (problem detected), making them easy to integrate into job schedulers like Slurm, CI pipelines, or any automation that needs to verify GPU node health.
 
 **Prolog** — run checks before each job starts. If a check fails, Slurm rejects the job from that node and reschedules it elsewhere. Useful checks for prolog:
 
