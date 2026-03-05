@@ -95,8 +95,6 @@ docker build -f docker/Dockerfile -t gcm:latest .
 docker build -f docker/Dockerfile.npd -t gcm-npd:latest .
 ```
 
-> **Note:** The NPD base image (`registry.k8s.io/node-problem-detector/node-problem-detector:v0.8.19`) is only available for `linux/amd64`.
-
 ## Slurmprocessor
 
 The slurmprocessor is an OpenTelemetry Collector processor (Go library), not a standalone binary. It must be compiled into a [custom OpenTelemetry Collector](https://opentelemetry.io/docs/collector/custom-collector/). See [slurmprocessor/README.md](../slurmprocessor/README.md) for build instructions.
