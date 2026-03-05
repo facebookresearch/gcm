@@ -1,0 +1,121 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# Multi-stage Docker build for GCM (GPU Cluster Monitoring) Python components.
+# Provides both the `gcm` monitoring collector and `health_checks` CLI tools,
+# with DCGM and optional cudaMemTest support for GPU health checking.
+#
+# Build:
+#   docker build -f docker/Dockerfile -t gcm:latest .
+#
+# Build with cudaMemTest (required for memtest check):
+#   docker build -f docker/Dockerfile --build-arg BUILD_CUDAMEMTEST=1 -t gcm:latest .
+#
+# Override DCGM version:
+#   docker build -f docker/Dockerfile --build-arg DCGM_VERSION=3.3.5-1 -t gcm:latest .
+#
+# NOTE: GPU health checks require privileged access to function correctly.
+# The container must be run with:
+#   --gpus=all --pid=host -v /dev:/dev -v /sys:/sys:ro -v /var/log:/var/log:ro
+# See deploy/helm/gcm/README.md for Kubernetes deployment guidance.
+
+# ---------------------------------------------------------------------------
+# Build stage — Python packages
+# ---------------------------------------------------------------------------
+FROM python:3.10-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Install Python dependencies first (layer caching)
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# Copy project source and install the package itself (no deps, already installed)
+COPY pyproject.toml .
+COPY gcm/ gcm/
+RUN pip install --no-cache-dir --no-deps --prefix=/install .
+
+# ---------------------------------------------------------------------------
+# CUDA build stage — cudaMemTest binary (optional)
+# ---------------------------------------------------------------------------
+FROM nvidia/cuda:12.2.2-devel-ubuntu22.04 AS cuda-builder
+
+ARG BUILD_CUDAMEMTEST=0
+
+WORKDIR /build
+COPY gcm/health_checks/cuda/cudaMemTest.c .
+
+# Only compile if BUILD_CUDAMEMTEST=1, otherwise create a placeholder
+RUN if [ "$BUILD_CUDAMEMTEST" = "1" ]; then \
+        nvcc -Xcompiler -O3 -Xcompiler -Wall -Xcompiler -fPIC -Xcompiler -Wextra \
+            cudaMemTest.c -o cudaMemTest; \
+    else \
+        echo "cudaMemTest not built (set BUILD_CUDAMEMTEST=1 to enable)" > /build/cudaMemTest.skip; \
+    fi
+
+# ---------------------------------------------------------------------------
+# Runtime stage
+# ---------------------------------------------------------------------------
+FROM python:3.10-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/usr/local/slurm/bin:${PATH}"
+
+# Install DCGM client libraries (required for check-dcgmi checks)
+ARG DCGM_VERSION=4.4.2-1
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        curl \
+        gnupg2 && \
+    curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/3bf863cc.pub \
+        | gpg --dearmor -o /usr/share/keyrings/cuda-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/cuda-archive-keyring.gpg] https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/ /" \
+        > /etc/apt/sources.list.d/cuda.list && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends datacenter-gpu-manager-4-core="1:${DCGM_VERSION}" && \
+    apt-get purge -y curl gnupg2 && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install runtime utilities needed by health checks
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        util-linux \
+        procps \
+        iproute2 \
+        pciutils && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy installed Python packages from builder
+COPY --from=builder /install /usr/local
+
+# Copy cudaMemTest binary if it was built
+ARG BUILD_CUDAMEMTEST=0
+COPY --from=cuda-builder /build/cudaMemTest* /tmp/cuda-build/
+RUN if [ "$BUILD_CUDAMEMTEST" = "1" ] && [ -f /tmp/cuda-build/cudaMemTest ]; then \
+        cp /tmp/cuda-build/cudaMemTest /usr/local/bin/cudaMemTest && \
+        chmod +x /usr/local/bin/cudaMemTest; \
+    fi && \
+    rm -rf /tmp/cuda-build
+
+# Create log directory for health check output
+RUN mkdir -p /var/log/gcm
+
+WORKDIR /opt/gcm
+
+# Verify entry points are available
+RUN gcm --help > /dev/null 2>&1 && health_checks --help > /dev/null 2>&1
+
+HEALTHCHECK --interval=60s --timeout=5s --retries=3 \
+    CMD ["python", "-c", "import gcm"]
+
+ENTRYPOINT ["gcm"]
+CMD ["--help"]

@@ -8,46 +8,86 @@ Docker images for GCM (GPU Cluster Monitoring) components.
 
 ## GCM Python Image
 
-The `Dockerfile.gcm` image packages both the `gcm` monitoring collector and the `health_checks` CLI into a single container.
+The `Dockerfile` image packages both the `gcm` monitoring collector and the `health_checks` CLI into a single container.
 
 ### Build
 
+Standard build (includes DCGM):
+
 ```shell
-docker build -f docker/Dockerfile.gcm -t gcm:latest .
+docker build -f docker/Dockerfile -t gcm:latest .
 ```
+
+With cudaMemTest (full GPU health check support):
+
+```shell
+docker build -f docker/Dockerfile \
+  --build-arg BUILD_CUDAMEMTEST=1 \
+  -t gcm:latest .
+```
+
+Override DCGM version:
+
+```shell
+docker build -f docker/Dockerfile \
+  --build-arg DCGM_VERSION=3.3.5-1 \
+  -t gcm:latest .
+```
+
+### Build Arguments
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `DCGM_VERSION` | `4.4.2-1` | DCGM client version to install |
+| `BUILD_CUDAMEMTEST` | `0` | Set to `1` to compile and include `cudaMemTest` binary |
 
 ### Multi-platform Build
 
 ```shell
 docker buildx create --use
-docker buildx build -f docker/Dockerfile.gcm \
+docker buildx build -f docker/Dockerfile \
   --platform linux/amd64,linux/arm64 \
   -t gcm:latest .
 ```
 
+> **Note:** DCGM and `BUILD_CUDAMEMTEST=1` are only supported on `linux/amd64` due to NVIDIA package/toolkit availability. For arm64-only builds, remove or skip the DCGM install stage.
+
 ### Usage
 
-Run the monitoring collector:
+Run the monitoring collector (entrypoint defaults to `gcm`):
 
 ```shell
-docker run --rm gcm:latest gcm --sink=stdout --once --cluster=my-cluster
+docker run --rm gcm:latest --sink=stdout --once --cluster=my-cluster
 ```
 
-Run health checks:
+Run health checks (requires privileged access for GPU checks):
 
 ```shell
-docker run --rm gcm:latest health_checks --help
+docker run --rm \
+  --gpus=all \
+  --pid=host \
+  --privileged \
+  -v /dev:/dev \
+  -v /sys:/sys:ro \
+  -v /var/log:/var/log:ro \
+  --entrypoint health_checks \
+  gcm:latest check-nvidia-smi -c gpu_num --sink stdout my-cluster app
 ```
 
-### Security
+### Privileged Access for GPU Health Checks
 
-The image follows container security best practices:
+GPU health checks require host-level access to function correctly. The following flags are needed:
 
-- Runs as non-root user (UID 65532)
-- No shell login for the runtime user
-- `HEALTHCHECK` instruction for orchestrator integration
-- Minimal base image (`python:3.10-slim`)
-- Build dependencies are excluded from the runtime image
+| Flag | Required By |
+|------|-------------|
+| `--gpus=all` | All GPU checks (`check-nvidia-smi`, `check-dcgmi`, `memtest`) |
+| `--pid=host` | `check-process check-zombie` (host process visibility) |
+| `-v /dev:/dev` | GPU device access |
+| `-v /sys:/sys:ro` | PCI device enumeration (`check-pci`), sensor readings (`check-sensors`) |
+| `-v /var/log:/var/log:ro` | Syslog analysis (`check-syslogs xid`, `check-syslogs link-flaps`) |
+| `--privileged` | DCGM diagnostics (`check-dcgmi diag`), IPMI access (`check-ipmitool`) |
+
+The monitoring collector (`gcm`) does **not** require privileged access — only health checks do.
 
 ## Slurmprocessor
 

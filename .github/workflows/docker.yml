@@ -41,7 +41,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: docker/Dockerfile.gcm
+          file: docker/Dockerfile
           platforms: ${{ matrix.platform }}
           push: false
           tags: gcm:test
