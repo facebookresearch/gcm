@@ -77,9 +77,9 @@ RUN apt-get update && \
         gnupg2 && \
     curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/3bf863cc.pub \
         | gpg --dearmor -o /usr/share/keyrings/cuda-archive-keyring.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/cuda-archive-keyring.gpg] https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/ /" \
+    echo "deb [signed-by=/usr/share/keyrings/cuda-archive-keyring.gpg allow-insecure=yes] https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/ /" \
         > /etc/apt/sources.list.d/cuda.list && \
-    apt-get update && \
+    apt-get update --allow-insecure-repositories && \
     apt-get install -y --no-install-recommends datacenter-gpu-manager-4-core="1:${DCGM_VERSION}" && \
     apt-get purge -y curl gnupg2 && \
     apt-get autoremove -y && \
