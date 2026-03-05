@@ -18,12 +18,6 @@ permissions:
 
 jobs:
   build-gcm:
-    strategy:
-      matrix:
-        platform: [linux/amd64, linux/arm64]
-        exclude:
-          # arm64 QEMU builds are slow; only run on push to main
-          - platform: ${{ github.event_name == 'pull_request' && 'linux/arm64' || 'exclude-nothing' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -32,17 +26,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-
       - name: Build GCM image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64
           push: false
           tags: gcm:test
           cache-from: type=gha
