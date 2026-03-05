@@ -41,17 +41,6 @@ docker build -f docker/Dockerfile \
 | `DCGM_VERSION` | `4.4.2-1` | DCGM client version to install |
 | `BUILD_CUDAMEMTEST` | `0` | Set to `1` to compile and include `cudaMemTest` binary |
 
-### Multi-platform Build
-
-```shell
-docker buildx create --use
-docker buildx build -f docker/Dockerfile \
-  --platform linux/amd64,linux/arm64 \
-  -t gcm:latest .
-```
-
-> **Note:** DCGM and `BUILD_CUDAMEMTEST=1` are only supported on `linux/amd64` due to NVIDIA package/toolkit availability. For arm64-only builds, remove or skip the DCGM install stage.
-
 ### Usage
 
 Run the monitoring collector (entrypoint defaults to `gcm`):
