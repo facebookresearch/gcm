@@ -98,23 +98,20 @@ The `sink` parameter controls where metrics and health check results are sent. R
 
 Sink-specific options can be passed via `monitoring.extraArgs`:
 
+The otel sink supports standard `OTEL_EXPORTER_*` environment variables.
+
 ```shell
-# Send metrics to an OpenTelemetry collector
-# The otel sink supports standard OTEL_EXPORTER_* environment variables.
+# Monitoring: send GPU metrics to an OpenTelemetry collector
 helm install gcm deploy/helm/gcm \
   --set monitoring.sink=otel \
   --set monitoring.cluster=my-cluster \
   --set monitoring.extraArgs[0]=-o \
-  --set monitoring.extraArgs[1]=otel_endpoint=http://otel-collector:4318 \
+  --set monitoring.extraArgs[1]=otel_endpoint=http://otel-collector:4318
+
+# Health checks: send results to an OpenTelemetry collector
+helm install gcm deploy/helm/gcm \
   --set healthChecks.sink=otel \
   --set healthChecks.cluster=my-cluster
-
-# Send monitoring metrics to a file
-helm install gcm deploy/helm/gcm \
-  --set monitoring.sink=file \
-  --set monitoring.cluster=my-cluster \
-  --set monitoring.extraArgs[0]=-o \
-  --set monitoring.extraArgs[1]=file_path=/tmp/gcm-metrics.log
 ```
 
 Run `gcm nvml_monitor --help` or `health_checks --help` to see all sinks and their options.
