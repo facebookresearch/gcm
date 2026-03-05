@@ -48,6 +48,33 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  build-npd:
+    needs: build-gcm
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build GCM base image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64
+          push: false
+          tags: gcm:latest
+          load: true
+          cache-from: type=gha
+
+      # Use plain docker build (not buildx) so that FROM gcm:latest
+      # resolves against the Docker daemon where the previous step
+      # loaded the image.
+      - name: Build NPD-GCM image
+        run: docker build -f docker/Dockerfile.npd -t gcm-npd:test .
+
   helm-lint:
     runs-on: ubuntu-latest
     steps:
@@ -66,5 +93,4 @@ jobs:
           helm template test-release deploy/helm/gcm \
             --set monitoring.sink=stdout \
             --set monitoring.cluster=test \
-            --set healthChecks.sink=stdout \
             --set healthChecks.cluster=test

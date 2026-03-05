@@ -12,5 +12,3 @@ data:
   GCM_SINK: {{ .Values.monitoring.sink | quote }}
   GCM_CLUSTER: {{ .Values.monitoring.cluster | quote }}
   GCM_INTERVAL: {{ .Values.monitoring.interval | quote }}
-  HEALTH_CHECKS_SINK: {{ .Values.healthChecks.sink | quote }}
-  HEALTH_CHECKS_CLUSTER: {{ .Values.healthChecks.cluster | quote }}

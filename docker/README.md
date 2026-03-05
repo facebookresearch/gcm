@@ -57,7 +57,7 @@ docker buildx build -f docker/Dockerfile \
 Run the monitoring collector (entrypoint defaults to `gcm`):
 
 ```shell
-docker run --rm gcm:latest --sink=stdout --once --cluster=my-cluster
+docker run --rm gcm:latest nvml_monitor --sink=stdout --once --cluster=my-cluster
 ```
 
 Run health checks (requires privileged access for GPU checks):
@@ -88,6 +88,25 @@ GPU health checks require host-level access to function correctly. The following
 | `--privileged` | DCGM diagnostics (`check-dcgmi diag`), IPMI access (`check-ipmitool`) |
 
 The monitoring collector (`gcm`) does **not** require privileged access — only health checks do.
+
+### NVML Symlink
+
+The image creates an unversioned `libnvidia-ml.so` symlink pointing to `libnvidia-ml.so.1`. The NVIDIA container runtime injects the versioned `.so.1` at runtime but not the unversioned `.so`, which `cffi`/`dlopen`-based libraries (e.g., `gni_lib` for GPU Node ID) require.
+
+## NPD-GCM Image
+
+The `Dockerfile.npd` combines [Node Problem Detector](https://github.com/kubernetes/node-problem-detector) with the GCM image. NPD runs as the entrypoint and invokes GCM health check binaries as custom plugin monitors.
+
+### Build
+
+Build the base GCM image first, then the NPD-GCM image:
+
+```shell
+docker build -f docker/Dockerfile -t gcm:latest .
+docker build -f docker/Dockerfile.npd -t gcm-npd:latest .
+```
+
+> **Note:** The NPD base image (`registry.k8s.io/node-problem-detector/node-problem-detector:v0.8.19`) is only available for `linux/amd64`.
 
 ## Slurmprocessor
 

@@ -73,3 +73,11 @@ Container image reference.
 {{- $tag := default .Chart.AppVersion .Values.image.tag -}}
 {{- printf "%s:%s" .Values.image.repository $tag -}}
 {{- end }}
+
+{{/*
+Health checks (NPD-GCM) image reference.
+*/}}
+{{- define "gcm.healthChecksImage" -}}
+{{- $tag := default .Chart.AppVersion .Values.healthChecks.image.tag -}}
+{{- printf "%s:%s" .Values.healthChecks.image.repository $tag -}}
+{{- end }}

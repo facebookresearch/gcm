@@ -3,7 +3,7 @@
 #
 # Default values for gcm Helm chart.
 
-# -- Container image configuration
+# -- Container image configuration (used by monitoring DaemonSet)
 image:
   repository: ghcr.io/facebookresearch/gcm
   tag: ""  # defaults to appVersion
@@ -19,22 +19,11 @@ serviceAccount:
   annotations: {}
   name: ""
 
-# -- Pod-level security context (shared by all components)
-podSecurityContext:
-  runAsNonRoot: true
-  runAsUser: 65532
-  runAsGroup: 65532
-  fsGroup: 65532
-
-# -- Container-level security context (shared by all components)
-securityContext:
-  allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: true
-  capabilities:
-    drop:
-      - ALL
-
 # -- Monitoring collector (DaemonSet) configuration
+# Runs `gcm nvml_monitor` on every GPU node to collect per-device GPU
+# metrics (utilization, memory, temperature, power, ECC) and per-GPU
+# Slurm job association. Requires root and hostPID to read job info
+# from /proc/<pid>/environ of GPU processes.
 monitoring:
   enabled: true
   # Sink for collected metrics (e.g. "otel://localhost:4317")
@@ -43,7 +32,7 @@ monitoring:
   cluster: ""
   # Collection interval in seconds
   interval: 60
-  # Additional CLI arguments passed to `gcm`
+  # Additional CLI arguments passed to `gcm nvml_monitor`
   extraArgs: []
 
   resources:
@@ -54,43 +43,42 @@ monitoring:
       cpu: 100m
       memory: 128Mi
 
-  # Node selector for scheduling
+  # Node scheduling
   nodeSelector: {}
-  tolerations: []
+  tolerations:
+    - key: "nvidia.com/gpu"
+      operator: Exists
   affinity: {}
 
-  # -- Host paths to mount for Slurm / GPU access
-  hostPaths:
-    # Path to Slurm binaries on the host
-    slurm: /usr/bin
-    # Path to NVIDIA device files
-    nvidiaDevices: /dev/nvidia0
-
-# -- Health checks (CronJob) configuration
+# -- Health checks (NPD-GCM DaemonSet) configuration
 healthChecks:
   enabled: true
-  # Cron schedule expression (default: every 15 minutes)
-  schedule: "*/15 * * * *"
-  # Sink for health check results
-  sink: ""
-  # Cluster name reported in health check results
+  # NPD-GCM combined image
+  image:
+    repository: ghcr.io/facebookresearch/gcm-npd
+    tag: ""  # defaults to appVersion
+    pullPolicy: IfNotPresent
+  # Cluster name for health check results
   cluster: ""
-  # Additional CLI arguments passed to `health_checks`
-  extraArgs: []
-  # Prevent overlapping health check runs
-  concurrencyPolicy: Forbid
-
+  # Sink for health check results (e.g. "otel", "stdout")
+  sink: "stdout"
+  # Check interval in seconds
+  invokeInterval: 300
+  # Check timeout in seconds
+  timeout: 120
+  # Max concurrent checks
+  concurrency: 3
+  # Expected GPU count per node (for gpu_num check)
+  gpuCount: 8
+  # Prometheus metrics
+  prometheus:
+    port: 20257
+  # Node scheduling
+  nodeSelector: {}
+  tolerations:
+    - key: "nvidia.com/gpu"
+      operator: Exists
+  affinity: {}
   resources:
     limits:
-      cpu: 500m
-      memory: 256Mi
-    requests:
-      cpu: 100m
-      memory: 128Mi
-
-  nodeSelector: {}
-  tolerations: []
-
-  # Number of successful/failed job runs to keep
-  successfulJobsHistoryLimit: 3
-  failedJobsHistoryLimit: 3
+      nvidia.com/gpu: 0
