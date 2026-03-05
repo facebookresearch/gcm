@@ -99,16 +99,13 @@ The `sink` parameter controls where metrics and health check results are sent. R
 Sink-specific options can be passed via `monitoring.extraArgs`:
 
 ```shell
-# Send monitoring metrics to an OpenTelemetry collector
+# Send metrics to an OpenTelemetry collector
+# The otel sink supports standard OTEL_EXPORTER_* environment variables.
 helm install gcm deploy/helm/gcm \
   --set monitoring.sink=otel \
   --set monitoring.cluster=my-cluster \
   --set monitoring.extraArgs[0]=-o \
-  --set monitoring.extraArgs[1]=otel_endpoint=http://otel-collector:4318
-
-# Send health check results to OpenTelemetry
-# The otel sink supports standard OTEL_EXPORTER_* environment variables.
-helm install gcm deploy/helm/gcm \
+  --set monitoring.extraArgs[1]=otel_endpoint=http://otel-collector:4318 \
   --set healthChecks.sink=otel \
   --set healthChecks.cluster=my-cluster
 
