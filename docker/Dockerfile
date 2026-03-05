@@ -73,16 +73,23 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # NOTE: Using [trusted=yes] because NVIDIA's repo GPG key uses SHA1,
 # which Debian rejects as of Feb 2026. Revert to signed-by once NVIDIA
 # updates their signing key.
+# NOTE: DCGM is only available for x86_64. On arm64 builds, DCGM checks
+# will not be available.
+ARG TARGETARCH
 ARG DCGM_VERSION=4.4.2-1
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl && \
-    echo "deb [trusted=yes] https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/ /" \
-        > /etc/apt/sources.list.d/cuda.list && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends datacenter-gpu-manager-4-core="1:${DCGM_VERSION}" && \
-    apt-get purge -y curl && \
-    apt-get autoremove -y && \
-    rm -rf /var/lib/apt/lists/*
+RUN if [ "$TARGETARCH" = "amd64" ]; then \
+        apt-get update && \
+        apt-get install -y --no-install-recommends curl && \
+        echo "deb [trusted=yes] https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/ /" \
+            > /etc/apt/sources.list.d/cuda.list && \
+        apt-get update && \
+        apt-get install -y --no-install-recommends datacenter-gpu-manager-4-core="1:${DCGM_VERSION}" && \
+        apt-get purge -y curl && \
+        apt-get autoremove -y && \
+        rm -rf /var/lib/apt/lists/*; \
+    else \
+        echo "Skipping DCGM install (not available for $TARGETARCH)"; \
+    fi
 
 # Install runtime utilities needed by health checks
 RUN apt-get update && \
@@ -96,8 +103,9 @@ RUN apt-get update && \
 # Create unversioned libnvidia-ml.so symlink for gni_lib (GPU Node ID).
 # The NVIDIA container runtime injects libnvidia-ml.so.1 but not the
 # unversioned .so, which cffi/dlopen-based libraries need.
-RUN ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 \
-           /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
+RUN LIBDIR=$([ "$TARGETARCH" = "arm64" ] && echo "aarch64-linux-gnu" || echo "x86_64-linux-gnu") && \
+    ln -sf /usr/lib/${LIBDIR}/libnvidia-ml.so.1 \
+           /usr/lib/${LIBDIR}/libnvidia-ml.so
 
 # Copy installed Python packages from builder
 COPY --from=builder /install /usr/local
