@@ -11,6 +11,10 @@ metadata:
     {{- include "gcm.labels" . | nindent 4 }}
     app.kubernetes.io/component: health-checks
 spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
   selector:
     matchLabels:
       {{- include "gcm.selectorLabels" . | nindent 6 }}
@@ -29,6 +33,8 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      priorityClassName: system-node-critical
+      terminationGracePeriodSeconds: 30
       hostNetwork: true
       hostPID: true
       dnsPolicy: ClusterFirstWithHostNet
@@ -61,10 +67,19 @@ spec:
               value: "all"
             - name: LC_ALL
               value: "C.UTF-8"
+            {{- with .Values.healthChecks.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           ports:
             - name: prometheus
               containerPort: {{ .Values.healthChecks.prometheus.port }}
               protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: prometheus
+            initialDelaySeconds: 30
+            periodSeconds: 60
           volumeMounts:
             - name: host-root
               mountPath: /host

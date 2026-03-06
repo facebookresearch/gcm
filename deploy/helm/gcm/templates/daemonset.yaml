@@ -11,6 +11,10 @@ metadata:
     {{- include "gcm.labels" . | nindent 4 }}
     app.kubernetes.io/component: monitoring
 spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
   selector:
     matchLabels:
       {{- include "gcm.selectorLabels" . | nindent 6 }}
@@ -26,6 +30,8 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      priorityClassName: system-node-critical
+      terminationGracePeriodSeconds: 30
       hostPID: true
       containers:
         - name: gcm
@@ -55,9 +61,9 @@ spec:
           env:
             - name: NVIDIA_VISIBLE_DEVICES
               value: "all"
-          envFrom:
-            - configMapRef:
-                name: {{ include "gcm.fullname" . }}
+            {{- with .Values.monitoring.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           resources:
             {{- toYaml .Values.monitoring.resources | nindent 12 }}
           volumeMounts:

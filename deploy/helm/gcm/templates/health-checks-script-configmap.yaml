@@ -20,8 +20,8 @@ data:
     # of stdout as the condition message.
     set -uo pipefail
 
-    MAX_RETRIES=2
-    RETRY_SLEEP=30
+    MAX_RETRIES={{ .Values.healthChecks.maxRetries }}
+    RETRY_SLEEP={{ .Values.healthChecks.retrySleep }}
 
     CLUSTER={{ .Values.healthChecks.cluster | default "unknown" | quote }}
     SINK={{ .Values.healthChecks.sink | default "stdout" | quote }}
@@ -29,6 +29,9 @@ data:
 
     # Use a string command (not array) so shell expands env vars like ${NODE_IP}
     # in check args passed from NPD monitor config.
+    # Note: --timeout is NOT passed here because not all checks accept it
+    # (e.g., check-nvidia-smi). The NPD-level timeout in the monitor config
+    # handles the outer execution boundary.
     CMD="health_checks $@ ${CLUSTER} ${TYPE} --sink=${SINK} --log-level=CRITICAL --verbose-out"
 
     RC=0

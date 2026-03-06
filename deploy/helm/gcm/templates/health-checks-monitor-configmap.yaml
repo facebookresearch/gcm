@@ -54,6 +54,13 @@ data:
           "reason": "GcmDcgmiDiagCheckPassed",
           "message": "DCGM diagnostics check passed"
         }
+        {{- range .Values.healthChecks.extraChecks }},
+        {
+          "type": {{ .condition | quote }},
+          "reason": {{ printf "%sCheckPassed" .condition | quote }},
+          "message": {{ .message | quote }}
+        }
+        {{- end }}
       ],
       "rules": [
         {
@@ -98,6 +105,15 @@ data:
           "path": "/scripts/run_health_check.sh",
           "args": ["check-dcgmi", "diag", "--diag_level=1", "--host", "${NODE_IP}"]
         }
+        {{- range .Values.healthChecks.extraChecks }},
+        {
+          "type": "permanent",
+          "condition": {{ .condition | quote }},
+          "reason": {{ printf "%sCheckFailed" .condition | quote }},
+          "path": "/scripts/run_health_check.sh",
+          "args": {{ .args | toJson }}
+        }
+        {{- end }}
       ]
     }
 {{- end }}
