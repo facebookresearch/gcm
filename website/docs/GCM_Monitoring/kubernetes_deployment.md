@@ -42,6 +42,7 @@ See the [Helm chart README](https://github.com/facebookresearch/gcm/tree/main/de
 | `monitoring.sink` | Exporter sink for metrics (e.g., `otel`, `stdout`) | `""` |
 | `monitoring.cluster` | Cluster name for metrics | `""` |
 | `monitoring.interval` | Collection interval in seconds | `60` |
+| `monitoring.sinkOpts` | Sink options (`-o`, OmegaConf dot-list syntax) | `[]` |
 | `monitoring.extraArgs` | Additional CLI arguments for `gcm nvml_monitor` | `[]` |
 | `monitoring.extraEnv` | Additional environment variables | `[]` |
 
@@ -55,14 +56,14 @@ helm install gcm deploy/helm/gcm \
   --set monitoring.extraEnv[0].value=http://otel-collector:4318
 ```
 
-Sink-specific options can also be passed via `monitoring.extraArgs`:
+Sink-specific options can also be passed via `monitoring.sinkOpts`:
 
 ```shell
 helm install gcm deploy/helm/gcm \
   --set monitoring.sink=otel \
   --set monitoring.cluster=my-cluster \
-  --set monitoring.extraArgs[0]=-o \
-  --set monitoring.extraArgs[1]=otel_endpoint=http://otel-collector:4318
+  --set monitoring.sinkOpts[0]=otel_endpoint=http://otel-collector:4318 \
+  --set "monitoring.sinkOpts[1]=metric_resource_attributes={'environment': 'production'}"
 ```
 
 Run `gcm nvml_monitor --help` to see all available sinks and their options.

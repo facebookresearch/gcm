@@ -25,6 +25,7 @@ data:
 
     CLUSTER={{ .Values.healthChecks.cluster | default "unknown" | quote }}
     SINK={{ .Values.healthChecks.sink | default "stdout" | quote }}
+    SINK_OPTS="{{ range .Values.healthChecks.sinkOpts }} --sink-opt={{ . }}{{ end }}"
     TYPE="app"
 
     # Use a string command (not array) so shell expands env vars like ${NODE_IP}
@@ -32,7 +33,7 @@ data:
     # Note: --timeout is NOT passed here because not all checks accept it
     # (e.g., check-nvidia-smi). The NPD-level timeout in the monitor config
     # handles the outer execution boundary.
-    CMD="health_checks $@ ${CLUSTER} ${TYPE} --sink=${SINK} --log-level=CRITICAL --verbose-out"
+    CMD="health_checks $@ ${CLUSTER} ${TYPE} --sink=${SINK} --log-level=CRITICAL${SINK_OPTS} --verbose-out"
 
     RC=0
     OUTPUT=""

@@ -127,6 +127,7 @@ docker build -f docker/Dockerfile.npd -t gcm-npd:latest .
 | `healthChecks.enabled` | Deploy the NPD health checks DaemonSet | `true` |
 | `healthChecks.cluster` | Cluster name for health check results | `""` |
 | `healthChecks.sink` | Sink for health check results | `"stdout"` |
+| `healthChecks.sinkOpts` | Sink options (`--sink-opt`, OmegaConf dot-list syntax) | `[]` |
 | `healthChecks.gpuCount` | Expected GPU count per node | `8` |
 | `healthChecks.invokeInterval` | Check interval in seconds | `300` |
 | `healthChecks.timeout` | NPD timeout per check in seconds (includes retries) | `480` |
@@ -152,6 +153,7 @@ The DaemonSet runs as root with `hostPID: true` so it can read the environment o
 |---|---|---|
 | `monitoring.enabled` | Deploy the monitoring DaemonSet | `true` |
 | `monitoring.sink` | Exporter sink for metrics | `""` |
+| `monitoring.sinkOpts` | Sink options (`-o`, OmegaConf dot-list syntax) | `[]` |
 | `monitoring.cluster` | Cluster name for metrics | `""` |
 | `monitoring.interval` | Collection interval in seconds | `60` |
 | `monitoring.extraArgs` | Additional CLI arguments | `[]` |
@@ -161,22 +163,22 @@ The DaemonSet runs as root with `hostPID: true` so it can read the environment o
 
 The `sink` parameter controls where metrics and health check results are sent. Run `gcm nvml_monitor --help` or `health_checks --help` to see all available sinks and their options.
 
-Sink-specific options can be passed via `monitoring.extraArgs`. The otel sink supports standard `OTEL_EXPORTER_*` environment variables via `extraEnv`:
+Sink-specific options can be passed via `sinkOpts` (OmegaConf dot-list syntax). The otel sink also supports standard `OTEL_EXPORTER_*` environment variables via `extraEnv`:
 
 ```shell
 # Monitoring: send GPU metrics to an OpenTelemetry collector
 helm install gcm deploy/helm/gcm \
   --set monitoring.sink=otel \
   --set monitoring.cluster=my-cluster \
-  --set monitoring.extraEnv[0].name=OTEL_EXPORTER_OTLP_ENDPOINT \
-  --set monitoring.extraEnv[0].value=http://otel-collector:4318
+  --set monitoring.sinkOpts[0]=otel_endpoint=http://otel-collector:4318 \
+  --set "monitoring.sinkOpts[1]=metric_resource_attributes={'environment': 'production'}"
 
 # Health checks: send results to an OpenTelemetry collector
 helm install gcm deploy/helm/gcm \
   --set healthChecks.sink=otel \
   --set healthChecks.cluster=my-cluster \
-  --set healthChecks.extraEnv[0].name=OTEL_EXPORTER_OTLP_ENDPOINT \
-  --set healthChecks.extraEnv[0].value=http://otel-collector:4318
+  --set healthChecks.sinkOpts[0]=otel_endpoint=http://otel-collector:4318 \
+  --set "healthChecks.sinkOpts[1]=log_resource_attributes={'environment': 'production'}"
 ```
 
 ## Node Scheduling

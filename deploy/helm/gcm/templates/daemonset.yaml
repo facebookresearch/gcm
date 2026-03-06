@@ -55,6 +55,10 @@ spec:
             - --interval
             - {{ .Values.monitoring.interval | quote }}
             {{- end }}
+            {{- range .Values.monitoring.sinkOpts }}
+            - -o
+            - {{ . | quote }}
+            {{- end }}
             {{- range .Values.monitoring.extraArgs }}
             - {{ . | quote }}
             {{- end }}

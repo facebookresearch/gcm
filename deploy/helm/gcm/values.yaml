@@ -28,6 +28,12 @@ monitoring:
   enabled: true
   # Sink for collected metrics (e.g. "otel://localhost:4317")
   sink: ""
+  # Sink options passed as -o to gcm nvml_monitor (OmegaConf dot-list syntax).
+  # Example:
+  #   sinkOpts:
+  #     - "otel_endpoint=http://localhost:4318"
+  #     - "metric_resource_attributes={'environment': 'production'}"
+  sinkOpts: []
   # Cluster name reported in metrics
   cluster: ""
   # Collection interval in seconds
@@ -68,6 +74,12 @@ healthChecks:
   cluster: ""
   # Sink for health check results (e.g. "otel", "stdout")
   sink: "stdout"
+  # Sink options passed as --sink-opt to health_checks (OmegaConf dot-list syntax).
+  # Example:
+  #   sinkOpts:
+  #     - "otel_endpoint=http://localhost:4318"
+  #     - "log_resource_attributes={'environment': 'production'}"
+  sinkOpts: []
   # Check interval in seconds
   invokeInterval: 300
   # NPD timeout in seconds per check (includes retries).
