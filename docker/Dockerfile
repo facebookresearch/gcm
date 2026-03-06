@@ -6,10 +6,10 @@
 # with DCGM and optional cudaMemTest support for GPU health checking.
 #
 # Build:
-#   docker build -f docker/Dockerfile -t gcm:latest .
+#   docker build -f docker/Dockerfile -t gcm:dcgm4 .
 #
 # Build with cudaMemTest (required for memtest check):
-#   docker build -f docker/Dockerfile --build-arg BUILD_CUDAMEMTEST=1 -t gcm:latest .
+#   docker build -f docker/Dockerfile --build-arg BUILD_CUDAMEMTEST=1 -t gcm:dcgm4 .
 #
 # Build with DCGM 3 (for older GPU drivers):
 #   docker build -f docker/Dockerfile --build-arg DCGM_VERSION=3.3.7-1 -t gcm:dcgm3 .
