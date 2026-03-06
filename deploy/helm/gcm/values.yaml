@@ -37,11 +37,11 @@ monitoring:
 
   resources:
     limits:
-      cpu: 500m
-      memory: 256Mi
+      cpu: "1"
+      memory: 1Gi
     requests:
       cpu: 100m
-      memory: 128Mi
+      memory: 256Mi
 
   # Node scheduling
   nodeSelector: {}
@@ -81,4 +81,9 @@ healthChecks:
   affinity: {}
   resources:
     limits:
+      cpu: "1"
+      memory: 1Gi
       nvidia.com/gpu: 0
+    requests:
+      cpu: 100m
+      memory: 256Mi

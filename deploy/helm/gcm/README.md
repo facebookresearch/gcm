@@ -127,8 +127,6 @@ helm install gcm deploy/helm/gcm \
   --set healthChecks.cluster=my-cluster
 ```
 
-Run `gcm nvml_monitor --help` or `health_checks --help` to see all sinks and their options.
-
 ## Node Scheduling
 
 By default, both DaemonSets tolerate `nvidia.com/gpu` taints and schedule on **all** nodes. This works for clusters where the NVIDIA device plugin taints GPU nodes.
