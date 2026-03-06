@@ -10,12 +10,32 @@ Docker images for GCM (GPU Cluster Monitoring) components.
 
 The `Dockerfile` image packages both the `gcm` monitoring collector and the `health_checks` CLI into a single container.
 
-### Build
+### Pre-built Images
 
-Standard build (includes DCGM):
+Pre-built images are published to GHCR with DCGM 4 and DCGM 3 variants:
 
 ```shell
-docker build -f docker/Dockerfile -t gcm:latest .
+# DCGM 4 (for NVIDIA driver R550+)
+docker pull ghcr.io/facebookresearch/gcm:dcgm4
+
+# DCGM 3 (for NVIDIA driver R535/R525)
+docker pull ghcr.io/facebookresearch/gcm:dcgm3
+```
+
+### Build
+
+Standard build (DCGM 4):
+
+```shell
+docker build -f docker/Dockerfile -t gcm:dcgm4 .
+```
+
+Build with DCGM 3 (for older GPU drivers):
+
+```shell
+docker build -f docker/Dockerfile \
+  --build-arg DCGM_VERSION=3.3.7-1 \
+  -t gcm:dcgm3 .
 ```
 
 With cudaMemTest (full GPU health check support):
@@ -23,15 +43,7 @@ With cudaMemTest (full GPU health check support):
 ```shell
 docker build -f docker/Dockerfile \
   --build-arg BUILD_CUDAMEMTEST=1 \
-  -t gcm:latest .
-```
-
-Override DCGM version:
-
-```shell
-docker build -f docker/Dockerfile \
-  --build-arg DCGM_VERSION=3.3.5-1 \
-  -t gcm:latest .
+  -t gcm:dcgm4 .
 ```
 
 ### Build Arguments
@@ -131,6 +143,13 @@ The image creates an unversioned `libnvidia-ml.so` symlink pointing to `libnvidi
 ## NPD-GCM Image
 
 The `Dockerfile.npd` combines [Node Problem Detector](https://github.com/kubernetes/node-problem-detector) with the GCM image. NPD runs as the entrypoint and invokes GCM health check binaries as custom plugin monitors.
+
+### Pre-built Images
+
+```shell
+docker pull ghcr.io/facebookresearch/gcm-npd:dcgm4
+docker pull ghcr.io/facebookresearch/gcm-npd:dcgm3
+```
 
 ### Build
 

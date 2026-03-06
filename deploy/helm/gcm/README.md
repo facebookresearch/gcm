@@ -17,10 +17,23 @@ A Helm chart for deploying [GCM](https://github.com/facebookresearch/gcm) on Kub
 
 ## Install
 
+The chart defaults to DCGM 4 images (`dcgm4` tag). For clusters with older NVIDIA drivers (R535/R525), use the DCGM 3 images:
+
 ```shell
 helm install gcm deploy/helm/gcm \
   --set healthChecks.cluster=my-cluster \
   --set healthChecks.sink=otel \
+  --set monitoring.sink=otel \
+  --set monitoring.cluster=my-cluster
+```
+
+For DCGM 3:
+
+```shell
+helm install gcm deploy/helm/gcm \
+  --set image.tag=dcgm3 \
+  --set healthChecks.image.tag=dcgm3 \
+  --set healthChecks.cluster=my-cluster \
   --set monitoring.sink=otel \
   --set monitoring.cluster=my-cluster
 ```

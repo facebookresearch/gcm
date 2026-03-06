@@ -6,4 +6,4 @@ name: gcm
 description: GPU Cluster Monitoring for HPC clusters
 type: application
 version: 0.1.0
-appVersion: "latest"
+appVersion: "dcgm4"

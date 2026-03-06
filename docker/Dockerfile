@@ -11,8 +11,8 @@
 # Build with cudaMemTest (required for memtest check):
 #   docker build -f docker/Dockerfile --build-arg BUILD_CUDAMEMTEST=1 -t gcm:latest .
 #
-# Override DCGM version:
-#   docker build -f docker/Dockerfile --build-arg DCGM_VERSION=3.3.5-1 -t gcm:latest .
+# Build with DCGM 3 (for older GPU drivers):
+#   docker build -f docker/Dockerfile --build-arg DCGM_VERSION=3.3.7-1 -t gcm:dcgm3 .
 #
 # NOTE: GPU health checks require privileged access to function correctly.
 # The container must be run with:
@@ -74,12 +74,13 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # which Debian rejects as of Feb 2026. Revert to signed-by once NVIDIA
 # updates their signing key.
 ARG DCGM_VERSION=4.4.2-1
-RUN apt-get update && \
+RUN DCGM_MAJOR="${DCGM_VERSION%%.*}" && \
+    apt-get update && \
     apt-get install -y --no-install-recommends curl && \
     echo "deb [trusted=yes] https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/ /" \
         > /etc/apt/sources.list.d/cuda.list && \
     apt-get update && \
-    apt-get install -y --no-install-recommends datacenter-gpu-manager-4-core="1:${DCGM_VERSION}" && \
+    apt-get install -y --no-install-recommends "datacenter-gpu-manager-${DCGM_MAJOR}-core=1:${DCGM_VERSION}" && \
     apt-get purge -y curl && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
