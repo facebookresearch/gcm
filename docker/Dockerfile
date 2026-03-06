@@ -75,21 +75,29 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # NOTE: Using [trusted=yes] because NVIDIA's repo GPG key uses SHA1,
 # which Debian rejects as of Feb 2026. Revert to signed-by once NVIDIA
 # updates their signing key.
+# DCGM 3.x and 4.x packages are sourced from the ubuntu2204 repo;
+# ubuntu2004 is only used for DCGM < 3 (which is very old).
 ARG DCGM_VERSION=4.4.2-1
 RUN DCGM_MAJOR="${DCGM_VERSION%%.*}" && \
     if [ "$DCGM_MAJOR" -ge 4 ]; then \
         DCGM_PKG="datacenter-gpu-manager-${DCGM_MAJOR}-core"; \
-        DCGM_REPO="debian12"; \
-    else \
+        DCGM_REPO="ubuntu2204"; \
+        DCGM_APT_VER="1:${DCGM_VERSION}"; \
+    elif [ "$DCGM_MAJOR" -ge 3 ]; then \
         DCGM_PKG="datacenter-gpu-manager"; \
         DCGM_REPO="ubuntu2204"; \
+        DCGM_APT_VER="1:${DCGM_VERSION%%-*}"; \
+    else \
+        DCGM_PKG="datacenter-gpu-manager"; \
+        DCGM_REPO="ubuntu2004"; \
+        DCGM_APT_VER="1:${DCGM_VERSION%%-*}"; \
     fi && \
     apt-get update && \
     apt-get install -y --no-install-recommends curl && \
     echo "deb [trusted=yes] https://developer.download.nvidia.com/compute/cuda/repos/${DCGM_REPO}/x86_64/ /" \
         > /etc/apt/sources.list.d/cuda.list && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends "${DCGM_PKG}=1:${DCGM_VERSION}" && \
+    apt-get -o Acquire::Retries=5 update && \
+    apt-get install -y --no-install-recommends "${DCGM_PKG}=${DCGM_APT_VER}" && \
     apt-get purge -y curl && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
