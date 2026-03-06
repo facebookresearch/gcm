@@ -85,7 +85,9 @@ Query GCM health conditions on a node:
 kubectl get node <node-name> -o jsonpath='{range .status.conditions[*]}{.type}{"\t"}{.status}{"\t"}{.message}{"\n"}{end}' | grep Gcm
 ```
 
-NPD also exposes Prometheus metrics on port 20257 for integration with monitoring systems.
+NPD also exposes Prometheus metrics on port 20257 for integration with monitoring systems like [Grafana](https://grafana.com/).
+
+These conditions are standard Kubernetes node conditions — downstream tools like [Draino](https://github.com/planetlabs/draino), cluster autoscalers, or custom controllers can watch them to automatically cordon, drain, or replace unhealthy nodes. Health check results can also be exported via the otel sink to your observability stack for alerting and reporting to infrastructure providers.
 
 ## Configuration
 
