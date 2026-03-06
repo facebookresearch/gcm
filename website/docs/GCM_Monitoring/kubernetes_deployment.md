@@ -11,7 +11,7 @@ GCM Monitoring can be deployed on Kubernetes GPU clusters as a DaemonSet that ru
 ```
 DaemonSet (one per GPU node)
   └── Pod
-       └── Container: gcm
+       └── Container: gcm nvml_monitor
             └── Runs: gcm nvml_monitor --sink otel --cluster my-cluster --interval 60
 ```
 
