@@ -24,6 +24,8 @@
 # ---------------------------------------------------------------------------
 FROM python:3.10-slim AS builder
 
+LABEL org.opencontainers.image.source=https://github.com/facebookresearch/gcm
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
