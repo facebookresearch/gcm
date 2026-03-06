@@ -69,12 +69,12 @@ jobs:
           platforms: linux/amd64
           push: false
           load: true
-          tags: gcm:latest
+          tags: gcm:${{ matrix.tag }}
           build-args: DCGM_VERSION=${{ matrix.dcgm_version }}
           cache-from: type=gha,scope=gcm-${{ matrix.tag }}
 
       - name: Build NPD-GCM image
-        run: docker build -f docker/Dockerfile.npd -t ${{ env.NPD_IMAGE }}:${{ matrix.tag }} .
+        run: docker build -f docker/Dockerfile.npd --build-arg GCM_IMAGE=gcm:${{ matrix.tag }} -t ${{ env.NPD_IMAGE }}:${{ matrix.tag }} .
 
       - name: Push NPD-GCM image
         if: github.event_name == 'push'
