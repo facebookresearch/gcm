@@ -77,12 +77,19 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # updates their signing key.
 ARG DCGM_VERSION=4.4.2-1
 RUN DCGM_MAJOR="${DCGM_VERSION%%.*}" && \
+    if [ "$DCGM_MAJOR" -ge 4 ]; then \
+        DCGM_PKG="datacenter-gpu-manager-${DCGM_MAJOR}-core"; \
+        DCGM_REPO="debian12"; \
+    else \
+        DCGM_PKG="datacenter-gpu-manager"; \
+        DCGM_REPO="ubuntu2204"; \
+    fi && \
     apt-get update && \
     apt-get install -y --no-install-recommends curl && \
-    echo "deb [trusted=yes] https://developer.download.nvidia.com/compute/cuda/repos/debian12/x86_64/ /" \
+    echo "deb [trusted=yes] https://developer.download.nvidia.com/compute/cuda/repos/${DCGM_REPO}/x86_64/ /" \
         > /etc/apt/sources.list.d/cuda.list && \
     apt-get update && \
-    apt-get install -y --no-install-recommends "datacenter-gpu-manager-${DCGM_MAJOR}-core=1:${DCGM_VERSION}" && \
+    apt-get install -y --no-install-recommends "${DCGM_PKG}=1:${DCGM_VERSION}" && \
     apt-get purge -y curl && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
