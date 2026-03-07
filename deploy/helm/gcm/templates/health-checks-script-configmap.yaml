@@ -25,7 +25,7 @@ data:
 
     CLUSTER={{ .Values.healthChecks.cluster | default "unknown" | quote }}
     SINK={{ .Values.healthChecks.sink | default "stdout" | quote }}
-    SINK_OPTS="{{ range .Values.healthChecks.sinkOpts }} --sink-opt={{ . }}{{ end }}"
+    SINK_OPTS="{{ range .Values.healthChecks.sinkOpts }} --sink-opt=\"{{ . }}\"{{ end }}"
     TYPE="app"
 
     # Use a string command (not array) so shell expands env vars like ${NODE_IP}

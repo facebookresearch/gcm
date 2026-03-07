@@ -119,6 +119,9 @@ class GraphAPI:
             )
             return
 
+    def shutdown(self) -> None:
+        pass
+
     def _write_metric(self, data: Log, heterogeneous_cluster_v1: bool) -> None:
         """Receives a list of device and host metrics, convert it to ODSData and sends to ODS as a single request.
 

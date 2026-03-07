@@ -3,6 +3,11 @@
 #
 # Default values for gcm Helm chart.
 
+# Usage:
+#   helm install gcm deploy/helm/gcm \
+#     -f deploy/helm/gcm/<CUSTOM-OVERRIDES>.yaml \
+#     --namespace monitoring
+
 # -- Container image configuration (used by monitoring DaemonSet)
 image:
   repository: ghcr.io/facebookresearch/gcm
@@ -78,7 +83,7 @@ healthChecks:
   # Example:
   #   sinkOpts:
   #     - "otel_endpoint=http://localhost:4318"
-  #     - "log_resource_attributes={'environment': 'production'}"
+  #     - "log_resource_attributes={environment: production}"
   sinkOpts: []
   # Check interval in seconds
   invokeInterval: 300
