@@ -65,3 +65,6 @@ class Telemetry:
                     w.writeheader()
                     self._header_written = True
                 w.writerows(records)
+
+    def shutdown(self) -> None:
+        pass
