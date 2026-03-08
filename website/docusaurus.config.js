@@ -130,7 +130,7 @@ const config = {
             position: 'right',
           },
           {
-            href: 'https://discord.gg/PwUaeyxw',
+            href: 'https://discord.gg/2kKHH8sw6B',
             label: 'Discord',
             position: 'right',
           },
@@ -164,7 +164,7 @@ const config = {
               },
               {
                 label: 'Discord',
-                href: 'https://discord.gg/PwUaeyxw',
+                href: 'https://discord.gg/2kKHH8sw6B',
               },
             ],
           },
