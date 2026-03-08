@@ -75,7 +75,7 @@ healthChecks:
       args: ["check-nvidia-smi", "-c", "row_remap"]
 ```
 
-Run `health_checks --help` to see all available checks, or see the [health checks reference](./health_checks/) for detailed documentation on each check and its arguments.
+Run `health_checks --help` to see all available checks, or see the [health checks reference](./health_checks/README.md) for detailed documentation on each check and its arguments.
 
 ### Querying Node Conditions
 
