@@ -99,7 +99,7 @@ healthChecks:
   gpuCount: 8
   # Additional health checks to run alongside the 6 defaults.
   # Each entry adds a new NPD condition and check rule.
-  # Run `health_checks --help` to see all available checks.
+  # Run `health_checks --help` to see all available checks, or visit https://facebookresearch.github.io/gcm/docs/GCM_Health_Checks/health_checks/
   # Example:
   #   extraChecks:
   #     - condition: GcmPciProblem
