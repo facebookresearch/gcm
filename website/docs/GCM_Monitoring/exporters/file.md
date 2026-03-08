@@ -13,6 +13,7 @@ The File exporter writes monitoring data and health check results to local file 
 | Option | Required | Description |
 |--------|----------|-------------|
 | `file_path` | Yes | Path to the output file |
+| `format` | No | `json` (default) or `csv` |
 
 ### Basic Usage
 
@@ -36,6 +37,8 @@ sink_opts = [
 
 ## Output Format
 
+### JSON (default)
+
 Data is written as newline-delimited JSON (NDJSON), with each monitoring event on a separate line:
 
 ```json
@@ -47,6 +50,16 @@ This format allows for:
 - Efficient appending of new data
 - Line-by-line processing with standard tools
 - Easy parsing with JSON libraries
+
+### CSV
+
+Use `format=csv` for comma-separated output suitable for spreadsheets and offline analysis:
+
+```shell
+gcm slurm_monitor --sink=file --sink-opt file_path=/var/log/gcm/data.csv --sink-opt format=csv --once
+```
+
+The first write adds a header row; subsequent writes append data rows.
 
 ## Use Cases
 

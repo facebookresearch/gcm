@@ -13,6 +13,7 @@ The File exporter writes monitoring data and health check results to local file 
 | Option | Required | Description |
 |--------|----------|-------------|
 | `file_path` | Yes | Path to the output file |
+| `format` | No | `json` (default) or `csv` |
 
 ### Basic Usage
 
