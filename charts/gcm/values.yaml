@@ -4,7 +4,7 @@
 # Default values for gcm Helm chart.
 
 # Usage:
-#   helm install gcm charts/gcm \
+#   helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
 #     -f charts/gcm/<CUSTOM-OVERRIDES>.yaml \
 #     --namespace monitoring
 

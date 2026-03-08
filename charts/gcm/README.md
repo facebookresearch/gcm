@@ -185,14 +185,14 @@ Sink-specific options can be passed via `sinkOpts` (OmegaConf dot-list syntax). 
 
 ```shell
 # Monitoring: send GPU metrics to an OpenTelemetry collector
-helm install gcm charts/gcm \
+helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
   --set monitoring.sink=otel \
   --set monitoring.cluster=my-cluster \
   --set monitoring.sinkOpts[0]=otel_endpoint=http://otel-collector:4318 \
   --set "monitoring.sinkOpts[1]=metric_resource_attributes={'environment': 'production'}"
 
 # Health checks: send results to an OpenTelemetry collector
-helm install gcm charts/gcm \
+helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
   --set healthChecks.sink=otel \
   --set healthChecks.cluster=my-cluster \
   --set healthChecks.sinkOpts[0]=otel_endpoint=http://otel-collector:4318 \
@@ -206,7 +206,7 @@ By default, both DaemonSets tolerate `nvidia.com/gpu` taints and schedule on **a
 For clusters that use **labels** instead of taints to identify GPU nodes, use `nodeSelector` to restrict scheduling:
 
 ```shell
-helm install gcm charts/gcm \
+helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
   --set monitoring.nodeSelector."nvidia\.com/gpu\.present"=true \
   --set healthChecks.nodeSelector."nvidia\.com/gpu\.present"=true
 ```
