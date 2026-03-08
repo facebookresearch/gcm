@@ -36,7 +36,7 @@ spec:
       containers:
         - name: gcm
           image: {{ include "gcm.image" . }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          imagePullPolicy: {{ .Values.monitoring.image.pullPolicy }}
           securityContext:
             runAsUser: 0
           command:

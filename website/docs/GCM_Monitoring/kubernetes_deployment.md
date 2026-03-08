@@ -25,15 +25,23 @@ Job association works by reading `/proc/<pid>/environ` of GPU compute processes 
 
 ## Helm Chart
 
-The recommended way to deploy on Kubernetes is via the [GCM Helm chart](https://github.com/facebookresearch/gcm/tree/main/deploy/helm/gcm):
+The recommended way to deploy on Kubernetes is via the [GCM Helm chart](https://github.com/facebookresearch/gcm/tree/main/charts/gcm):
 
 ```shell
-helm install gcm deploy/helm/gcm \
+helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
   --set monitoring.sink=otel \
   --set monitoring.cluster=my-cluster
 ```
 
-See the [Helm chart README](https://github.com/facebookresearch/gcm/tree/main/deploy/helm/gcm/README.md) for full configuration options.
+Or from source:
+
+```shell
+helm install gcm charts/gcm \
+  --set monitoring.sink=otel \
+  --set monitoring.cluster=my-cluster
+```
+
+See the [Helm chart README](https://github.com/facebookresearch/gcm/tree/main/charts/gcm/README.md) for full configuration options.
 
 ### Configuration
 
@@ -49,7 +57,7 @@ See the [Helm chart README](https://github.com/facebookresearch/gcm/tree/main/de
 ### Sending Metrics to OpenTelemetry
 
 ```shell
-helm install gcm deploy/helm/gcm \
+helm install gcm charts/gcm \
   --set monitoring.sink=otel \
   --set monitoring.cluster=my-cluster \
   --set monitoring.extraEnv[0].name=OTEL_EXPORTER_OTLP_ENDPOINT \
@@ -59,7 +67,7 @@ helm install gcm deploy/helm/gcm \
 Sink-specific options can also be passed via `monitoring.sinkOpts`:
 
 ```shell
-helm install gcm deploy/helm/gcm \
+helm install gcm charts/gcm \
   --set monitoring.sink=otel \
   --set monitoring.cluster=my-cluster \
   --set monitoring.sinkOpts[0]=otel_endpoint=http://otel-collector:4318 \

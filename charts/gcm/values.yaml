@@ -4,15 +4,9 @@
 # Default values for gcm Helm chart.
 
 # Usage:
-#   helm install gcm deploy/helm/gcm \
-#     -f deploy/helm/gcm/<CUSTOM-OVERRIDES>.yaml \
+#   helm install gcm charts/gcm \
+#     -f charts/gcm/<CUSTOM-OVERRIDES>.yaml \
 #     --namespace monitoring
-
-# -- Container image configuration (used by monitoring DaemonSet)
-image:
-  repository: ghcr.io/facebookresearch/gcm
-  tag: ""  # defaults to appVersion
-  pullPolicy: IfNotPresent
 
 imagePullSecrets: []
 nameOverride: ""
@@ -31,6 +25,11 @@ serviceAccount:
 # from /proc/<pid>/environ of GPU processes.
 monitoring:
   enabled: true
+  # Container image for the monitoring DaemonSet
+  image:
+    repository: ghcr.io/facebookresearch/gcm
+    tag: ""  # defaults to appVersion (dcgm4); use dcgm3 for older drivers
+    pullPolicy: IfNotPresent
   # Sink for collected metrics (e.g. "otel://localhost:4317")
   sink: ""
   # Sink options passed as -o to gcm nvml_monitor (OmegaConf dot-list syntax).

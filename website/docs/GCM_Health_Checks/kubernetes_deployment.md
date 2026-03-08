@@ -26,15 +26,23 @@ GCM `health_checks` does the actual GPU inspection.
 
 ## Helm Chart
 
-The recommended way to deploy on Kubernetes is via the [GCM Helm chart](https://github.com/facebookresearch/gcm/tree/main/deploy/helm/gcm):
+The recommended way to deploy on Kubernetes is via the [GCM Helm chart](https://github.com/facebookresearch/gcm/tree/main/charts/gcm):
 
 ```shell
-helm install gcm deploy/helm/gcm \
+helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
   --set healthChecks.cluster=my-cluster \
   --set healthChecks.sink=otel
 ```
 
-See the [Helm chart README](https://github.com/facebookresearch/gcm/tree/main/deploy/helm/gcm/README.md) for full configuration options.
+Or from source:
+
+```shell
+helm install gcm charts/gcm \
+  --set healthChecks.cluster=my-cluster \
+  --set healthChecks.sink=otel
+```
+
+See the [Helm chart README](https://github.com/facebookresearch/gcm/tree/main/charts/gcm/README.md) for full configuration options.
 
 ### Default Health Checks
 

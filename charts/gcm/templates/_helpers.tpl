@@ -70,8 +70,8 @@ Create the name of the service account to use.
 Container image reference.
 */}}
 {{- define "gcm.image" -}}
-{{- $tag := default .Chart.AppVersion .Values.image.tag -}}
-{{- printf "%s:%s" .Values.image.repository $tag -}}
+{{- $tag := default .Chart.AppVersion .Values.monitoring.image.tag -}}
+{{- printf "%s:%s" .Values.monitoring.image.repository $tag -}}
 {{- end }}
 
 {{/*

@@ -12,42 +12,47 @@ A Helm chart for deploying [GCM](https://github.com/facebookresearch/gcm) on Kub
 - Helm 3.x
 - NVIDIA GPU drivers and container runtime on GPU nodes
 - [DCGM](https://developer.nvidia.com/dcgm) running on GPU nodes (required for `check-dcgmi` health checks; typically deployed via the [NVIDIA GPU Operator](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/index.html))
-- GCM Docker image (see [docker/README.md](../../../docker/README.md))
-- NPD-GCM Docker image for health checks (see [docker/README.md](../../../docker/README.md))
+- GCM Docker image (see [docker/README.md](../../docker/README.md))
+- NPD-GCM Docker image for health checks (see [docker/README.md](../../docker/README.md))
 
 ## Install
 
-The chart defaults to DCGM 4 images (`dcgm4` tag). For clusters with older NVIDIA drivers (R535/R525), use the DCGM 3 images:
+The chart is published to GHCR as an OCI artifact and versioned alongside GCM releases.
+
+**DCGM 4** (default, requires NVIDIA driver R550+):
 
 ```shell
-helm install gcm deploy/helm/gcm \
+helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
   --set healthChecks.cluster=my-cluster \
   --set healthChecks.sink=otel \
   --set monitoring.sink=otel \
   --set monitoring.cluster=my-cluster
 ```
 
-For DCGM 3:
+**DCGM 3** (for older NVIDIA drivers R535/R525):
 
 ```shell
-helm install gcm deploy/helm/gcm \
-  --set image.tag=dcgm3 \
+helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
+  --set monitoring.image.tag=dcgm3 \
   --set healthChecks.image.tag=dcgm3 \
   --set healthChecks.cluster=my-cluster \
+  --set healthChecks.sink=otel \
   --set monitoring.sink=otel \
   --set monitoring.cluster=my-cluster
 ```
+
+To pin a specific chart version, add `--version X.Y.Z`.
 
 Health checks and monitoring are independent — you can deploy either or both:
 
 ```shell
 # Health checks only
-helm install gcm deploy/helm/gcm \
+helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
   --set monitoring.enabled=false \
   --set healthChecks.cluster=my-cluster
 
 # Monitoring only
-helm install gcm deploy/helm/gcm \
+helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
   --set healthChecks.enabled=false \
   --set monitoring.sink=otel \
   --set monitoring.cluster=my-cluster
@@ -180,14 +185,14 @@ Sink-specific options can be passed via `sinkOpts` (OmegaConf dot-list syntax). 
 
 ```shell
 # Monitoring: send GPU metrics to an OpenTelemetry collector
-helm install gcm deploy/helm/gcm \
+helm install gcm charts/gcm \
   --set monitoring.sink=otel \
   --set monitoring.cluster=my-cluster \
   --set monitoring.sinkOpts[0]=otel_endpoint=http://otel-collector:4318 \
   --set "monitoring.sinkOpts[1]=metric_resource_attributes={'environment': 'production'}"
 
 # Health checks: send results to an OpenTelemetry collector
-helm install gcm deploy/helm/gcm \
+helm install gcm charts/gcm \
   --set healthChecks.sink=otel \
   --set healthChecks.cluster=my-cluster \
   --set healthChecks.sinkOpts[0]=otel_endpoint=http://otel-collector:4318 \
@@ -201,7 +206,7 @@ By default, both DaemonSets tolerate `nvidia.com/gpu` taints and schedule on **a
 For clusters that use **labels** instead of taints to identify GPU nodes, use `nodeSelector` to restrict scheduling:
 
 ```shell
-helm install gcm deploy/helm/gcm \
+helm install gcm charts/gcm \
   --set monitoring.nodeSelector."nvidia\.com/gpu\.present"=true \
   --set healthChecks.nodeSelector."nvidia\.com/gpu\.present"=true
 ```
@@ -240,13 +245,13 @@ Both DaemonSets use `priorityClassName: system-node-critical` to prevent evictio
 Lint the chart:
 
 ```shell
-helm lint deploy/helm/gcm
+helm lint charts/gcm
 ```
 
 Render templates locally:
 
 ```shell
-helm template my-release deploy/helm/gcm \
+helm template my-release charts/gcm \
   --set monitoring.sink=stdout \
   --set monitoring.cluster=test \
   --set healthChecks.cluster=test

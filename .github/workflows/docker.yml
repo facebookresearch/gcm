@@ -91,11 +91,11 @@ jobs:
           version: v3.17.0
 
       - name: Lint Helm chart
-        run: helm lint deploy/helm/gcm
+        run: helm lint charts/gcm
 
       - name: Template Helm chart
         run: |
-          helm template test-release deploy/helm/gcm \
+          helm template test-release charts/gcm \
             --set monitoring.sink=stdout \
             --set monitoring.cluster=test \
             --set healthChecks.cluster=test

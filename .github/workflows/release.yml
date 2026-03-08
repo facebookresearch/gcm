@@ -243,6 +243,38 @@ jobs:
           packages-dir: dist
           skip-existing: true
 
+  helm-publish:
+    needs: [check-release]
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'facebookresearch/gcm' && needs.check-release.outputs.RELEASE_EXISTS == 'false' }}
+    permissions:
+      contents: read
+      packages: write
+    env:
+      VERSION: ${{ needs.check-release.outputs.VERSION }}
+      REGISTRY: ghcr.io
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.17.0
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Package and push Helm chart
+        run: |
+          sed -i "s/^version:.*/version: ${VERSION}/" charts/gcm/Chart.yaml
+          helm package charts/gcm
+          helm push gcm-${VERSION}.tgz oci://ghcr.io/facebookresearch/charts
+
   docker-publish:
     needs: [check-release]
     runs-on: ubuntu-latest

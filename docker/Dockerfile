@@ -17,14 +17,12 @@
 # NOTE: GPU health checks require privileged access to function correctly.
 # The container must be run with:
 #   --gpus=all --pid=host -v /dev:/dev -v /sys:/sys:ro -v /var/log:/var/log:ro
-# See deploy/helm/gcm/README.md for Kubernetes deployment guidance.
+# See charts/gcm/README.md for Kubernetes deployment guidance.
 
 # ---------------------------------------------------------------------------
 # Build stage — Python packages
 # ---------------------------------------------------------------------------
 FROM python:3.10-slim AS builder
-
-LABEL org.opencontainers.image.source=https://github.com/facebookresearch/gcm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -66,6 +64,8 @@ RUN if [ "$BUILD_CUDAMEMTEST" = "1" ]; then \
 # Runtime stage
 # ---------------------------------------------------------------------------
 FROM python:3.10-slim
+
+LABEL org.opencontainers.image.source=https://github.com/facebookresearch/gcm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

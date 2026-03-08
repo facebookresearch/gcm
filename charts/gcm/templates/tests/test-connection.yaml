@@ -20,7 +20,7 @@ spec:
     {{- if .Values.monitoring.enabled }}
     - name: gcm-test
       image: {{ include "gcm.image" . }}
-      imagePullPolicy: {{ .Values.image.pullPolicy }}
+      imagePullPolicy: {{ .Values.monitoring.image.pullPolicy }}
       command: ["gcm", "--help"]
     {{- end }}
     {{- if .Values.healthChecks.enabled }}

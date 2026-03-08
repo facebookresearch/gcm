@@ -39,7 +39,6 @@ Each component has its own README with detailed guides:
 - [Support for new exporters](gcm/docs/adding_new_exporter.md)
 - Adding support for [Slurm REST API](https://slurm.schedmd.com/rest_api.html) querying
 - Adding support for new [Health Checks](gcm/docs/health_checks_onboarding.md#how-to-write-a-new-health-check?)
-- Distribution via Docker Images and Helm Charts
 
 ## [Code of Conduct](https://code.fb.com/codeofconduct)
 
