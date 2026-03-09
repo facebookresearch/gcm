@@ -122,10 +122,12 @@ class File:
                     w.writeheader()
                     self._csv_header_written[path] = True
                 w.writerows(records)
-        elif format == 'json':
+        elif self.format == "json":
             for payload in data.message:
                 # TODO: remove to_scuba_message once slurm_job_monitor migrates to OpenTelemetry exporter
                 logger.info(json.dumps(asdict(to_scuba_message(payload))))
+        else:
+            raise ValueError(f"Unsupported format: {self.format!r}")
 
     def shutdown(self) -> None:
         pass
