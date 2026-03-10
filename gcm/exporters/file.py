@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import io
 import json
 import logging
 import os
@@ -50,11 +51,12 @@ class File:
             )
 
         self.format = format
-        self._csv_header_written: Dict[str, bool] = {}
         self.data_identifier_to_logger_map: Dict[
             DataIdentifier, Optional[logging.Logger]
         ] = {}
         self._data_identifier_to_path: Dict[DataIdentifier, str] = {}
+        if self.format == "csv":
+            self._csv_header_written: Dict[str, bool] = {}
 
         if file_path is not None:
             file_directory, file_name = split_path(file_path)
@@ -113,15 +115,31 @@ class File:
             records = [_flatten_for_csv(p) for p in data.message]
             if not records:
                 return
-            os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
             all_keys = sorted({k for r in records for k in r.keys()})
             header_done = self._csv_header_written.get(path, False)
-            with open(path, "a") as f:
-                w = csv.DictWriter(f, fieldnames=all_keys, extrasaction="ignore")
-                if not header_done:
-                    w.writeheader()
-                    self._csv_header_written[path] = True
-                w.writerows(records)
+
+            if not header_done:
+                header_buf = io.StringIO()
+                header_writer = csv.DictWriter(
+                    header_buf,
+                    fieldnames=all_keys,
+                    extrasaction="ignore",
+                    lineterminator="",
+                )
+                header_writer.writeheader()
+                logger.info(header_buf.getvalue())
+                self._csv_header_written[path] = True
+
+            for record in records:
+                row_buf = io.StringIO()
+                row_writer = csv.DictWriter(
+                    row_buf,
+                    fieldnames=all_keys,
+                    extrasaction="ignore",
+                    lineterminator="",
+                )
+                row_writer.writerow(record)
+                logger.info(row_buf.getvalue())
         elif self.format == "json":
             for payload in data.message:
                 # TODO: remove to_scuba_message once slurm_job_monitor migrates to OpenTelemetry exporter
