@@ -27,9 +27,37 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Check if user is authorized
+        id: check_auth
+        run: |
+          COMMENTER="${{ github.event.comment.user.login }}"
+          ASSOCIATION="${{ github.event.comment.author_association }}"
+          AUTHORIZED=false
+
+          # Org owners and members
+          if [ "$ASSOCIATION" = "OWNER" ] || [ "$ASSOCIATION" = "MEMBER" ]; then
+            AUTHORIZED=true
+          fi
+
+          # CODEOWNERS
+          if [ "$AUTHORIZED" = "false" ] && [ -f .github/CODEOWNERS ]; then
+            OWNERS=$(grep -oP '(?<=@)\S+' .github/CODEOWNERS | sort -u)
+            if echo "$OWNERS" | grep -qxi "$COMMENTER"; then
+              AUTHORIZED=true
+            fi
+          fi
+
+          echo "authorized=$AUTHORIZED" >> "$GITHUB_OUTPUT"
+          if [ "$AUTHORIZED" = "false" ]; then
+            echo "::notice::User $COMMENTER is not authorized to trigger Claude."
+          fi
+
       - name: Run Claude Code
         id: claude
-        uses: anthropics/claude-code-action@v1
+        if: steps.check_auth.outputs.authorized == 'true'
+        # Forked from anthropics/claude-code-action@v1 to add support for
+        # fork PRs (upstream bug: https://github.com/anthropics/claude-code-action/issues/223)
+        uses: luccabb/claude-code-action@7f39722b8a782471258f32e1d5a9a531b2b68056
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           model: "claude-sonnet-4-6"
