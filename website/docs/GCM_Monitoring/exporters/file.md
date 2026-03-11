@@ -59,7 +59,8 @@ Use `format=csv` for comma-separated output suitable for spreadsheets and offlin
 gcm slurm_monitor --sink=file --sink-opt file_path=/var/log/gcm/data.csv --sink-opt format=csv --once
 ```
 
-The first write adds a header row; subsequent writes append data rows.
+The first write adds a header row; subsequent writes append data rows. If a later
+payload has a different schema, a new header row is written before those rows.
 
 ## Use Cases
 
