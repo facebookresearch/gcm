@@ -55,7 +55,7 @@ class File:
         ] = {}
         self._data_identifier_to_path: Dict[DataIdentifier, str] = {}
         if self.format == "csv":
-            self._csv_header_written: Dict[str, bool] = {}
+            self._csv_fieldnames: Dict[str, Tuple[str, ...]] = {}
 
         if file_path is not None:
             file_directory, file_name = split_path(file_path)
@@ -115,9 +115,10 @@ class File:
             if not records:
                 return
             all_keys = sorted({k for r in records for k in r.keys()})
-            header_done = self._csv_header_written.get(path, False)
+            fieldnames = tuple(all_keys)
+            previous_fieldnames = self._csv_fieldnames.get(path)
 
-            if not header_done:
+            if previous_fieldnames != fieldnames:
                 header_buf = io.StringIO()
                 header_writer = csv.DictWriter(
                     header_buf,
@@ -127,7 +128,7 @@ class File:
                 )
                 header_writer.writeheader()
                 logger.info(header_buf.getvalue())
-                self._csv_header_written[path] = True
+                self._csv_fieldnames[path] = fieldnames
 
             for record in records:
                 row_buf = io.StringIO()

@@ -16,6 +16,12 @@ class SamplePayload:
     user: str
 
 
+@dataclass
+class OtherSamplePayload:
+    gpu_uuid: str
+    memory_used_mb: int
+
+
 def test_file_exporter_csv(tmp_path: Path) -> None:
     path = tmp_path / "data.csv"
     sink = File(file_path=str(path), format="csv")
@@ -34,3 +40,28 @@ def test_file_exporter_csv(tmp_path: Path) -> None:
     assert rows[0]["normal.user"] == "alice"
     assert rows[1]["normal.state"] == "PENDING"
     assert rows[1]["normal.user"] == "bob"
+
+
+def test_file_exporter_csv_rewrites_header_on_schema_change(tmp_path: Path) -> None:
+    path = tmp_path / "data.csv"
+    sink = File(file_path=str(path), format="csv")
+
+    sink.write(
+        Log(ts=1000, message=[SamplePayload(job_id=1, state="RUNNING", user="alice")]),
+        SinkAdditionalParams(data_identifier=DataIdentifier.GENERIC),
+    )
+    sink.write(
+        Log(
+            ts=2000,
+            message=[OtherSamplePayload(gpu_uuid="GPU-123", memory_used_mb=2048)],
+        ),
+        SinkAdditionalParams(data_identifier=DataIdentifier.GENERIC),
+    )
+
+    lines = path.read_text().splitlines()
+    assert lines == [
+        "normal.job_id,normal.state,normal.user",
+        "1,RUNNING,alice",
+        "normal.gpu_uuid,normal.memory_used_mb",
+        "GPU-123,2048",
+    ]
