@@ -36,10 +36,10 @@ def test_file_exporter_csv(tmp_path: Path) -> None:
     with open(path) as f:
         rows = list(csv.DictReader(f))
     assert len(rows) == 2
-    assert rows[0]["normal.state"] == "RUNNING"
-    assert rows[0]["normal.user"] == "alice"
-    assert rows[1]["normal.state"] == "PENDING"
-    assert rows[1]["normal.user"] == "bob"
+    assert rows[0]["state"] == "RUNNING"
+    assert rows[0]["user"] == "alice"
+    assert rows[1]["state"] == "PENDING"
+    assert rows[1]["user"] == "bob"
 
 
 def test_file_exporter_csv_rewrites_header_on_schema_change(tmp_path: Path) -> None:
@@ -60,8 +60,8 @@ def test_file_exporter_csv_rewrites_header_on_schema_change(tmp_path: Path) -> N
 
     lines = path.read_text().splitlines()
     assert lines == [
-        "normal.job_id,normal.state,normal.user",
+        "job_id,state,user",
         "1,RUNNING,alice",
-        "normal.gpu_uuid,normal.memory_used_mb",
+        "gpu_uuid,memory_used_mb",
         "GPU-123,2048",
     ]
