@@ -183,6 +183,7 @@ keyring==25.7.0 \
     --hash=sha256:fe01bd85eb3f8fb3dd0405defdeac9a5b4f6f0439edbb3149577f244a2e8245b
     # via twine
 libcst==1.8.1 \
+    --hash=sha256:a748502a2ef57834e7f135a51392dc6a431f2d4547f8b2917cd8e27c91d30c61 \
     --hash=sha256:423427819409a1d905017bbd51062bd0f1e4795c74c2f9f52a6b63dd67c282d2 \
     --hash=sha256:bdad73ce302741354abd2d0ac54add8bbbffb123a176629f65ce16e0dff012f6
     # via
@@ -382,6 +383,7 @@ pynvml==11.4.1 \
     --hash=sha256:d27be542cd9d06558de18e2deffc8022ccd7355bc7382255d477038e7e424c6c
     # via gcm (pyproject.toml)
 pyoxidizer==0.24.0 \
+    --hash=sha256:1a9940d2bdb6c9e6c6c45eb4de3d4d6e5c9b3a3724dbc7d774d85d4956058447 \
     --hash=sha256:ec56f2b99495aa0178e927389a3e151e9669beae4e2bce3f6897fb9891b5502e
     # via gcm (pyproject.toml)
 pyproject-hooks==1.2.0 \
