@@ -30,9 +30,20 @@ from gcm.monitoring.click import DaemonGroup, detach_option, toml_config_option
 @click.group(cls=DaemonGroup, epilog=f"GCM Version: {__version__}")
 @toml_config_option("gcm")
 @detach_option
+@click.option(
+    "--backend",
+    type=click.Choice(["nvml"]),
+    default="nvml",
+    show_default=True,
+    help="Accelerator backend used by GPU telemetry paths.",
+)
 @click.version_option(__version__)
-def main(detach: bool) -> None:
+def main(detach: bool, backend: str) -> None:
     """GPU cluster monitoring. A toolkit for HPC cluster telemetry and health checks."""
+    ctx = click.get_current_context()
+    if not isinstance(ctx.obj, dict):
+        ctx.obj = {}
+    ctx.obj["accelerator_backend"] = backend
 
 
 main.add_command(nvml_monitor.main, name="nvml_monitor")

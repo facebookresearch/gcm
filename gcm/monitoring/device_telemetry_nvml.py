@@ -112,6 +112,10 @@ class NVMLGPUDevice:
         return pynvml.nvmlDeviceGetVbiosVersion(self.handle)
 
     @pynvml_exception_handler
+    def get_name(self) -> str:
+        return str(pynvml.nvmlDeviceGetName(self.handle))
+
+    @pynvml_exception_handler
     def get_clock_freq(self) -> ApplicationClockInfo:
         # For the type parameter https://github.com/gpuopenanalytics/pynvml/blob/41e1657948b18008d302f5cb8af06539adc7c792/pynvml/nvml.py#L168
         NVML_CLOCK_GRAPHICS = 0
@@ -137,3 +141,7 @@ class NVMLDeviceTelemetryClient:
     def get_device_by_index(self, index: int) -> NVMLGPUDevice:
         device = pynvml.nvmlDeviceGetHandleByIndex(index)
         return NVMLGPUDevice(device)
+
+    @pynvml_exception_handler
+    def close(self) -> None:
+        pynvml.nvmlShutdown()

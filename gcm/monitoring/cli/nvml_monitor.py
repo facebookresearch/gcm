@@ -26,6 +26,9 @@ from typing import (
 
 import click
 from gcm.exporters import registry
+from gcm.monitoring.accelerator.backend import BackendName
+from gcm.monitoring.accelerator.manager import AcceleratorManager
+from gcm.monitoring.accelerator.registry import default_backend_factories
 from gcm.monitoring.accumulate import Accumulator
 from gcm.monitoring.click import (
     click_default_cmd,
@@ -69,6 +72,49 @@ LOGGER_NAME = "nvml_monitor"
 
 log_error = error.log_error(logger_name=LOGGER_NAME)
 logger: logging.Logger  # initialization in main()
+
+
+def _selected_backend_name() -> BackendName:
+    ctx = click.get_current_context(silent=True)
+    if ctx is None:
+        return BackendName.NVML
+
+    root = ctx.find_root()
+    if isinstance(root.obj, dict):
+        backend_from_obj = root.obj.get("accelerator_backend")
+        if isinstance(backend_from_obj, str):
+            try:
+                return BackendName(backend_from_obj)
+            except ValueError:
+                pass
+
+    backend_from_params = root.params.get("backend")
+    if isinstance(backend_from_params, str):
+        try:
+            return BackendName(backend_from_params)
+        except ValueError:
+            pass
+
+    return BackendName.NVML
+
+
+def _probe_selected_backend(backend_name: BackendName) -> None:
+    factories = default_backend_factories()
+    selected_factory = factories.get(backend_name)
+    if selected_factory is None:
+        raise click.ClickException(f"Unsupported accelerator backend: {backend_name}")
+
+    manager = AcceleratorManager(factories={backend_name: selected_factory})
+    try:
+        results = manager.probe_all()
+        result = results.get(backend_name)
+        if result is None or not result.healthy:
+            reason = result.reason if result is not None else "no probe result"
+            raise click.ClickException(
+                f"Accelerator backend '{backend_name.value}' is unavailable: {reason}"
+            )
+    finally:
+        manager.close()
 
 
 def get_device_metrics_basic(handle: GPUDevice) -> DeviceMetrics:
@@ -314,6 +360,8 @@ def main(
 ) -> None:
     """Script for reading gpu metrics on the node."""
     global logger
+
+    _probe_selected_backend(_selected_backend_name())
 
     device_telemetry = obj.get_device_telemetry()
 

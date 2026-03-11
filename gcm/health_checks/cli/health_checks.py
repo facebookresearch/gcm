@@ -26,9 +26,20 @@ from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import 
 @feature_flags_config(FeatureValueHealthChecksFeatures)
 @toml_config_option("health_checks", default_config_path=DEFAULT_CONFIG_PATH)
 @detach_option
+@click.option(
+    "--backend",
+    type=click.Choice(["nvml"]),
+    default="nvml",
+    show_default=True,
+    help="Accelerator backend used by GPU health checks.",
+)
 @click.version_option(__version__)
-def health_checks(detach: bool) -> None:
+def health_checks(detach: bool, backend: str) -> None:
     """GPU Cluster Monitoring: Large-Scale AI Research Cluster Monitoring."""
+    ctx = click.get_current_context()
+    if not isinstance(ctx.obj, dict):
+        ctx.obj = {}
+    ctx.obj["accelerator_backend"] = backend
 
 
 list_of_checks: List[click.core.Command] = [
