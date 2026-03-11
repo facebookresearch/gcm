@@ -361,7 +361,8 @@ def main(
     """Script for reading gpu metrics on the node."""
     global logger
 
-    _probe_selected_backend(_selected_backend_name())
+    if obj is _default_obj:
+        _probe_selected_backend(_selected_backend_name())
 
     device_telemetry = obj.get_device_telemetry()
 
