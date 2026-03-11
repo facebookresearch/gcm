@@ -28,8 +28,7 @@ split_path: Callable[[str], Tuple[str, str]] = lambda path: (
 
 def _flatten_for_csv(payload: object) -> Dict[str, Any]:
     """Flatten scuba message dict for CSV output."""
-    scuba = asdict(to_scuba_message(cast("DataclassInstance", payload)))
-    flat = asdict_recursive(scuba)
+    flat = asdict_recursive(to_scuba_message(cast("DataclassInstance", payload)))
     return flat if isinstance(flat, dict) else {}
 
 
