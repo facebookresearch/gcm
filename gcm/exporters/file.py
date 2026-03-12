@@ -170,14 +170,16 @@ class File:
                 logger.info(header_buf.getvalue())
                 self._csv_fieldnames[path] = fieldnames
 
+            row_buf = io.StringIO()
+            row_writer = csv.DictWriter(
+                row_buf,
+                fieldnames=all_keys,
+                extrasaction="ignore",
+                lineterminator="",
+            )
             for record in records:
-                row_buf = io.StringIO()
-                row_writer = csv.DictWriter(
-                    row_buf,
-                    fieldnames=all_keys,
-                    extrasaction="ignore",
-                    lineterminator="",
-                )
+                row_buf.seek(0)
+                row_buf.truncate(0)
                 row_writer.writerow(record)
                 logger.info(row_buf.getvalue())
         elif self.format == "json":
