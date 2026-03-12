@@ -15,3 +15,12 @@ runs:
       with:
         path: ~/.cache/venv-ci
         key: ${{ env.pythonLocation }}-${{ hashFiles('dev-requirements.txt') }}
+
+    - name: Create venv if cache miss
+      shell: bash
+      run: |
+        if [ ! -f ~/.cache/venv-ci/bin/activate ]; then
+          python -m venv ~/.cache/venv-ci
+          source ~/.cache/venv-ci/bin/activate
+          pip install -r dev-requirements.txt
+        fi
