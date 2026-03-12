@@ -37,10 +37,16 @@ from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import 
 def health_checks(detach: bool, backend: str) -> None:
     """GPU Cluster Monitoring: Large-Scale AI Research Cluster Monitoring."""
     ctx = click.get_current_context()
-    # Some health-check commands use `@click.pass_obj` for dependency injection
-    # and expect a callable/protocol object in `ctx.obj`. Avoid replacing it.
-    if isinstance(ctx.obj, dict):
-        ctx.obj["accelerator_backend"] = backend
+    original_obj = ctx.obj
+    if not isinstance(ctx.obj, dict):
+        ctx.obj = {}
+    ctx.obj["accelerator_backend"] = backend
+
+    # Preserve non-dict injected objects for subcommands using `@click.pass_obj`.
+    if ctx.invoked_subcommand is not None and not isinstance(original_obj, dict):
+        if original_obj is not None and hasattr(original_obj, "__dict__"):
+            setattr(original_obj, "accelerator_backend", backend)
+        ctx.obj = original_obj
 
 
 list_of_checks: List[click.core.Command] = [
