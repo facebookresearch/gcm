@@ -67,7 +67,8 @@ jobs:
       - name: Install Rust
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          cp -r $HOME/.cargo/bin/* $HOME/.cache/venv-ci/bin/
+          mkdir -p $HOME/.cache/venv-ci/bin
+          cp -r $HOME/.cargo/bin/. $HOME/.cache/venv-ci/bin/
 
       - name: Install build dependencies
         run: |
