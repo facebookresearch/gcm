@@ -42,7 +42,7 @@ def test_file_exporter_csv(tmp_path: Path) -> None:
     assert rows[1]["user"] == "bob"
 
 
-def test_file_exporter_csv_rewrites_header_on_schema_change(tmp_path: Path) -> None:
+def test_file_exporter_csv_rolls_over_on_schema_change(tmp_path: Path) -> None:
     path = tmp_path / "data.csv"
     sink = File(file_path=str(path), format="csv")
 
@@ -62,6 +62,11 @@ def test_file_exporter_csv_rewrites_header_on_schema_change(tmp_path: Path) -> N
     assert lines == [
         "job_id,state,user",
         "1,RUNNING,alice",
+    ]
+
+    path_rollover = tmp_path / "data_1.csv"
+    rollover_lines = path_rollover.read_text().splitlines()
+    assert rollover_lines == [
         "gpu_uuid,memory_used_mb",
         "GPU-123,2048",
     ]

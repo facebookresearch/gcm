@@ -60,7 +60,8 @@ gcm slurm_monitor --sink=file --sink-opt file_path=/var/log/gcm/data.csv --sink-
 ```
 
 The first write adds a header row; subsequent writes append data rows. If a later
-payload has a different schema, a new header row is written before those rows.
+payload has a different schema, the exporter creates a new file with a numeric
+suffix (for example, `data_1.csv`) and writes the new header there.
 
 ## Use Cases
 

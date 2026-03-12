@@ -26,6 +26,13 @@ split_path: Callable[[str], Tuple[str, str]] = lambda path: (
 )
 
 
+def _schema_versioned_path(path: str, schema_index: int) -> str:
+    if schema_index == 0:
+        return path
+    stem, ext = os.path.splitext(path)
+    return f"{stem}_{schema_index}{ext}"
+
+
 def _flatten_for_csv(payload: object) -> Dict[str, Any]:
     """Flatten scuba message dict for CSV output."""
     flat = asdict_recursive(to_scuba_message(cast("DataclassInstance", payload)))
@@ -54,12 +61,17 @@ class File:
             DataIdentifier, Optional[logging.Logger]
         ] = {}
         self._data_identifier_to_path: Dict[DataIdentifier, str] = {}
+        self._data_identifier_to_base_path: Dict[DataIdentifier, str] = {}
         if self.format == "csv":
             self._csv_fieldnames: Dict[str, Tuple[str, ...]] = {}
+            self._csv_schema_index: Dict[DataIdentifier, int] = {}
 
         if file_path is not None:
             file_directory, file_name = split_path(file_path)
             self._data_identifier_to_path[DataIdentifier.GENERIC] = file_path
+            self._data_identifier_to_base_path[DataIdentifier.GENERIC] = file_path
+            if self.format == "csv":
+                self._csv_schema_index[DataIdentifier.GENERIC] = 0
             self.data_identifier_to_logger_map[DataIdentifier.GENERIC], _ = init_logger(
                 logger_name=__name__ + file_path,
                 log_dir=file_directory,
@@ -70,6 +82,9 @@ class File:
         if job_file_path is not None:
             file_directory, file_name = split_path(job_file_path)
             self._data_identifier_to_path[DataIdentifier.JOB] = job_file_path
+            self._data_identifier_to_base_path[DataIdentifier.JOB] = job_file_path
+            if self.format == "csv":
+                self._csv_schema_index[DataIdentifier.JOB] = 0
             self.data_identifier_to_logger_map[DataIdentifier.JOB], _ = init_logger(
                 logger_name=__name__ + job_file_path,
                 log_dir=file_directory,
@@ -80,6 +95,9 @@ class File:
         if node_file_path is not None:
             file_directory, file_name = split_path(node_file_path)
             self._data_identifier_to_path[DataIdentifier.NODE] = node_file_path
+            self._data_identifier_to_base_path[DataIdentifier.NODE] = node_file_path
+            if self.format == "csv":
+                self._csv_schema_index[DataIdentifier.NODE] = 0
             self.data_identifier_to_logger_map[DataIdentifier.NODE], _ = init_logger(
                 logger_name=__name__ + node_file_path,
                 log_dir=file_directory,
@@ -117,6 +135,28 @@ class File:
             all_keys = sorted({k for r in records for k in r.keys()})
             fieldnames = tuple(all_keys)
             previous_fieldnames = self._csv_fieldnames.get(path)
+
+            if (
+                previous_fieldnames is not None
+                and previous_fieldnames != fieldnames
+                and data_identifier in self._csv_schema_index
+            ):
+                next_schema_index = self._csv_schema_index[data_identifier] + 1
+                self._csv_schema_index[data_identifier] = next_schema_index
+
+                base_path = self._data_identifier_to_base_path[data_identifier]
+                path = _schema_versioned_path(base_path, next_schema_index)
+                self._data_identifier_to_path[data_identifier] = path
+
+                file_directory, file_name = split_path(path)
+                logger, _ = init_logger(
+                    logger_name=__name__ + path,
+                    log_dir=file_directory,
+                    log_name=file_name,
+                    log_formatter=None,
+                )
+                self.data_identifier_to_logger_map[data_identifier] = logger
+                previous_fieldnames = self._csv_fieldnames.get(path)
 
             if previous_fieldnames != fieldnames:
                 header_buf = io.StringIO()
