@@ -13,7 +13,14 @@ from gcm.monitoring.slurm.nodelist_parsers import (
     range_expression,
     range_expression_element,
 )
-from gcm.monitoring.slurm.parsing import parse_gres, parse_tres, parse_value_from_tres
+from gcm.monitoring.slurm.parsing import (
+    maybe_parse_memory_to_bytes,
+    mb_to_bytes,
+    parse_gres,
+    parse_memory_to_bytes,
+    parse_tres,
+    parse_value_from_tres,
+)
 from gcm.monitoring.utils.parsing.combinators import (
     at_least_one,
     at_least_zero,
@@ -540,6 +547,67 @@ def test_parse_gpu_from_tres(s: str, expected: int) -> None:
 def test_parse_gpu_from_tres_bad(s: str, exc: Type[Exception]) -> None:
     with pytest.raises(exc):
         parse_value_from_tres(s, "gres/gpu")
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (0, 0),
+        (1, 1_000_000),
+        (500_000, 500_000_000_000),
+        (1_524_000, 1_524_000_000_000),
+    ],
+)
+def test_mb_to_bytes(value: int, expected: int) -> None:
+    assert mb_to_bytes(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("0", 0),
+        ("100", 100_000_000),
+        ("500000", 500_000_000_000),
+        ("500M", 500_000_000),
+        ("60G", 60_000_000_000),
+        ("10.5G", 10_500_000_000),
+        ("1T", 1_000_000_000_000),
+        ("1P", 1_000_000_000_000_000),
+    ],
+)
+def test_parse_memory_to_bytes(value: str, expected: int) -> None:
+    assert parse_memory_to_bytes(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("0", 0),
+        ("100", 100_000_000),
+        ("500M", 500_000_000),
+        ("60G", 60_000_000_000),
+        ("N/A", None),
+        ("invalid", None),
+        ("", None),
+    ],
+)
+def test_maybe_parse_memory_to_bytes(value: str, expected: int | None) -> None:
+    assert maybe_parse_memory_to_bytes(value) == expected
+
+
+@pytest.mark.parametrize(
+    "s, expected",
+    [
+        ("cpu=1,mem=10G,node=1,billing=2", 10_000),
+        ("cpu=320,mem=1280.50G,node=20,billing=3040,gres/gpu=160", 1_280_500),
+        ("cpu=5200,mem=32500000M,node=65,billing=17487,gres/gpu=520", 32_500_000),
+        ("cpu=24,node=1,billing=112,gres/gpu=2", 0),
+        ("", 0),
+    ],
+)
+def test_parse_mem_from_tres(s: str, expected: int) -> None:
+    """parse_value_from_tres returns MB for memory. Callers wrap with mb_to_bytes."""
+    assert parse_value_from_tres(s, "mem") == expected
 
 
 if __name__ == "__main__":
