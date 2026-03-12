@@ -37,8 +37,7 @@ from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import 
 def health_checks(detach: bool, backend: str) -> None:
     """GPU Cluster Monitoring: Large-Scale AI Research Cluster Monitoring."""
     ctx = click.get_current_context()
-    if ctx.obj is None:
-        ctx.obj = {}
+    ctx.meta["accelerator_backend"] = backend
     if isinstance(ctx.obj, dict):
         ctx.obj["accelerator_backend"] = backend
 
