@@ -5,8 +5,8 @@
 
 # Usage:
 #   helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
-#     -f charts/gcm/<CUSTOM-OVERRIDES>.yaml \
-#     --namespace monitoring
+#     -f <PATH/TO>/custom-values.yaml \
+#     --namespace <namespace>
 
 imagePullSecrets: []
 nameOverride: ""
