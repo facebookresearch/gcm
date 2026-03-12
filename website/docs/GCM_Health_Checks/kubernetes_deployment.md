@@ -30,16 +30,20 @@ The recommended way to deploy on Kubernetes is via the [GCM Helm chart](https://
 
 ```shell
 helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
-  --set healthChecks.cluster=my-cluster \
-  --set healthChecks.sink=otel
+  -f <PATH/TO>/custom-values.yaml \
+  --namespace <namespace> \
+  --set monitoring.enabled=false \
+  --set healthChecks.enabled=true
 ```
 
 Or from source:
 
 ```shell
 helm install gcm charts/gcm \
-  --set healthChecks.cluster=my-cluster \
-  --set healthChecks.sink=otel
+  -f <PATH/TO>/custom-values.yaml \
+  --namespace <namespace> \
+  --set monitoring.enabled=false \
+  --set healthChecks.enabled=true
 ```
 
 See the [Helm chart README](https://github.com/facebookresearch/gcm/tree/main/charts/gcm/README.md) for full configuration options.
