@@ -38,13 +38,9 @@ def health_checks(detach: bool, backend: str) -> None:
     """GPU Cluster Monitoring: Large-Scale AI Research Cluster Monitoring."""
     ctx = click.get_current_context()
     # Some health-check commands use `@click.pass_obj` for dependency injection
-    # in tests/runtime and expect a callable in `ctx.obj`. Preserve that behavior.
-    if ctx.obj is None:
-        ctx.obj = {}
+    # and expect a callable/protocol object in `ctx.obj`. Avoid replacing it.
     if isinstance(ctx.obj, dict):
         ctx.obj["accelerator_backend"] = backend
-    else:
-        ctx.meta["accelerator_backend"] = backend
 
 
 list_of_checks: List[click.core.Command] = [
