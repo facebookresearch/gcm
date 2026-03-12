@@ -64,10 +64,18 @@ jobs:
           path: ~/.cache/venv-ci
           key: ${{ env.pythonLocation }}-${{ hashFiles('dev-requirements.txt') }}
 
+      - name: Create venv if cache miss
+        run: |
+          if [ ! -f ~/.cache/venv-ci/bin/activate ]; then
+            python -m venv ~/.cache/venv-ci
+            source ~/.cache/venv-ci/bin/activate
+            pip install -r dev-requirements.txt
+          fi
+
       - name: Install Rust
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          mkdir -p $HOME/.cache/venv-ci/bin
+          source $HOME/.cargo/env
           cp -r $HOME/.cargo/bin/. $HOME/.cache/venv-ci/bin/
 
       - name: Install build dependencies
