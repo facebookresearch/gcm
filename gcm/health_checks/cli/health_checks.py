@@ -36,10 +36,7 @@ from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import 
 @click.version_option(__version__)
 def health_checks(detach: bool, backend: str) -> None:
     """GPU Cluster Monitoring: Large-Scale AI Research Cluster Monitoring."""
-    ctx = click.get_current_context()
-    if not isinstance(ctx.obj, dict):
-        ctx.obj = {}
-    ctx.obj["accelerator_backend"] = backend
+    pass
 
 
 list_of_checks: List[click.core.Command] = [
