@@ -184,10 +184,17 @@ jobs:
             mv "$file" "${file%.deb}-ubuntu${OS_VERSION}.deb"
           done
 
-      - name: Build package (wheel + sdist)
+      - name: Build GCM package (wheel + sdist)
         run: |
           source ~/.cache/venv-ci/bin/activate
           python -m build
+
+      - name: Build Sentinel package (wheel + sdist)
+        run: |
+          source ~/.cache/venv-ci/bin/activate
+          cd gcm-sentinel
+          python -m build
+          cp dist/* ../dist/
 
       - name: Create GitHub Release and upload assets
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'facebookresearch/gcm' && env.RELEASE_EXISTS == 'false' }}
@@ -269,11 +276,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Package and push Helm chart
+      - name: Package and push GCM Helm chart
         run: |
           sed -i "s/^version:.*/version: ${VERSION}/" charts/gcm/Chart.yaml
           helm package charts/gcm
           helm push gcm-${VERSION}.tgz oci://ghcr.io/facebookresearch/charts
+
+      - name: Package and push Sentinel Helm chart
+        run: |
+          sed -i "s/^version:.*/version: ${VERSION}/" charts/gcm-sentinel/Chart.yaml
+          helm package charts/gcm-sentinel
+          helm push gcm-sentinel-${VERSION}.tgz oci://ghcr.io/facebookresearch/charts
 
   docker-publish:
     needs: [check-release]
@@ -288,6 +301,7 @@ jobs:
       REGISTRY: ghcr.io
       GCM_IMAGE: ghcr.io/facebookresearch/gcm
       NPD_IMAGE: ghcr.io/facebookresearch/gcm-npd
+      SENTINEL_IMAGE: ghcr.io/facebookresearch/gcm-sentinel
 
     steps:
       - uses: actions/checkout@v4
@@ -331,3 +345,16 @@ jobs:
           docker build -f docker/Dockerfile.npd -t ${{ env.NPD_IMAGE }}:${{ env.VERSION }} -t ${{ env.NPD_IMAGE }}:latest .
           docker push ${{ env.NPD_IMAGE }}:${{ env.VERSION }}
           docker push ${{ env.NPD_IMAGE }}:latest
+
+      - name: Build and push Sentinel image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./gcm-sentinel
+          file: gcm-sentinel/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.SENTINEL_IMAGE }}:${{ env.VERSION }}
+            ${{ env.SENTINEL_IMAGE }}:latest
+          cache-from: type=gha,scope=sentinel
+          cache-to: type=gha,mode=max,scope=sentinel

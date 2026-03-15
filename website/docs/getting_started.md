@@ -13,6 +13,7 @@ GCM is a monorepo with the following components:
 - [GCM Monitoring](./GCM_Monitoring/getting_started.md): Continuous data collection, mostly for the [Slurm](https://slurm.schedmd.com/documentation.html) workload scheduler, providing visibility into job performance and resource utilization.
 - [GCM Health Checks](./GCM_Health_Checks/getting_started.md): Verifies the proper functioning of hardware, software, network, storage, and services throughout the job lifecycle.
 - [GCM GPU Metrics](./GCM_GPU_Metrics/getting_started.md): Enhances OpenTelemetry data by correlating telemetry with Slurm metadata, enabling attribution of metrics (e.g., GPU utilization) to specific jobs and users.
+- [GCM Sentinel](./GCM_Sentinel/getting_started.md): AI-powered GPU failure investigation using Claude. Investigates health check failures like an on-call engineer — querying metrics, node state, and workload logs — then recommends remediation actions.
 
 <img src="/gcm/img/gcm_high_level.png" style={{ maxHeight: '400px', display: 'block', margin: '0 auto' }} />
 
@@ -23,6 +24,7 @@ Each component has their own Getting Started and Contributing Guide:
 - [Monitoring](./GCM_Monitoring/getting_started.md)
 - [Health Checks](./GCM_Health_Checks/getting_started.md)
 - [Telemetry Processor / GPU Metrics](./GCM_GPU_Metrics/getting_started.md)
+- [AI Sentinel](./GCM_Sentinel/getting_started.md)
 
 ### Contributing
 

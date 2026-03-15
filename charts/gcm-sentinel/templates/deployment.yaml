@@ -1,0 +1,89 @@
+{{- include "gcm-sentinel.validateActionMode" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-gcm-sentinel
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: gcm-sentinel
+    app.kubernetes.io/name: gcm-sentinel
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: gcm-sentinel
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: gcm-sentinel
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        checksum/prompt: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}-gcm-sentinel
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: gcm-sentinel
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - serve
+            - --log-level
+            - "{{ .Values.logLevel }}"
+          env:
+            - name: GCM_SENTINEL_LLM_API
+              value: "{{ .Values.llm.api }}"
+            - name: GCM_SENTINEL_API_KEY
+              {{- if .Values.llm.existingSecret }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.llm.existingSecret }}
+                  key: {{ .Values.llm.secretKey | default "api-key" }}
+              {{- else }}
+              value: "{{ .Values.llm.apiKey }}"
+              {{- end }}
+            - name: GCM_SENTINEL_MODEL
+              value: "{{ .Values.llm.model }}"
+            - name: GCM_SENTINEL_PROMETHEUS_URL
+              value: "{{ .Values.prometheus.url }}"
+            - name: GCM_SENTINEL_ACTION_MODE
+              value: "{{ .Values.sentinel.actionMode }}"
+            - name: GCM_SENTINEL_COOLDOWN_SECONDS
+              value: "{{ .Values.sentinel.cooldownSeconds }}"
+            {{- if .Values.sentinel.nodeAllowlist }}
+            - name: GCM_SENTINEL_NODE_ALLOWLIST
+              value: "{{ .Values.sentinel.nodeAllowlist }}"
+            {{- end }}
+            - name: GCM_SENTINEL_MAX_ACTIONS_PER_HOUR
+              value: "{{ .Values.sentinel.maxActionsPerHour }}"
+            - name: GCM_SENTINEL_MAX_TOOL_ROUNDS
+              value: "{{ .Values.sentinel.maxToolRounds }}"
+            - name: GCM_SENTINEL_MAX_TOOL_OUTPUT
+              value: "{{ .Values.sentinel.maxToolOutput }}"
+            - name: GCM_SENTINEL_SYSTEM_PROMPT_PATH
+              value: "/etc/gcm-sentinel/system-prompt.txt"
+            {{- if .Values.sentinel.webhookUrl }}
+            - name: GCM_SENTINEL_WEBHOOK_URL
+              value: "{{ .Values.sentinel.webhookUrl }}"
+            {{- end }}
+            - name: GCM_SENTINEL_WATCH_CONDITIONS
+              value: '{{ join "," .Values.sentinel.watchConditions }}'
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: system-prompt
+              mountPath: /etc/gcm-sentinel
+              readOnly: true
+      volumes:
+        - name: system-prompt
+          configMap:
+            name: {{ .Release.Name }}-gcm-sentinel-prompt

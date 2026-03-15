@@ -1,0 +1,124 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/facebookresearch/gcm-sentinel
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# LLM configuration.
+llm:
+  # Provider: "anthropic" (Claude) or "openai" (GPT, vLLM, Ollama, Azure OpenAI).
+  api: "anthropic"
+  # API key — provide ONE of:
+  #   apiKey: "..." (plaintext, for testing only)
+  #   existingSecret: "my-secret" + secretKey: "api-key" (recommended for production)
+  apiKey: ""
+  existingSecret: ""
+  secretKey: "api-key"
+  # Model name/ID.
+  model: "claude-sonnet-4-6-20250725"
+
+# Prometheus endpoint in the cluster.
+prometheus:
+  url: "http://kube-prometheus-stack-prometheus.monitoring:9090"
+
+# ============================================================================
+# SAFETY CONFIGURATION
+#
+# By default, gcm-sentinel is OBSERVE-ONLY. It investigates GPU failures and
+# reports findings but NEVER modifies cluster state (no cordon, no drain,
+# no taint). This is enforced at three levels:
+#
+#   1. actionMode="recommend" — remediation tools are not even in the LLM's
+#      tool schema, so it cannot attempt to call them.
+#   2. RBAC — the ClusterRole only gets node patch/eviction verbs when
+#      actionMode is "annotate" or "execute". In recommend mode, RBAC is
+#      strictly read-only.
+#   3. Rate limits — even in execute mode, actions are gated by confidence
+#      threshold, cooldown, and per-hour rate limits.
+#
+# To enable automated remediation, you must EXPLICITLY set:
+#   --set sentinel.actionMode=execute
+#
+# We strongly recommend running in "recommend" mode for at least 2 weeks
+# to validate the agent's assessments before enabling any mutations.
+# ============================================================================
+
+sentinel:
+  # ACTION MODE — controls whether the agent can modify cluster state.
+  #
+  #   "recommend" (DEFAULT, SAFE) — observe-only. Investigate, log, emit
+  #               K8s Events, send webhooks. Zero cluster mutations.
+  #               RBAC is read-only. The agent cannot cordon/drain/taint.
+  #
+  #   "annotate"  — everything above + write gcm-sentinel/* annotations on
+  #                 the node. A separate controller or human acts on them.
+  #                 RBAC adds node patch. The agent still cannot cordon/drain.
+  #
+  #   "execute"   — everything above + The agent can cordon/drain/taint nodes.
+  #                 ONLY if max_actions_per_hour not exceeded. RBAC adds evictions.
+  #                 USE WITH CAUTION.
+  actionMode: "recommend"
+
+  # Minimum seconds between investigations for the same node+condition.
+  # Prevents runaway investigations from NPD condition flapping.
+  cooldownSeconds: "3600"
+
+  # If non-empty, only investigate nodes matching these patterns (fnmatch glob).
+  # Use to scope rollout to a subset of nodes. Comma-separated.
+  # Example: "gpu-node-01,gpu-node-02,gpu-node-0*"
+  nodeAllowlist: ""
+
+  # Max remediation actions (cordon/drain/taint) per hour across ALL nodes.
+  # Circuit-breaker to prevent cascading drain. Only relevant in execute mode.
+  maxActionsPerHour: "3"
+
+  # Maximum tool-use rounds per investigation.
+  maxToolRounds: "25"
+
+  # Max characters per tool result sent to the LLM. Controls context cost.
+  # 0 = unlimited (LLM sees full output).
+  maxToolOutput: "8000"
+
+  # Webhook URL to POST results to (e.g. Slack incoming webhook).
+  # Leave empty to disable.
+  webhookUrl: ""
+
+  # Node conditions to watch. Defaults include both OSS GCM conditions
+  # (Gcm* prefix) and internal variants (NPD* prefix). Only conditions
+  # that exist on your cluster will trigger — extra names are harmless.
+  watchConditions:
+    # OSS GCM conditions (https://github.com/facebookresearch/gcm)
+    - GcmXidErrorsProblem
+    - GcmSmiEccProblem
+    - GcmSmiDisconnectedProblem
+    - GcmProcZombieProblem
+    - GcmDcgmiNvlinkStatusProblem
+    - GcmDcgmiDiagProblem
+    # Internal variants
+    - NPDXidErrorsProblem
+    - NPDSmiEccProblem
+    - NPDSmiDisconnectedProblem
+    - NPDProcZombieProblem
+    - NPDDcgmiNvlinkStatusProblem
+    - NPDDcgmiDiagProblem
+    - NPDDcgmRunningProblem
+
+# Resource limits.
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Log level.
+logLevel: INFO
+
+# Node selector — run on infra/non-GPU nodes so the sentinel agent
+# doesn't consume GPU resources. Set to match your cluster's infra nodes.
+# Example for AWS: node.kubernetes.io/instance-type: m5.4xlarge
+nodeSelector: {}
+
+tolerations: []

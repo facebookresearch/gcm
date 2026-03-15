@@ -1,0 +1,105 @@
+{
+  "name": "Thermal Throttle",
+  "description": "Multiple GPUs on the node are thermal throttling due to cooling failure.",
+  "node_name": "gpu-node-03",
+  "condition_type": "NPDDcgmiDiagProblem",
+  "reason": "NPDDcgmiDiagProblem",
+  "message": "dcgmi diag detected thermal violations on GPUs 0,1,2,3",
+  "prometheus_responses": {
+    "DCGM_FI_DEV_GPU_TEMP": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {"metric": {"gpu": "0", "instance": "gpu-node-03:9400"}, "value": [1700000000, "92"]},
+          {"metric": {"gpu": "1", "instance": "gpu-node-03:9400"}, "value": [1700000000, "91"]},
+          {"metric": {"gpu": "2", "instance": "gpu-node-03:9400"}, "value": [1700000000, "93"]},
+          {"metric": {"gpu": "3", "instance": "gpu-node-03:9400"}, "value": [1700000000, "90"]},
+          {"metric": {"gpu": "4", "instance": "gpu-node-03:9400"}, "value": [1700000000, "72"]},
+          {"metric": {"gpu": "5", "instance": "gpu-node-03:9400"}, "value": [1700000000, "70"]},
+          {"metric": {"gpu": "6", "instance": "gpu-node-03:9400"}, "value": [1700000000, "71"]},
+          {"metric": {"gpu": "7", "instance": "gpu-node-03:9400"}, "value": [1700000000, "69"]}
+        ]
+      }
+    },
+    "DCGM_FI_DEV_THERMAL_VIOLATION": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {"metric": {"gpu": "0", "instance": "gpu-node-03:9400"}, "value": [1700000000, "1523456789"]},
+          {"metric": {"gpu": "1", "instance": "gpu-node-03:9400"}, "value": [1700000000, "1412345678"]},
+          {"metric": {"gpu": "2", "instance": "gpu-node-03:9400"}, "value": [1700000000, "1634567890"]},
+          {"metric": {"gpu": "3", "instance": "gpu-node-03:9400"}, "value": [1700000000, "1345678901"]}
+        ]
+      }
+    },
+    "DCGM_FI_DEV_POWER_USAGE": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {"metric": {"gpu": "0", "instance": "gpu-node-03:9400"}, "value": [1700000000, "250"]},
+          {"metric": {"gpu": "1", "instance": "gpu-node-03:9400"}, "value": [1700000000, "245"]},
+          {"metric": {"gpu": "2", "instance": "gpu-node-03:9400"}, "value": [1700000000, "255"]},
+          {"metric": {"gpu": "3", "instance": "gpu-node-03:9400"}, "value": [1700000000, "248"]},
+          {"metric": {"gpu": "4", "instance": "gpu-node-03:9400"}, "value": [1700000000, "320"]},
+          {"metric": {"gpu": "5", "instance": "gpu-node-03:9400"}, "value": [1700000000, "315"]}
+        ]
+      }
+    },
+    "DCGM_FI_DEV_SM_CLOCK": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {"metric": {"gpu": "0", "instance": "gpu-node-03:9400"}, "value": [1700000000, "1200"]},
+          {"metric": {"gpu": "1", "instance": "gpu-node-03:9400"}, "value": [1700000000, "1180"]},
+          {"metric": {"gpu": "4", "instance": "gpu-node-03:9400"}, "value": [1700000000, "1980"]}
+        ]
+      }
+    },
+    "node_hwmon_temp_celsius": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {"metric": {"chip": "inlet", "instance": "gpu-node-03:9100"}, "value": [1700000000, "38"]},
+          {"metric": {"chip": "outlet", "instance": "gpu-node-03:9100"}, "value": [1700000000, "52"]}
+        ]
+      }
+    }
+  },
+  "node_info": {
+    "name": "gpu-node-03",
+    "labels": {"node.kubernetes.io/instance-type": "p5en.48xlarge", "kubernetes.io/hostname": "gpu-node-03"},
+    "taints": [],
+    "conditions": [
+      {"type": "Ready", "status": "True", "reason": "KubeletReady", "message": "kubelet is ready"},
+      {"type": "NPDDcgmiDiagProblem", "status": "True", "reason": "NPDDcgmiDiagProblem", "message": "dcgmi diag detected thermal violations on GPUs 0,1,2,3"}
+    ],
+    "allocatable": {"nvidia.com/gpu": "8", "cpu": "192", "memory": "2097152Mi"},
+    "capacity": {"nvidia.com/gpu": "8", "cpu": "192", "memory": "2097152Mi"},
+    "pods": [
+      {"name": "training-job-worker-5", "namespace": "default", "phase": "Running"},
+      {"name": "dcgm-exporter-abc", "namespace": "monitoring", "phase": "Running"}
+    ],
+    "pod_count": 11
+  },
+  "gcm_health": {
+    "node": "gpu-node-03",
+    "npd_metrics": {
+      "problem_gauge": [
+        {"metric": {"reason": "NPDDcgmiDiagProblem", "instance": "gpu-node-03:20257"}, "value": [1700000000, "1"]}
+      ],
+      "problem_counter": [
+        {"metric": {"reason": "NPDDcgmiDiagProblem", "instance": "gpu-node-03:20257"}, "value": [1700000000, "5"]}
+      ]
+    },
+    "conditions": [
+      {"type": "NPDDcgmiDiagProblem", "status": "True", "reason": "NPDDcgmiDiagProblem", "message": "dcgmi diag detected thermal violations"}
+    ]
+  },
+  "expected_severity": "critical",
+  "expected_action": "drain"
+}
