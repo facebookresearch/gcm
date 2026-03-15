@@ -1,0 +1,44 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Release.Name }}-gcm-sentinel
+  labels:
+    app: gcm-sentinel
+    app.kubernetes.io/name: gcm-sentinel
+    app.kubernetes.io/instance: {{ .Release.Name }}
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["nodes/status"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["statefulsets", "replicasets"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "create", "patch", "update"]
+
+  {{- if or (eq .Values.sentinel.actionMode "annotate") (eq .Values.sentinel.actionMode "execute") }}
+  # Annotate/execute: write annotations on nodes.
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["patch"]
+  {{- end }}
+
+  {{- if eq .Values.sentinel.actionMode "execute" }}
+  # Execute: cordon (patch nodes) + drain (evict pods).
+  - apiGroups: [""]
+    resources: ["pods/eviction"]
+    verbs: ["create"]
+  {{- end }}

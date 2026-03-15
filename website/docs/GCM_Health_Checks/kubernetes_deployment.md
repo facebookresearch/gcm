@@ -96,6 +96,7 @@ kubectl get node <node-name> \
 
 Health check conditions are standard Kubernetes node conditions. Downstream tools can watch them to automatically remediate unhealthy nodes:
 
+- **[GCM Sentinel](../GCM_Sentinel/getting_started.md)**: AI-powered investigation using Claude. Watches for GCM conditions, investigates by querying Prometheus metrics, node state, and workload logs, then recommends (or executes) remediation actions. See the [Getting Started](../GCM_Sentinel/getting_started.md) guide.
 - **[Draino](https://github.com/planetlabs/draino)**: watches node conditions and automatically cordons/drains unhealthy nodes
 - **Cluster autoscalers**: can detect unhealthy nodes and replace them
 - **Custom controllers**: can implement organization-specific remediation workflows
