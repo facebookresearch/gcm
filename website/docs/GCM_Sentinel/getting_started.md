@@ -99,7 +99,7 @@ All settings via environment variables (`GCM_SENTINEL_` prefix) or Helm values:
 | `WATCH_CONDITIONS` | GCM defaults | Comma-separated conditions |
 | `MAX_TOOL_OUTPUT` | `8000` | Max chars per tool result sent to LLM. 0 = unlimited. |
 
-See the [Safety & Rollout Guide](./safety) for the full configuration reference.
+See the [Safety & Rollout Guide](./safety.md) for the full configuration reference.
 
 ## Works Without GCM
 
@@ -113,4 +113,4 @@ It also works without automated detection — use the CLI to trigger investigati
 
 ## Adding New Data Sources
 
-You can give the agent access to any system — IPMI sensors, cloud APIs, job schedulers, internal dashboards — by writing a data source (one Python file + one line of registration). See [Adding a New Data Source](./adding_new_datasource).
+You can give the agent access to any system — IPMI sensors, cloud APIs, job schedulers, internal dashboards — by writing a data source (one Python file + one line of registration). See [Adding a New Data Source](./adding_new_datasource.md).

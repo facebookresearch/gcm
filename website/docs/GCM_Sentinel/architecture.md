@@ -42,7 +42,7 @@ NPD sets condition ─┤  ├─ cooldown / allowlist gates       │
 
 Each data source is a class that subclasses `DataSource` and contributes tools (for the LLM to call) and optional system prompt sections. The investigation engine doesn't know which data sources are registered — it just calls `registry.get_all_tools()` and `registry.execute(name, input)`.
 
-See [Adding a New Data Source](./adding_new_datasource) for a step-by-step guide on integrating your own systems.
+See [Adding a New Data Source](./adding_new_datasource.md) for a step-by-step guide on integrating your own systems.
 
 ## LLM backends
 
