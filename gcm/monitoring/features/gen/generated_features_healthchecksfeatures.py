@@ -439,6 +439,20 @@ class FeatureValueHealthChecksFeatures:
             )
         return value
 
+    def get_healthchecksfeatures_disable_mori_tests(self) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_mori_tests", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_mori_tests, got {type(value).__name__} instead."
+            )
+        return value
+
     def get_healthchecksfeatures_disable_nvidia_smi(self) -> bool:
         try:
             features = self.load_config()

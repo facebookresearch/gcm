@@ -11,6 +11,7 @@ from gcm.health_checks.checks.check_ibstat import check_ib
 from gcm.health_checks.checks.check_ipmitool import check_ipmitool
 from gcm.health_checks.checks.check_nccl import check_nccl
 from gcm.health_checks.checks.check_rccl import check_rccl
+from gcm.health_checks.checks.check_mori import check_mori
 from gcm.health_checks.checks.check_node import check_node
 from gcm.health_checks.checks.check_nvidia_smi import check_nvidia_smi
 from gcm.health_checks.checks.check_pci import check_pci
@@ -34,6 +35,7 @@ __all__ = [
     "check_nvidia_smi",
     "check_nccl",
     "check_rccl",
+    "check_mori",
     "check_syslogs",
     "check_process",
     "cuda",
