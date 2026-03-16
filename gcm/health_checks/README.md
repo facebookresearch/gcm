@@ -70,6 +70,7 @@ $ health_checks --features-config=$features_path --config=$config_path check-dcg
 - [cuda-memtest](#cuda-memtest)
 - [check-nccl](#check-nccl)
 - [check-rccl](#check-rccl)
+- [check-mori](#check-mori)
 - [check-hca](#check-hca)
 - [check-storage](#check-storage)
 - [check-ipmitool](#check-ipmitool)
@@ -232,6 +233,23 @@ $ health_checks check-rccl fair_cluster prolog -p all_reduce --pairwise --hostli
 
 # Quick pairwise - each node covered once. SLURM_JOB_NODELIST can be used when running inside SLURM.
 $ health_checks check-rccl fair_cluster prolog -p all_reduce --pairwise-quick --hostlist=$SLURM_JOB_NODELIST --rccl-tdir /opt/rccl-tests/build/ --critical-threshold 100 --sink=do_nothing
+```
+
+# check-mori <div id='check-mori'/>
+Run MORI (Modular RDMA Interface) check to validate MORI on AMD GPU nodes. Default: smoke test using installed mori package (no repo clone). Optional: with `--mori-repo <path>` run full pytest from that pre-deployed path.
+
+File: `gcm/health_checks/checks/check_mori.py`
+
+Example of execution:
+```shell
+# For a list of the available options
+$ health_checks check-mori --help
+
+# Smoke test (uses installed mori package only; no repo required)
+$ health_checks check-mori fair_cluster prolog --sink=do_nothing
+
+# Full pytest from pre-deployed MORI repo (e.g. dispatch_combine or io tests)
+$ health_checks check-mori fair_cluster prolog --mori-repo /opt/mori --mori-test dispatch_combine --sink=do_nothing
 ```
 
 # check-hca <div id='check-hca'/>

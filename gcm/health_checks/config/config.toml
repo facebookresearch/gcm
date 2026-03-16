@@ -161,6 +161,16 @@
   "log_resource_attributes={'key1': 'val1'}",
  ]
 
+[health_checks.check-mori]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
 [health_checks.check-service.service-status]
  cluster = "cluster_name"
  type = "nagios"

@@ -1,6 +1,9 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
-"""RCCL (ROCm Communication Collectives Library) health check for AMD GPU nodes."""
+"""RCCL (ROCm Communication Collectives Library) health check for AMD GPU nodes.
+
+Emits CommunicationCheckLog with optional bandwidth_gbps from rccl-tests output.
+"""
 
 import itertools
 import logging
@@ -14,6 +17,7 @@ from typing import (
     Any,
     Callable,
     Collection,
+    Dict,
     get_args,
     List,
     Literal,
@@ -26,7 +30,7 @@ import click
 
 import gni_lib
 from gcm.health_checks.check_utils.output_context_manager import OutputContext
-from gcm.health_checks.check_utils.telem import TelemetryContext
+from gcm.health_checks.check_utils.telem import TelemetryContextCommunication
 from gcm.health_checks.click import (
     common_arguments,
     telemetry_argument,
@@ -383,11 +387,18 @@ def check_rccl(
         runner = shell_command
 
     outputs: List[RCCLTestProcessedOutput] = []
+    bandwidths_gbps: List[float] = []
+
+    def get_communication_metrics() -> Dict[str, Any]:
+        if bandwidths_gbps:
+            return {"bandwidth_gbps": min(bandwidths_gbps)}
+        return {}
+
     exit_code = ExitCode.UNKNOWN
     msg = ""
     with ExitStack() as s:
         s.enter_context(
-            TelemetryContext(
+            TelemetryContextCommunication(
                 sink=sink,
                 sink_opts=sink_opts,
                 logger=logger,
@@ -398,6 +409,7 @@ def check_rccl(
                 node=node,
                 get_exit_code_msg=lambda: (exit_code, msg),
                 gpu_node_id=gpu_node_id,
+                get_communication_metrics=get_communication_metrics,
             )
         )
         s.enter_context(
@@ -436,6 +448,9 @@ def check_rccl(
                 print(processed_output.stdout or "")
 
                 outputs += [processed_output]
+                bw = get_avg_bus_bw(output)
+                if bw is not None:
+                    bandwidths_gbps.append(bw)
 
         if any(output.exitcode == ExitCode.CRITICAL for output in outputs):
             exit_code = ExitCode.CRITICAL
