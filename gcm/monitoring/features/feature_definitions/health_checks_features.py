@@ -29,6 +29,8 @@ class HealthChecksFeatures:
     disable_service_status: bool
     disable_package_version: bool
     disable_nccl_tests: bool
+    disable_rccl_tests: bool
+    disable_mori_tests: bool
     disable_nvidia_smi: bool
     disable_nvidia_smi_clock_policy: bool
     disable_nvidia_smi_gpu_num: bool
@@ -48,6 +50,13 @@ class HealthChecksFeatures:
     disable_dcgmi_nvlink: bool
     disable_dcgmi_nvlink_error: bool
     disable_dcgmi_nvlink_status: bool
+    disable_amd_smi: bool
+    disable_amd_smi_gpu_num: bool
+    disable_amd_smi_clock_freq: bool
+    disable_amd_smi_running_procs: bool
+    disable_amd_smi_running_procs_and_kill: bool
+    disable_amd_smi_gpu_temp: bool
+    disable_amd_smi_mem_usage: bool
     disable_check_ibstat: bool
     disable_check_ib_interfaces: bool
     disable_check_iblink: bool

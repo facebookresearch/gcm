@@ -104,6 +104,16 @@
   "log_resource_attributes={'key1': 'val1'}",
  ]
 
+[health_checks.check-amd-smi]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
 [health_checks.check-hca]
  cluster = "cluster_name"
  type = "nagios"
@@ -136,6 +146,26 @@
  ]
 
 [health_checks.check-nccl]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-rccl]
+ cluster = "cluster_name"
+ type = "nagios"
+ log_folder = "healthchecks"
+ log_level = "INFO"
+ sink = "otel"
+ sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+ ]
+
+[health_checks.check-mori]
  cluster = "cluster_name"
  type = "nagios"
  log_folder = "healthchecks"

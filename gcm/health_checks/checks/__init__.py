@@ -1,6 +1,7 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 from gcm.health_checks.checks.check_airstore import check_airstore
+from gcm.health_checks.checks.check_amd_smi import check_amd_smi
 from gcm.health_checks.checks.check_authentication import check_authentication
 from gcm.health_checks.checks.check_blockdev import check_blockdev
 from gcm.health_checks.checks.check_dcgmi import check_dcgmi
@@ -9,6 +10,8 @@ from gcm.health_checks.checks.check_hca import check_hca
 from gcm.health_checks.checks.check_ibstat import check_ib
 from gcm.health_checks.checks.check_ipmitool import check_ipmitool
 from gcm.health_checks.checks.check_nccl import check_nccl
+from gcm.health_checks.checks.check_rccl import check_rccl
+from gcm.health_checks.checks.check_mori import check_mori
 from gcm.health_checks.checks.check_node import check_node
 from gcm.health_checks.checks.check_nvidia_smi import check_nvidia_smi
 from gcm.health_checks.checks.check_pci import check_pci
@@ -25,11 +28,14 @@ from gcm.health_checks.checks.cuda import cuda
 __all__ = [
     "check_ssh_certs",
     "check_airstore",
+    "check_amd_smi",
     "check_telemetry",
     "check_dcgmi",
     "check_hca",
     "check_nvidia_smi",
     "check_nccl",
+    "check_rccl",
+    "check_mori",
     "check_syslogs",
     "check_process",
     "cuda",

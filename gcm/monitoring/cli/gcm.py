@@ -10,6 +10,7 @@ import click
 from gcm._version import __version__
 from gcm.monitoring.cli import (
     nvml_monitor,
+    rocm_monitor,
     sacct_backfill,
     sacct_publish,
     sacct_running,
@@ -36,6 +37,7 @@ def main(detach: bool) -> None:
 
 
 main.add_command(nvml_monitor.main, name="nvml_monitor")
+main.add_command(rocm_monitor.main, name="rocm_monitor")
 main.add_command(sacct_running.main, name="sacct_running")
 main.add_command(sacct_publish.main, name="sacct_publish")
 main.add_command(sacct_wrapper.main, name="fsacct")

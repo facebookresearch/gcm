@@ -36,7 +36,9 @@ class FeatureValueTestingFeatures:
                     f"Error reading toml file. {FeatureValueTestingFeatures.config_path} does not contain valid TOML. Error: {e}"
                 )
                 raise tomli.TOMLDecodeError(
-                    f"{FeatureValueTestingFeatures.config_path} does not contain valid TOML.",
+                    msg=f"{FeatureValueTestingFeatures.config_path} does not contain valid TOML. {e.msg}",
+                    doc=e.doc,
+                    pos=e.pos,
                 ) from e
         else:
             raise ValueError(

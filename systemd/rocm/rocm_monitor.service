@@ -1,0 +1,13 @@
+[Unit]
+Description=Collect and publish AMD GPU (ROCm) metrics.
+After=network.target
+
+[Service]
+Type=simple
+User=cluster_monitor
+ExecStart=/usr/bin/gcm rocm_monitor
+Restart=on-failure
+RestartSec=300
+Slice=fair_cluster_rocm_resources.slice
+# penguin does network rate limiting on the file below
+ExecStartPre=sudo /usr/local/sbin/hc_network.sh

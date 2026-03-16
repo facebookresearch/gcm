@@ -36,7 +36,9 @@ class FeatureValueHealthChecksFeatures:
                     f"Error reading toml file. {FeatureValueHealthChecksFeatures.config_path} does not contain valid TOML. Error: {e}"
                 )
                 raise tomli.TOMLDecodeError(
-                    f"{FeatureValueHealthChecksFeatures.config_path} does not contain valid TOML.",
+                    msg=f"{FeatureValueHealthChecksFeatures.config_path} does not contain valid TOML. {e.msg}",
+                    doc=e.doc,
+                    pos=e.pos,
                 ) from e
         else:
             raise ValueError(
@@ -423,6 +425,34 @@ class FeatureValueHealthChecksFeatures:
             )
         return value
 
+    def get_healthchecksfeatures_disable_rccl_tests(self) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_rccl_tests", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_rccl_tests, got {type(value).__name__} instead."
+            )
+        return value
+
+    def get_healthchecksfeatures_disable_mori_tests(self) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_mori_tests", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_mori_tests, got {type(value).__name__} instead."
+            )
+        return value
+
     def get_healthchecksfeatures_disable_nvidia_smi(self) -> bool:
         try:
             features = self.load_config()
@@ -688,6 +718,106 @@ class FeatureValueHealthChecksFeatures:
         if not isinstance(value, bool):
             raise TypeError(
                 f"Expected bool value for HealthChecksFeatures.disable_dcgmi_nvlink_status, got {type(value).__name__} instead."
+            )
+        return value
+
+    def get_healthchecksfeatures_disable_amd_smi(self) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_amd_smi", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_amd_smi, got {type(value).__name__} instead."
+            )
+        return value
+
+    def get_healthchecksfeatures_disable_amd_smi_gpu_num(self) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_amd_smi_gpu_num", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_amd_smi_gpu_num, got {type(value).__name__} instead."
+            )
+        return value
+
+    def get_healthchecksfeatures_disable_amd_smi_clock_freq(self) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_amd_smi_clock_freq", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_amd_smi_clock_freq, got {type(value).__name__} instead."
+            )
+        return value
+
+    def get_healthchecksfeatures_disable_amd_smi_running_procs(self) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_amd_smi_running_procs", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_amd_smi_running_procs, got {type(value).__name__} instead."
+            )
+        return value
+
+    def get_healthchecksfeatures_disable_amd_smi_running_procs_and_kill(
+        self,
+    ) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_amd_smi_running_procs_and_kill", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_amd_smi_running_procs_and_kill, got {type(value).__name__} instead."
+            )
+        return value
+
+    def get_healthchecksfeatures_disable_amd_smi_gpu_temp(self) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_amd_smi_gpu_temp", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_amd_smi_gpu_temp, got {type(value).__name__} instead."
+            )
+        return value
+
+    def get_healthchecksfeatures_disable_amd_smi_mem_usage(self) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_amd_smi_mem_usage", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_amd_smi_mem_usage, got {type(value).__name__} instead."
             )
         return value
 

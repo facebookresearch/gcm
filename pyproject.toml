@@ -35,6 +35,7 @@ license = { text = "MIT" }
 Homepage = "https://github.com/facebookresearch/gcm"
 
 [project.optional-dependencies]
+rocm = []  # AMD/ROCm: amd-smi or rocm-smi on PATH; no extra Python deps
 dev = [
   "parameterized",
   "virtualenv>=20.28.1",

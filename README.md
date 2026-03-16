@@ -33,7 +33,8 @@ Each component has its own README with detailed guides:
 
 ## Possible Expansions
 
-- Integration with more GPU types (AMD, Intel, Custom Accelerators)
+- **AMD/ROCm GPU support (implemented)**: Use `gcm rocm_monitor` for AMD GPU metrics and `health_checks check_amd_smi` for AMD GPU health checks. **RCCL/MORI integration**: `health_checks check_rccl` runs RCCL (ROCm Communication Collectives Library) tests on AMD GPU nodes (analogous to check-nccl); `health_checks check_mori` validates MORI (Modular RDMA Interface) via smoke or benchmark tests. Telemetry for these checks uses the `CommunicationCheckLog` schema (bandwidth/latency metrics). See [examples/](examples/) for SLURM scripts: `run_rocm_monitor.sh`, `test_gcm.sh`, `run_check_mori_tests_on_compute.sh`. Requires [amd-smi](https://rocm.docs.amd.com/projects/amdsmi/) or rocm-smi on PATH; device list in prolog/epilog uses `SLURM_JOB_GPUS`, `CUDA_VISIBLE_DEVICES` (NVIDIA), or `ROCR_VISIBLE_DEVICES` (AMD).
+- Integration with more GPU types (Intel, Custom Accelerators)
 - Support for additional schedulers beyond Slurm
 - [Additional Slurm related Monitoring](gcm/docs/adding_new_collector.md)
 - [Support for new exporters](gcm/docs/adding_new_exporter.md)
