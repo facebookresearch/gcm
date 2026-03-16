@@ -467,6 +467,20 @@ class FeatureValueHealthChecksFeatures:
             )
         return value
 
+    def get_healthchecksfeatures_disable_nvidia_smi_clock_policy(self) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_nvidia_smi_clock_policy", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_nvidia_smi_clock_policy, got {type(value).__name__} instead."
+            )
+        return value
+
     def get_healthchecksfeatures_disable_nvidia_smi_gpu_num(self) -> bool:
         try:
             features = self.load_config()

@@ -85,3 +85,6 @@ class Webhook:
                 f"Webhook writes requires data_type to be specified: {additional_params}"
             )
             return
+
+    def shutdown(self) -> None:
+        pass

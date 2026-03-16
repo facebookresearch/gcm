@@ -1,18 +1,17 @@
 // Copyright (c) Meta Platforms, Inc. and affiliates.
 // All rights reserved.
-package main
+package slurmprocessor
 
 import (
 	"context"
 	"log"
 
-	"github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor/internal/metadata"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/processor"
 	"go.opentelemetry.io/collector/processor/processorhelper"
 
-	shelper "github.com/fairinternal/fair-cluster-monitoring/shelper"
+	shelper "github.com/facebookresearch/gcm/shelper"
 )
 
 const (
@@ -25,9 +24,9 @@ func NewFactory() processor.Factory {
 	return processor.NewFactory(
 		component.MustNewType(typeStr),
 		createDefaultConfig,
-		processor.WithTraces(createTracesProcessor, metadata.TracesStability),
-		processor.WithMetrics(createMetricsProcessor, metadata.MetricsStability),
-		processor.WithLogs(createLogsProcessor, metadata.LogsStability),
+		processor.WithTraces(createTracesProcessor, component.StabilityLevelAlpha),
+		processor.WithMetrics(createMetricsProcessor, component.StabilityLevelAlpha),
+		processor.WithLogs(createLogsProcessor, component.StabilityLevelAlpha),
 	)
 }
 

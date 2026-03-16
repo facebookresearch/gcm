@@ -283,4 +283,4 @@ go.work.sum
 skycastle/
 scrut/
 
-*.err
+.claude/

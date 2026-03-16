@@ -59,6 +59,7 @@ def _write_to_file(path: Path, data: str) -> Path:
         "check-nccl --nccl-tdir=sth -p all_gather --critical-threshold=4",
         "check-rccl --rccl-tdir=sth -p all_reduce --critical-threshold=4",
         "check-mori",
+        "check-nvidia-smi -c clock_policy --expected-graphics-freq=1155 --expected-memory-freq=1593",
         "check-nvidia-smi -c gpu_num",
         "check-nvidia-smi -c running_procs",
         "check-nvidia-smi -c clock_freq",
@@ -115,6 +116,7 @@ def test_killswitches(
         disable_nccl_tests = true
         disable_rccl_tests = true
         disable_mori_tests = true
+        disable_nvidia_smi_clock_policy = true
         disable_nvidia_smi_gpu_num = true
         disable_nvidia_smi_clock_freq = true
         disable_nvidia_smi_running_procs = true

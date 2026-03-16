@@ -6,7 +6,6 @@ from typing import Optional, Protocol, runtime_checkable, TypeVar
 
 from gcm.schemas.log import Log
 
-
 TIn_contra = TypeVar("TIn_contra", contravariant=True)
 
 
@@ -53,3 +52,6 @@ class SinkImpl(Protocol):
         additional_params: SinkAdditionalParams,
     ) -> None:
         """Writes data to the specified sink, see available sinks in /exporters."""
+
+    def shutdown(self) -> None:
+        """Flush and release any resources held by the sink."""

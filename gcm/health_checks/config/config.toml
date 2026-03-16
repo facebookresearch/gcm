@@ -9,6 +9,10 @@
  sink_opts = [
   "log_resource_attributes={'key1': 'val1'}",
  ]
+ expected_graphics_freq = 1155
+ expected_memory_freq = 1593
+ warn_delta_mhz = 30
+ critical_delta_mhz = 75
 
 [health_checks.check-process.check-zombie]
  cluster = "cluster_name"

@@ -16,7 +16,6 @@ from gcm.tests import data
 from gcm.tests.fakes import FakeClock
 from typeguard import typechecked
 
-
 TEST_CLUSTER = "test_cluster"
 TEST_DS = "test_ds"
 

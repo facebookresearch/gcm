@@ -1,9 +1,9 @@
-module github.com/fairinternal/gpu-cluster-monitoring/slurmprocessor
+module github.com/facebookresearch/gcm/slurmprocessor
 
 go 1.24.3
 
 require (
-	github.com/open-telemetry/opentelemetry-collector-contrib/processor/attributesprocessor v0.126.0
+	github.com/facebookresearch/gcm/shelper v0.0.1
 	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/collector/component v1.32.0
 	go.opentelemetry.io/collector/consumer v1.32.0
@@ -23,7 +23,6 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/ebitengine/purego v0.8.3 // indirect
-	github.com/fairinternal/fair-cluster-monitoring/shelper v0.0.0-20250620180146-cf5a014efe9f // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
