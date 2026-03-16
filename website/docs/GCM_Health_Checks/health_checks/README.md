@@ -19,8 +19,8 @@ Health checks are organized into the following categories:
 | [check-ib](check-ib) | Network | InfiniBand link health and performance validation |
 | [check-ipmitool](check-ipmitool.md) | Hardware | System Event Log (SEL) analysis for hardware errors |
 | [check-nccl](check-nccl.md) | GPU | NCCL collective operation performance testing |
-| check-rccl | GPU | RCCL (ROCm) collective operation testing on AMD GPU nodes |
-| check-mori | GPU | MORI (Modular RDMA Interface) validation on AMD GPU nodes |
+| [check-rccl](check-rccl.md) | GPU | RCCL (ROCm) collective operation testing on AMD GPU nodes |
+| [check-mori](check-mori.md) | GPU | MORI (Modular RDMA Interface) validation on AMD GPU nodes |
 | [check-node](check-node) | System | Node uptime, kernel modules, and package repositories |
 | [check-nvidia-smi](check-nvidia-smi) | GPU | Comprehensive GPU health validation via NVML (including clock policy drift checks) |
 | [check-pci](check-pci.md) | Hardware | PCI device presence and PCIe link validation |
