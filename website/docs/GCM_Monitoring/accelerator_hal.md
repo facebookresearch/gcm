@@ -1,3 +1,8 @@
+---
+sidebar_position: 10
+description: Hardware-agnostic accelerator abstraction
+---
+
 # Accelerator HAL (Python)
 
 This package provides a hardware-agnostic accelerator abstraction for a
@@ -6,7 +11,7 @@ Python-first observability codebase.
 ## Layout
 
 ```text
-gcm/monitoring/accelerator/
+gcm.accelerator/
   backend.py                   # core interfaces and identity models
   metrics.py                   # normalized metrics and capability model
   errors.py                    # typed errors for backend operations
@@ -56,39 +61,3 @@ gcm/monitoring/accelerator/
 - HAL behavior is Python-first to simplify integration and testability.
 - If needed later, vendor-specific FFI logic can move into Rust/C++ sidecar
   workers without changing the Python HAL interface.
-
-## Test plan
-
-### Full-run commands (with output)
-
-**gcm** (single collection, stdout sink):
-
-```bash
-gcm --backend=nvml nvml_monitor --sink=stdout --once --log-folder=/tmp/gcm-log
-```
-
-Example output (with NVIDIA GPUs present):
-
-```json
-[{"gpu_id": 0, "hostname": "node01", "mem_util": 45, "gpu_util": 32, ...}]
-[{"gpu_index": 0, "max_gpu_util": 32, "min_gpu_util": 28, ...}]
-```
-
-Without GPUs: exits with `DeviceTelemetryException` / NVML not found.
-
-**health_checks** (nvidia-smi gpu_num check, stdout sink):
-
-```bash
-health_checks --backend=nvml check-nvidia-smi fair_cluster nagios --sink=stdout -c gpu_num --gpu_num=0
-```
-
-Example output:
-
-```json
-[{"node": "node01", "cluster": "fair_cluster", "health_check": "nvidia smi", "type": "nagios", "result": 0, "_msg": "Number of GPUs present is the same as expected, 0", ...}]
-```
-
-### Automated tests
-
-- `pytest -q gcm/tests/test_accelerator_hal.py`
-- `pytest -q gcm/tests/test_gcm.py -k "backend or full_run"`

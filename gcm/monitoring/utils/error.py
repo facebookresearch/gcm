@@ -15,6 +15,26 @@ _Tr_co = TypeVar("_Tr_co", covariant=True)
 _P = ParamSpec("_P")
 
 
+def safe_call(
+    func: Callable[[], _T],
+    *catch: type[BaseException],
+    logger_name: Optional[str] = None,
+) -> Optional[_T]:
+    """Call *func* and return None if it raises a matching exception.
+
+    If no exception types are passed, catches all ``Exception`` subclasses.
+    Failures are logged at WARNING level.
+    """
+    catch_types: tuple[type[BaseException], ...] = catch or (Exception,)
+    try:
+        return func()
+    except catch_types:
+        logging.getLogger(logger_name or __name__).warning(
+            "safe_call: %s failed", func, exc_info=True
+        )
+        return None
+
+
 def fmt_exc_for_log() -> str:
     parts = traceback.format_exc(-1).strip().split("\n")
     return "{}: {}".format(parts[-1].strip(), parts[1].strip())

@@ -5,17 +5,17 @@ from typing import cast
 
 import pytest
 
-from gcm.monitoring.accelerator.backend import BackendName, DeviceHandle, ProbeResult
-from gcm.monitoring.accelerator.backends.nvml import NVMLBackend
-from gcm.monitoring.accelerator.errors import (
+from gcm.accelerator.backend import BackendName, DeviceHandle, ProbeResult
+from gcm.accelerator.backends.nvml import NVMLBackend
+from gcm.accelerator.errors import (
     BackendOperationError,
     BackendUnavailableError,
     UnsupportedOperationError,
 )
-from gcm.monitoring.accelerator.manager import AcceleratorManager
-from gcm.monitoring.accelerator.metrics import Capability, MetricRequest
-from gcm.monitoring.accelerator.probe import find_and_load_library
-from gcm.monitoring.accelerator.registry import default_backend_factories
+from gcm.accelerator.manager import AcceleratorManager
+from gcm.accelerator.metrics import MetricRequest
+from gcm.accelerator.probe import find_and_load_library
+from gcm.accelerator.registry import default_backend_factories
 from gcm.monitoring.device_telemetry_client import (
     DeviceTelemetryClient,
     DeviceTelemetryException,
@@ -87,7 +87,7 @@ class _PartialFailureTelemetryClient(_FakeTelemetryClient):
 
 def test_nvml_backend_probe_and_read_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        "gcm.monitoring.accelerator.backends.nvml.find_and_load_library",
+        "gcm.accelerator.backends.nvml.find_and_load_library",
         lambda names, paths: "/usr/lib/libnvidia-ml.so.1",
     )
     backend = NVMLBackend(
@@ -118,13 +118,10 @@ def test_nvml_backend_probe_and_read_metrics(monkeypatch: pytest.MonkeyPatch) ->
     assert metrics.ecc_corrected == 11
     assert metrics.ecc_uncorrected == 2
 
-    capabilities = backend.capabilities(devices[0])
-    assert capabilities.supports(Capability.ECC)
-
 
 def test_nvml_backend_invalid_device_id(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        "gcm.monitoring.accelerator.backends.nvml.find_and_load_library",
+        "gcm.accelerator.backends.nvml.find_and_load_library",
         lambda names, paths: "/usr/lib/libnvidia-ml.so.1",
     )
     backend = NVMLBackend(
@@ -145,7 +142,7 @@ def test_nvml_backend_partial_failure_yields_partial_metrics(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        "gcm.monitoring.accelerator.backends.nvml.find_and_load_library",
+        "gcm.accelerator.backends.nvml.find_and_load_library",
         lambda names, paths: "/usr/lib/libnvidia-ml.so.1",
     )
     backend = NVMLBackend(
@@ -166,7 +163,7 @@ def test_nvml_backend_partial_failure_yields_partial_metrics(
 
 def test_nvml_backend_probe_missing_library(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        "gcm.monitoring.accelerator.backends.nvml.find_and_load_library",
+        "gcm.accelerator.backends.nvml.find_and_load_library",
         lambda names, paths: None,
     )
     backend = NVMLBackend(
@@ -182,7 +179,7 @@ def test_nvml_backend_close_closes_underlying_client(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        "gcm.monitoring.accelerator.backends.nvml.find_and_load_library",
+        "gcm.accelerator.backends.nvml.find_and_load_library",
         lambda names, paths: "/usr/lib/libnvidia-ml.so.1",
     )
     client = _FakeTelemetryClient()
@@ -213,7 +210,7 @@ class _FakeBackend:
     def read_metrics(self, device: DeviceHandle, request: MetricRequest):  # type: ignore[no-untyped-def]
         del device, request
         # Intentionally sparse to validate manager routing only.
-        from gcm.monitoring.accelerator.metrics import MetricSet
+        from gcm.accelerator.metrics import MetricSet
 
         return MetricSet()
 
@@ -308,9 +305,7 @@ def test_manager_wraps_enumerate_errors() -> None:
 
 
 def test_probe_prefers_discovered_library(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(
-        "gcm.monitoring.accelerator.probe.find_library", lambda _: "libA"
-    )
+    monkeypatch.setattr("gcm.accelerator.probe.find_library", lambda _: "libA")
 
     loaded_paths: list[str] = []
 
@@ -318,7 +313,7 @@ def test_probe_prefers_discovered_library(monkeypatch: pytest.MonkeyPatch) -> No
         loaded_paths.append(path)
         return object()
 
-    monkeypatch.setattr("gcm.monitoring.accelerator.probe.CDLL", _fake_cdll)
+    monkeypatch.setattr("gcm.accelerator.probe.CDLL", _fake_cdll)
     selected = find_and_load_library(["nvidia-ml"], ["/fallback/libnvidia-ml.so"])
     assert selected == "libA"
     assert loaded_paths == ["libA"]
@@ -327,16 +322,14 @@ def test_probe_prefers_discovered_library(monkeypatch: pytest.MonkeyPatch) -> No
 def test_probe_fallback_when_discovered_library_unloadable(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        "gcm.monitoring.accelerator.probe.find_library", lambda _: "libA"
-    )
+    monkeypatch.setattr("gcm.accelerator.probe.find_library", lambda _: "libA")
 
     def _fake_cdll(path: str) -> object:
         if path == "libA":
             raise OSError("bad lib")
         return object()
 
-    monkeypatch.setattr("gcm.monitoring.accelerator.probe.CDLL", _fake_cdll)
+    monkeypatch.setattr("gcm.accelerator.probe.CDLL", _fake_cdll)
     selected = find_and_load_library(["nvidia-ml"], ["/fallback/libnvidia-ml.so"])
     assert selected == "/fallback/libnvidia-ml.so"
 

@@ -2,7 +2,7 @@
 # All rights reserved.
 from dataclasses import dataclass
 
-from gcm.monitoring.accelerator.backend import BackendName
+from gcm.accelerator.backend import BackendName
 
 
 class AcceleratorError(Exception):

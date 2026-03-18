@@ -1,24 +1,19 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
-from gcm.monitoring.accelerator.backend import (
+from gcm.accelerator.backend import (
     AcceleratorBackend,
     BackendName,
     DeviceHandle,
     ProbeResult,
 )
-from gcm.monitoring.accelerator.errors import (
+from gcm.accelerator.errors import (
     AcceleratorError,
     BackendUnavailableError,
     UnsupportedOperationError,
 )
-from gcm.monitoring.accelerator.manager import AcceleratorManager
-from gcm.monitoring.accelerator.metrics import (
-    Capability,
-    CapabilitySet,
-    MetricRequest,
-    MetricSet,
-)
-from gcm.monitoring.accelerator.registry import default_backend_factories
+from gcm.accelerator.manager import AcceleratorManager
+from gcm.accelerator.metrics import MetricRequest, MetricSet
+from gcm.accelerator.registry import default_backend_factories
 
 __all__ = [
     "AcceleratorBackend",
@@ -26,8 +21,6 @@ __all__ = [
     "AcceleratorManager",
     "BackendName",
     "BackendUnavailableError",
-    "Capability",
-    "CapabilitySet",
     "DeviceHandle",
     "MetricRequest",
     "MetricSet",

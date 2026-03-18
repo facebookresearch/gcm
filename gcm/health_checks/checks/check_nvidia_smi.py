@@ -37,7 +37,6 @@ from gcm.monitoring.device_telemetry_client import (
     DeviceTelemetryClient,
     DeviceTelemetryException,
 )
-from gcm.monitoring.device_telemetry_nvml import NVMLDeviceTelemetryClient
 from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import (
     FeatureValueHealthChecksFeatures,
 )
@@ -61,6 +60,9 @@ class NvidiaSmiCliImpl:
     log_folder: str
 
     def get_device_telemetry(self) -> DeviceTelemetryClient:
+        # Fallback to direct NVML client until check_nvidia_smi is refactored
+        from gcm.monitoring.device_telemetry_nvml import NVMLDeviceTelemetryClient
+
         return NVMLDeviceTelemetryClient()
 
 

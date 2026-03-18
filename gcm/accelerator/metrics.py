@@ -2,26 +2,6 @@
 # All rights reserved.
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from enum import Enum
-
-
-class Capability(str, Enum):
-    UTILIZATION = "utilization"
-    MEMORY = "memory"
-    POWER = "power"
-    THERMALS = "thermals"
-    CLOCKS = "clocks"
-    ECC = "ecc"
-    TOPOLOGY = "topology"
-    PROCESSES = "processes"
-
-
-@dataclass(frozen=True)
-class CapabilitySet:
-    values: set[Capability]
-
-    def supports(self, capability: Capability) -> bool:
-        return capability in self.values
 
 
 @dataclass(frozen=True)

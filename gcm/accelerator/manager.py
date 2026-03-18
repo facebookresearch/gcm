@@ -1,14 +1,14 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
-from gcm.monitoring.accelerator.backend import (
+from gcm.accelerator.backend import (
     AcceleratorBackend,
     BackendFactory,
     BackendName,
     DeviceHandle,
     ProbeResult,
 )
-from gcm.monitoring.accelerator.errors import BackendOperationError
-from gcm.monitoring.accelerator.metrics import MetricRequest, MetricSet
+from gcm.accelerator.errors import BackendOperationError
+from gcm.accelerator.metrics import MetricRequest, MetricSet
 
 
 class AcceleratorManager:

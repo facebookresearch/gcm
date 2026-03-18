@@ -25,10 +25,10 @@ from typing import (
 )
 
 import click
+from gcm.accelerator.backend import BackendName
+from gcm.accelerator.manager import AcceleratorManager
+from gcm.accelerator.registry import default_backend_factories
 from gcm.exporters import registry
-from gcm.monitoring.accelerator.backend import BackendName
-from gcm.monitoring.accelerator.manager import AcceleratorManager
-from gcm.monitoring.accelerator.registry import default_backend_factories
 from gcm.monitoring.accumulate import Accumulator
 from gcm.monitoring.click import (
     click_default_cmd,
@@ -53,7 +53,6 @@ from gcm.monitoring.device_telemetry_client import (
     DeviceTelemetryException,
     GPUDevice,
 )
-from gcm.monitoring.device_telemetry_nvml import NVMLDeviceTelemetryClient
 from gcm.monitoring.sink.protocol import DataType, SinkAdditionalParams, SinkImpl
 from gcm.monitoring.sink.utils import Factory, HasRegistry
 from gcm.monitoring.utils import error
@@ -279,6 +278,9 @@ class CliObjectImpl:
     clock: Clock = field(default_factory=ClockImpl)
 
     def get_device_telemetry(self) -> DeviceTelemetryClient:
+        # Fallback to direct NVML client if needed, or update to use HAL
+        from gcm.monitoring.device_telemetry_nvml import NVMLDeviceTelemetryClient
+
         return NVMLDeviceTelemetryClient()
 
     def read_env(self, process_id: int) -> Env:

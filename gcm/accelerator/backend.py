@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Callable, List, Protocol
 
-from gcm.monitoring.accelerator.metrics import CapabilitySet, MetricRequest, MetricSet
+from gcm.accelerator.metrics import MetricRequest, MetricSet
 
 
 class BackendName(str, Enum):
@@ -38,8 +38,6 @@ class AcceleratorBackend(Protocol):
     def probe(self) -> ProbeResult: ...
 
     def enumerate_devices(self) -> List[DeviceHandle]: ...
-
-    def capabilities(self, device: DeviceHandle) -> CapabilitySet: ...
 
     def read_metrics(
         self, device: DeviceHandle, request: MetricRequest

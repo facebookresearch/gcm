@@ -2,25 +2,19 @@
 # All rights reserved.
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Callable, Optional, TypeVar
+from typing import Any, Callable, Optional, TypeVar
 
-from gcm.monitoring.accelerator.backend import BackendName, DeviceHandle, ProbeResult
-from gcm.monitoring.accelerator.errors import (
-    BackendUnavailableError,
-    UnsupportedOperationError,
-)
-from gcm.monitoring.accelerator.metrics import (
-    Capability,
-    CapabilitySet,
-    MetricRequest,
-    MetricSet,
-)
-from gcm.monitoring.accelerator.probe import find_and_load_library
+from gcm.accelerator.backend import BackendName, DeviceHandle, ProbeResult
+from gcm.accelerator.errors import BackendUnavailableError, UnsupportedOperationError
+from gcm.accelerator.metrics import MetricRequest, MetricSet
+from gcm.accelerator.probe import find_and_load_library
 from gcm.monitoring.device_telemetry_client import (
     DeviceTelemetryClient,
     DeviceTelemetryException,
 )
+from gcm.monitoring.utils.error import safe_call
 from gcm.schemas.gpu.application_clock import ApplicationClockInfo
+
 from gcm.schemas.gpu.memory import GPUMemory
 from gcm.schemas.gpu.utilization import GPUUtilization
 
@@ -50,6 +44,7 @@ class NVMLBackend:
     _client: Optional[DeviceTelemetryClient] = field(
         default=None, init=False, repr=False
     )
+    _handles: dict[str, Any] = field(default_factory=dict, init=False, repr=False)
 
     def name(self) -> BackendName:
         return BackendName.NVML
@@ -83,7 +78,15 @@ class NVMLBackend:
             devices: list[DeviceHandle] = []
             for index in range(device_count):
                 model: Optional[str] = None
-                handle = client.get_device_by_index(index)
+
+                # Check cache first or fetch handle
+                dev_id = str(index)
+                if dev_id in self._handles:
+                    handle = self._handles[dev_id]
+                else:
+                    handle = client.get_device_by_index(index)
+                    self._handles[dev_id] = handle
+
                 model_getter = getattr(handle, "get_name", None)
                 if callable(model_getter):
                     maybe_model = self._safe_call(model_getter)
@@ -92,7 +95,7 @@ class NVMLBackend:
                 devices.append(
                     DeviceHandle(
                         backend=self.name(),
-                        id=str(index),
+                        id=dev_id,
                         vendor="nvidia",
                         model=model,
                     )
@@ -101,33 +104,21 @@ class NVMLBackend:
         except DeviceTelemetryException as e:
             raise UnsupportedOperationError("NVML enumerate_devices failed") from e
 
-    def capabilities(self, _device: DeviceHandle) -> CapabilitySet:
-        return CapabilitySet(
-            values={
-                Capability.UTILIZATION,
-                Capability.MEMORY,
-                Capability.POWER,
-                Capability.THERMALS,
-                Capability.CLOCKS,
-                Capability.ECC,
-                Capability.PROCESSES,
-            }
-        )
-
     @staticmethod
     def _safe_call(func: Callable[[], _T]) -> _T | None:
-        try:
-            return func()
-        except DeviceTelemetryException:
-            return None
+        return safe_call(func, DeviceTelemetryException, logger_name=__name__)
 
     def read_metrics(self, device: DeviceHandle, _request: MetricRequest) -> MetricSet:
         # TODO: Wire MetricRequest.include_process_info once process telemetry
         # is available through HAL MetricSet.
         client = self._ensure_client()
         try:
-            index = int(device.id)
-            handle = client.get_device_by_index(index)
+            if device.id in self._handles:
+                handle = self._handles[device.id]
+            else:
+                index = int(device.id)
+                handle = client.get_device_by_index(index)
+                self._handles[device.id] = handle
         except (ValueError, DeviceTelemetryException) as e:
             raise UnsupportedOperationError(
                 f"invalid NVML device id: {device.id}"
