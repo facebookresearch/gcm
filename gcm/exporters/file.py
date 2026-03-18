@@ -78,6 +78,8 @@ class File:
                 log_name=file_name,
                 log_formatter=None,
             )
+            if self.format == "csv":
+                self._load_existing_header(file_path)
 
         if job_file_path is not None:
             file_directory, file_name = split_path(job_file_path)
@@ -91,6 +93,8 @@ class File:
                 log_name=file_name,
                 log_formatter=None,
             )
+            if self.format == "csv":
+                self._load_existing_header(job_file_path)
 
         if node_file_path is not None:
             file_directory, file_name = split_path(node_file_path)
@@ -104,6 +108,21 @@ class File:
                 log_name=file_name,
                 log_formatter=None,
             )
+            if self.format == "csv":
+                self._load_existing_header(node_file_path)
+
+    def _load_existing_header(self, path: str) -> None:
+        if not os.path.isfile(path) or os.path.getsize(path) == 0:
+            return
+
+        try:
+            with open(path, newline="") as f:
+                reader = csv.reader(f)
+                header = next(reader, None)
+                if header:
+                    self._csv_fieldnames[path] = tuple(header)
+        except Exception:
+            pass
 
     def write(
         self,
