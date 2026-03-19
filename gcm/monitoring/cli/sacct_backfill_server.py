@@ -10,6 +10,7 @@ data is different across clusters; in general, H1 is much smaller than H2 so it 
 fewer jobs. In order to prevent H1 from getting ahead of H2, we need to synchronize
 the progress using a barrier.
 """
+
 import logging
 from functools import lru_cache
 from multiprocessing import Barrier

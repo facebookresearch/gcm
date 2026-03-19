@@ -15,3 +15,6 @@ class DoNothing:
         additional_params: SinkAdditionalParams,
     ) -> None:
         pass
+
+    def shutdown(self) -> None:
+        pass

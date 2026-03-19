@@ -109,17 +109,11 @@ const config = {
             position: 'left',
             label: 'Docs',
           },
-          // {
-          //   to: '/blog',
-          //   position: 'left',
-          //   label: 'Blog',
-          // },
-          // TODO: blog
-          // {
-          //   href: 'https://github.com/facebookresearch/gcm',
-          //   position: 'left',
-          //   label: 'Meta Blog Post',
-          // },
+          {
+            to: '/blog',
+            position: 'left',
+            label: 'Blog',
+          },
           {
             href: 'https://github.com/facebookresearch/gcm',
             label: 'GitHub',
@@ -136,7 +130,7 @@ const config = {
             position: 'right',
           },
           {
-            href: 'https://discord.gg/PwUaeyxw',
+            href: 'https://discord.gg/2kKHH8sw6B',
             label: 'Discord',
             position: 'right',
           },
@@ -152,15 +146,10 @@ const config = {
                 label: 'Docs',
                 to: '/docs/getting_started',
               },
-              // {
-              //   label: 'Blog',
-              //   to: '/blog',
-              // },
-              // TODO: blog
-              // {
-              //   label: 'Meta Blog Post',
-              //   to: '/blog',
-              // },
+              {
+                label: 'Blog',
+                to: '/blog',
+              },
               {
                 label: 'Github',
                 href: 'https://github.com/facebookresearch/gcm',
@@ -175,7 +164,7 @@ const config = {
               },
               {
                 label: 'Discord',
-                href: 'https://discord.gg/PwUaeyxw',
+                href: 'https://discord.gg/2kKHH8sw6B',
               },
             ],
           },

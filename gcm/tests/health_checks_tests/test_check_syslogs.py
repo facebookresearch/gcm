@@ -8,7 +8,6 @@ from typing import Tuple
 
 import pytest
 from click.testing import CliRunner
-
 from gcm.health_checks.checks.check_syslogs import check_syslogs, Syslog
 from gcm.health_checks.subprocess import PipedShellCommandOut, ShellCommandOut
 from gcm.health_checks.types import ExitCode
@@ -38,6 +37,22 @@ class FakeSyslogImpl:
         return piped_shell_out
 
     def get_io_error_report(
+        self, timeout_secs: int, logger: logging.Logger
+    ) -> PipedShellCommandOut:
+        piped_shell_out: PipedShellCommandOut = PipedShellCommandOut(
+            [self.syslog_out.returncode], self.syslog_out.stdout
+        )
+        return piped_shell_out
+
+    def get_mce_report(
+        self, timeout_secs: int, logger: logging.Logger
+    ) -> PipedShellCommandOut:
+        piped_shell_out: PipedShellCommandOut = PipedShellCommandOut(
+            [self.syslog_out.returncode], self.syslog_out.stdout
+        )
+        return piped_shell_out
+
+    def get_pcie_aer_report(
         self, timeout_secs: int, logger: logging.Logger
     ) -> PipedShellCommandOut:
         piped_shell_out: PipedShellCommandOut = PipedShellCommandOut(
@@ -232,7 +247,7 @@ def test_io_errors(
 
 @pytest.mark.parametrize(
     "check",
-    ["link-flaps", "xid", "io-errors"],
+    ["link-flaps", "xid", "io-errors", "mce", "pcie-aer"],
 )
 def test_exception_handling(
     caplog: pytest.LogCaptureFixture, tmp_path: Path, check: str
@@ -263,6 +278,24 @@ def test_exception_handling(
             )
 
         def get_io_error_report(
+            self, timeout_secs: int, logger: logging.Logger
+        ) -> PipedShellCommandOut:
+            raise subprocess.TimeoutExpired(
+                ["command line"],
+                128,
+                "Error command timeout because of timeout setting.\n",
+            )
+
+        def get_mce_report(
+            self, timeout_secs: int, logger: logging.Logger
+        ) -> PipedShellCommandOut:
+            raise subprocess.TimeoutExpired(
+                ["command line"],
+                128,
+                "Error command timeout because of timeout setting.\n",
+            )
+
+        def get_pcie_aer_report(
             self, timeout_secs: int, logger: logging.Logger
         ) -> PipedShellCommandOut:
             raise subprocess.TimeoutExpired(

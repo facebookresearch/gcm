@@ -1,0 +1,123 @@
+{{/*
+Copyright (c) Meta Platforms, Inc. and affiliates.
+All rights reserved.
+*/}}
+{{- if .Values.healthChecks.enabled -}}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "gcm.fullname" . }}-health-checks
+  labels:
+    {{- include "gcm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: health-checks
+spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "gcm.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: health-checks
+  template:
+    metadata:
+      labels:
+        {{- include "gcm.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: health-checks
+      annotations:
+        checksum/monitor-config: {{ include (print $.Template.BasePath "/health-checks-monitor-configmap.yaml") . | sha256sum }}
+        checksum/script: {{ include (print $.Template.BasePath "/health-checks-script-configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "gcm.fullname" . }}-health-checks
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      priorityClassName: system-node-critical
+      terminationGracePeriodSeconds: 30
+      hostNetwork: true
+      hostPID: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: node-problem-detector
+          image: {{ include "gcm.healthChecksImage" . }}
+          imagePullPolicy: {{ .Values.healthChecks.image.pullPolicy }}
+          securityContext:
+            privileged: true
+            capabilities:
+              add:
+                - SYSLOG
+          command:
+            - /usr/local/bin/node-problem-detector
+          args:
+            - --logtostderr
+            - --config.custom-plugin-monitor=/config/gcm_monitor.json
+            - --prometheus-address=0.0.0.0
+            - --prometheus-port={{ .Values.healthChecks.prometheus.port }}
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: NODE_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.hostIP
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: "all"
+            - name: LC_ALL
+              value: "C.UTF-8"
+            {{- with .Values.healthChecks.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          ports:
+            - name: prometheus
+              containerPort: {{ .Values.healthChecks.prometheus.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: prometheus
+            initialDelaySeconds: 30
+            periodSeconds: 60
+          volumeMounts:
+            - name: host-root
+              mountPath: /host
+              readOnly: true
+            - name: monitor-config
+              mountPath: /config
+              readOnly: true
+            - name: run-script
+              mountPath: /scripts
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          resources:
+            {{- toYaml .Values.healthChecks.resources | nindent 12 }}
+      volumes:
+        - name: host-root
+          hostPath:
+            path: /
+        - name: monitor-config
+          configMap:
+            name: {{ include "gcm.fullname" . }}-health-checks-monitor
+        - name: run-script
+          configMap:
+            name: {{ include "gcm.fullname" . }}-health-checks-script
+            defaultMode: 0755
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+      {{- with .Values.healthChecks.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.healthChecks.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      tolerations:
+        {{- with .Values.healthChecks.tolerations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+{{- end }}
