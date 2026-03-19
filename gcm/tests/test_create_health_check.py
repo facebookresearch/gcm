@@ -132,6 +132,13 @@ def test_create_check_file(scaffold_env: Path) -> None:
     assert "@click.command()" in content
     assert "check_ntp_sync" in content
     assert "NtpSync" in content
+    # Verify HealthCheckRuntime kwargs match the dataclass fields
+    assert "check_type=type," in content
+    assert "health_check_name=HealthCheckName.CHECK_NTP_SYNC," in content
+    assert "killswitch_getter=lambda:" in content
+    assert ".get_healthchecksfeatures_disable_check_ntp_sync()" in content
+    # Generated file must be valid Python
+    compile(content, str(dest), "exec")
 
 
 # ---------------------------------------------------------------------------
@@ -147,6 +154,118 @@ def test_create_check_file_group(scaffold_env: Path) -> None:
     content = dest.read_text()
     assert "@click.group()" in content
     assert "@click.command()" not in content
+    assert "@check_ntp_sync.command()" in content
+    # Verify HealthCheckRuntime kwargs in the subcommand use subcommand-level entries
+    assert "check_type=type," in content
+    assert (
+        "health_check_name=HealthCheckName.CHECK_NTP_SYNC_EXAMPLE_SUBCOMMAND,"
+        in content
+    )
+    assert (
+        ".get_healthchecksfeatures_disable_check_ntp_sync_example_subcommand()"
+        in content
+    )
+    compile(content, str(dest), "exec")
+
+
+# ---------------------------------------------------------------------------
+# create_test_file
+# ---------------------------------------------------------------------------
+
+
+def test_create_test_file(scaffold_env: Path) -> None:
+    """Scaffold creates the test file with expected content."""
+    scaffold.create_test_file("check_ntp_sync", group=False, dry_run=False)
+
+    dest = (
+        scaffold_env
+        / "gcm"
+        / "tests"
+        / "health_checks_tests"
+        / "test_check_ntp_sync.py"
+    )
+    assert dest.exists(), "Test file was not created"
+
+    content = dest.read_text()
+    assert "FakeNtpSyncCheckImpl" in content
+    assert "def test_check_ntp_sync(" in content
+    # Verify f-string interpolation: should be {tmp_path}, not {{tmp_path}}
+    assert "{tmp_path}" in content
+    assert "{{tmp_path}}" not in content
+    # Generated file must be valid Python
+    compile(content, str(dest), "exec")
+
+
+def test_create_test_file_group(scaffold_env: Path) -> None:
+    """Group mode generates a test that invokes the subcommand, not the group."""
+    scaffold.create_test_file("check_ntp_sync", group=True, dry_run=False)
+
+    dest = (
+        scaffold_env
+        / "gcm"
+        / "tests"
+        / "health_checks_tests"
+        / "test_check_ntp_sync.py"
+    )
+    assert dest.exists(), "Test file was not created"
+
+    content = dest.read_text()
+    assert "FakeNtpSyncCheckImpl" in content
+    # Must import and test the subcommand, not the group
+    assert "import example_subcommand" in content
+    assert "def test_example_subcommand(" in content
+    assert "{{tmp_path}}" not in content
+    compile(content, str(dest), "exec")
+
+
+# ---------------------------------------------------------------------------
+# create_doc_file
+# ---------------------------------------------------------------------------
+
+
+def test_create_doc_file(scaffold_env: Path) -> None:
+    """Scaffold creates the doc file with expected content."""
+    scaffold.create_doc_file("check_ntp_sync", group=False, dry_run=False)
+
+    dest = (
+        scaffold_env
+        / "website"
+        / "docs"
+        / "GCM_Health_Checks"
+        / "health_checks"
+        / "check-ntp-sync.md"
+    )
+    assert dest.exists(), "Doc file was not created"
+
+    content = dest.read_text()
+    assert "check-ntp-sync" in content
+
+
+def test_create_doc_file_group(scaffold_env: Path) -> None:
+    """Group mode creates a directory with README.md and subcommand doc."""
+    scaffold.create_doc_file("check_ntp_sync", group=True, dry_run=False)
+
+    doc_dir = (
+        scaffold_env
+        / "website"
+        / "docs"
+        / "GCM_Health_Checks"
+        / "health_checks"
+        / "check-ntp-sync"
+    )
+    assert doc_dir.is_dir(), "Doc directory was not created"
+
+    readme = doc_dir / "README.md"
+    assert readme.exists(), "README.md was not created"
+    readme_content = readme.read_text()
+    assert "## Subcommands" in readme_content
+    assert "example-subcommand" in readme_content
+
+    subcmd_doc = doc_dir / "example-subcommand.md"
+    assert subcmd_doc.exists(), "Subcommand doc was not created"
+    subcmd_content = subcmd_doc.read_text()
+    assert "## Command-Line Options" in subcmd_content
+    assert "check-ntp-sync" in subcmd_content
 
 
 # ---------------------------------------------------------------------------
@@ -159,13 +278,13 @@ def test_create_files_idempotent(
 ) -> None:
     """Running the file-creation helpers twice does not raise and prints skip."""
     scaffold.create_check_file("check_ntp_sync", group=False, dry_run=False)
-    scaffold.create_test_file("check_ntp_sync", dry_run=False)
-    scaffold.create_doc_file("check_ntp_sync", dry_run=False)
+    scaffold.create_test_file("check_ntp_sync", group=False, dry_run=False)
+    scaffold.create_doc_file("check_ntp_sync", group=False, dry_run=False)
 
     # Second call — must not raise
     scaffold.create_check_file("check_ntp_sync", group=False, dry_run=False)
-    scaffold.create_test_file("check_ntp_sync", dry_run=False)
-    scaffold.create_doc_file("check_ntp_sync", dry_run=False)
+    scaffold.create_test_file("check_ntp_sync", group=False, dry_run=False)
+    scaffold.create_doc_file("check_ntp_sync", group=False, dry_run=False)
 
     captured = capsys.readouterr()
     assert "Skipping" in captured.out
@@ -214,8 +333,8 @@ def test_dry_run_no_changes(scaffold_env: Path, capsys: pytest.CaptureFixture) -
     ).read_text()
 
     scaffold.create_check_file("check_ntp_sync", group=False, dry_run=True)
-    scaffold.create_test_file("check_ntp_sync", dry_run=True)
-    scaffold.create_doc_file("check_ntp_sync", dry_run=True)
+    scaffold.create_test_file("check_ntp_sync", group=False, dry_run=True)
+    scaffold.create_doc_file("check_ntp_sync", group=False, dry_run=True)
     scaffold.update_init("check_ntp_sync", dry_run=True)
     scaffold.update_cli("check_ntp_sync", dry_run=True)
     scaffold.update_enum("check_ntp_sync", dry_run=True)
@@ -274,6 +393,30 @@ def test_update_init(scaffold_env: Path) -> None:
     assert node_pos < ntp_pos < nvidia_pos
 
 
+def test_update_init_first_position(scaffold_env: Path) -> None:
+    """update_init inserts alphabetically before the first existing import."""
+    scaffold.update_init("check_aaa", dry_run=False)
+
+    init_path = scaffold_env / "gcm" / "health_checks" / "checks" / "__init__.py"
+    content = init_path.read_text()
+
+    aaa_pos = content.find("from gcm.health_checks.checks.check_aaa")
+    airstore_pos = content.find("from gcm.health_checks.checks.check_airstore")
+    assert aaa_pos < airstore_pos
+
+
+def test_update_init_last_position(scaffold_env: Path) -> None:
+    """update_init inserts alphabetically after the last existing import."""
+    scaffold.update_init("check_zzz", dry_run=False)
+
+    init_path = scaffold_env / "gcm" / "health_checks" / "checks" / "__init__.py"
+    content = init_path.read_text()
+
+    telemetry_pos = content.find("from gcm.health_checks.checks.check_telemetry")
+    zzz_pos = content.find("from gcm.health_checks.checks.check_zzz")
+    assert telemetry_pos < zzz_pos
+
+
 def test_update_init_idempotent(scaffold_env: Path) -> None:
     """Running update_init twice does not duplicate entries."""
     scaffold.update_init("check_ntp_sync", dry_run=False)
@@ -282,13 +425,14 @@ def test_update_init_idempotent(scaffold_env: Path) -> None:
     init_path = scaffold_env / "gcm" / "health_checks" / "checks" / "__init__.py"
     content = init_path.read_text()
 
-    # The import line must appear exactly once.
+    # Both import line and __all__ entry must appear exactly once.
     assert (
         content.count(
             "from gcm.health_checks.checks.check_ntp_sync import check_ntp_sync"
         )
         == 1
     )
+    assert content.count('"check_ntp_sync"') == 1
 
 
 # ---------------------------------------------------------------------------

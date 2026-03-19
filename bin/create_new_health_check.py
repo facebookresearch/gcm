@@ -32,6 +32,7 @@ from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
 from gcm.health_checks.click import (
     common_arguments,
     telemetry_argument,
+    timeout_argument,
 )
 from gcm.health_checks.types import CHECK_TYPE, CheckEnv, ExitCode, LOG_LEVEL
 from gcm.monitoring.click import heterogeneous_cluster_v1_option
@@ -45,7 +46,8 @@ from typeguard import typechecked
 class {PascalName}Check(CheckEnv, Protocol):
     """Provide a class stub definition."""
 
-    ...
+    def run(self) -> None:
+        ...
 
 
 @dataclass
@@ -64,6 +66,7 @@ class {PascalName}CheckImpl:
 
 @click.command()
 @common_arguments
+@timeout_argument
 @telemetry_argument
 @heterogeneous_cluster_v1_option
 @click.pass_obj
@@ -74,6 +77,7 @@ def {check_name}(
     type: CHECK_TYPE,
     log_level: LOG_LEVEL,
     log_folder: str,
+    timeout: int,
     sink: str,
     sink_opts: Collection[str],
     verbose_out: bool,
@@ -85,7 +89,7 @@ def {check_name}(
 
     with HealthCheckRuntime(
         cluster=cluster,
-        type=type,
+        check_type=type,
         log_level=log_level,
         log_folder=log_folder,
         sink=sink,
@@ -96,7 +100,8 @@ def {check_name}(
         killswitch_getter=lambda: FeatureValueHealthChecksFeatures()
         .get_healthchecksfeatures_disable_check_{name}(),
     ) as rt:
-        # TODO: implement check logic, call rt.finish(ExitCode.OK, "msg") when done
+        # TODO: implement check logic; pass timeout to impl, e.g. obj.run(timeout, rt.logger)
+        # Call rt.finish(ExitCode.OK, "msg") when done
         rt.finish(ExitCode.UNKNOWN, "Not implemented yet")
 '''
 
@@ -115,6 +120,7 @@ from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
 from gcm.health_checks.click import (
     common_arguments,
     telemetry_argument,
+    timeout_argument,
 )
 from gcm.health_checks.types import CHECK_TYPE, CheckEnv, ExitCode, LOG_LEVEL
 from gcm.monitoring.click import heterogeneous_cluster_v1_option
@@ -128,7 +134,8 @@ from typeguard import typechecked
 class {PascalName}Check(CheckEnv, Protocol):
     """Provide a class stub definition."""
 
-    ...
+    def run(self) -> None:
+        ...
 
 
 @dataclass
@@ -148,11 +155,11 @@ class {PascalName}CheckImpl:
 @click.group()
 def {check_name}() -> None:
     """TODO: short description of the {check_name} group."""
-    pass
 
 
 @{check_name}.command()
 @common_arguments
+@timeout_argument
 @telemetry_argument
 @heterogeneous_cluster_v1_option
 @click.pass_obj
@@ -163,6 +170,7 @@ def example_subcommand(
     type: CHECK_TYPE,
     log_level: LOG_LEVEL,
     log_folder: str,
+    timeout: int,
     sink: str,
     sink_opts: Collection[str],
     verbose_out: bool,
@@ -174,18 +182,19 @@ def example_subcommand(
 
     with HealthCheckRuntime(
         cluster=cluster,
-        type=type,
+        check_type=type,
         log_level=log_level,
         log_folder=log_folder,
         sink=sink,
         sink_opts=sink_opts,
         verbose_out=verbose_out,
         heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        health_check_name=HealthCheckName.CHECK_{UPPER_NAME},
+        health_check_name=HealthCheckName.CHECK_{UPPER_NAME}_EXAMPLE_SUBCOMMAND,
         killswitch_getter=lambda: FeatureValueHealthChecksFeatures()
-        .get_healthchecksfeatures_disable_check_{name}(),
+        .get_healthchecksfeatures_disable_check_{name}_example_subcommand(),
     ) as rt:
-        # TODO: implement check logic, call rt.finish(ExitCode.OK, "msg") when done
+        # TODO: implement check logic; pass timeout to impl, e.g. obj.run(timeout, rt.logger)
+        # Call rt.finish(ExitCode.OK, "msg") when done
         rt.finish(ExitCode.UNKNOWN, "Not implemented yet")
 '''
 
@@ -218,14 +227,6 @@ class Fake{PascalName}CheckImpl:
         pass
 
 
-@pytest.fixture
-def {name}_tester(
-    request: pytest.FixtureRequest,
-) -> Fake{PascalName}CheckImpl:
-    """Create Fake{PascalName}CheckImpl object."""
-    return Fake{PascalName}CheckImpl()
-
-
 @pytest.mark.parametrize(
     ("expected_exit_code",),
     [
@@ -245,12 +246,139 @@ def test_{check_name}(
     fake_impl = Fake{PascalName}CheckImpl()
     result = runner.invoke(
         {check_name},
-        f"fair_cluster prolog --log-folder={{tmp_path}} --sink=do_nothing",
+        f"fair_cluster prolog --log-folder={tmp_path} --sink=do_nothing",
         obj=fake_impl,
     )
 
     assert result.exit_code == expected_exit_code.value
 '''
+
+TEST_FILE_GROUP = '''\
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+"""Test the {check_name} health-check."""
+
+import logging
+from dataclasses import dataclass
+from pathlib import Path
+
+import pytest
+from click.testing import CliRunner
+from gcm.health_checks.checks.{check_name} import example_subcommand
+from gcm.health_checks.types import ExitCode
+
+
+@dataclass
+class Fake{PascalName}CheckImpl:
+    """Supply pregenerated output instead of running the real check."""
+
+    cluster: str = "test cluster"
+    type: str = "prolog"
+    log_level: str = "INFO"
+    log_folder: str = "/tmp"
+
+    def run(self) -> None:
+        """No-op for testing."""
+        pass
+
+
+@pytest.mark.parametrize(
+    ("expected_exit_code",),
+    [
+        # TODO: add real test cases
+        (ExitCode.UNKNOWN,),
+    ],
+)
+def test_example_subcommand(
+    caplog: pytest.LogCaptureFixture,
+    tmp_path: Path,
+    expected_exit_code: ExitCode,
+) -> None:
+    """Invoke the example_subcommand of {check_name}."""
+    runner = CliRunner(mix_stderr=False)
+    caplog.at_level(logging.INFO)
+
+    fake_impl = Fake{PascalName}CheckImpl()
+    result = runner.invoke(
+        example_subcommand,
+        f"fair_cluster prolog --log-folder={tmp_path} --sink=do_nothing",
+        obj=fake_impl,
+    )
+
+    assert result.exit_code == expected_exit_code.value
+'''
+
+DOC_FILE_GROUP = """\
+# {dash_name}
+
+TODO: describe what this health check group monitors.
+
+## Subcommands
+
+| Subcommand | Purpose | Key Feature |
+|------------|---------|-------------|
+| [`example-subcommand`](./example-subcommand.md) | TODO: purpose | TODO: key feature |
+
+## Quick Start
+
+### Run Example Subcommand
+```shell
+health_checks {dash_name} example-subcommand [CLUSTER] app
+```
+
+### With Telemetry
+```shell
+health_checks {dash_name} example-subcommand \\
+  --sink otel \\
+  --sink-opts "log_resource_attributes={\'attr_1\': \'value1\'}" \\
+  [CLUSTER] \\
+  app
+```
+"""
+
+DOC_FILE_GROUP_SUBCOMMAND = """\
+# example-subcommand
+
+## Overview
+TODO: describe what this subcommand checks.
+
+## Command-Line Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--timeout` | Integer | 300 | Seconds until the check command times out |
+| `--sink` | String | do_nothing | Telemetry sink destination |
+| `--sink-opts` | Multiple | - | Sink-specific configuration |
+| `--verbose-out` | Flag | False | Display detailed output |
+| `--log-level` | Choice | INFO | DEBUG, INFO, WARNING, ERROR, CRITICAL |
+| `--log-folder` | String | `/var/log/fb-monitoring` | Log directory |
+| `--heterogeneous-cluster-v1` | Flag | False | Enable heterogeneous cluster support |
+
+## Exit Conditions
+
+| Exit Code | Description |
+|-----------|-------------|
+| **OK (0)** | Feature flag disabled (killswitch active) |
+| **OK (0)** | TODO: describe passing condition |
+| **CRITICAL (2)** | TODO: describe failing condition |
+| **UNKNOWN (3)** | Check not yet implemented |
+
+## Usage Examples
+
+### Basic Check
+```shell
+health_checks {dash_name} example-subcommand [CLUSTER] app
+```
+
+### With Telemetry
+```shell
+health_checks {dash_name} example-subcommand \\
+  --sink otel \\
+  --sink-opts "log_resource_attributes={\'attr_1\': \'value1\'}" \\
+  [CLUSTER] \\
+  app
+```
+"""
 
 DOC_FILE = """\
 # {dash_name}
@@ -262,6 +390,7 @@ TODO: describe what this health check monitors.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
+| `--timeout` | Integer | 300 | Seconds until the check command times out |
 | `--sink` | String | do_nothing | Telemetry sink destination |
 | `--sink-opts` | Multiple | - | Sink-specific configuration |
 | `--verbose-out` | Flag | False | Display detailed output |
@@ -289,7 +418,7 @@ health_checks {dash_name} [CLUSTER] app
 ```shell
 health_checks {dash_name} \\
   --sink otel \\
-  --sink-opts "log_resource_attributes={{\'attr_1\': \'value1\'}}" \\
+  --sink-opts "log_resource_attributes={\'attr_1\': \'value1\'}" \\
   [CLUSTER] \\
   app
 ```
@@ -306,7 +435,7 @@ def validate_name(name: str) -> str:
     if not re.match(r"^check_[a-z][a-z0-9_]*$", name):
         print(
             f"Error: '{name}' is not a valid check name.\n"
-            "Name must be lowercase with underscores only and match: "
+            "Name must be lowercase letters, digits, and underscores only and match: "
             "^check_[a-z][a-z0-9_]*$\n"
             "Example: check_ntp_sync",
             file=sys.stderr,
@@ -361,9 +490,8 @@ def create_check_file(check_name: str, group: bool, dry_run: bool) -> None:
     print(f"Created: {dest}")
 
 
-def create_test_file(check_name: str, dry_run: bool) -> None:
-    name = check_name[_PREFIX_LEN:]
-    pascal_name = to_pascal_case(name)
+def create_test_file(check_name: str, group: bool, dry_run: bool) -> None:
+    pascal_name = to_pascal_case(check_name[_PREFIX_LEN:])
 
     dest = (
         PROJECT_ROOT / "gcm" / "tests" / "health_checks_tests" / f"test_{check_name}.py"
@@ -373,10 +501,10 @@ def create_test_file(check_name: str, dry_run: bool) -> None:
         print(f"Skipping test file: {dest} already exists")
         return
 
+    template = TEST_FILE_GROUP if group else TEST_FILE
     content = _render(
-        TEST_FILE,
+        template,
         check_name=check_name,
-        name=name,
         PascalName=pascal_name,
     )
 
@@ -388,30 +516,46 @@ def create_test_file(check_name: str, dry_run: bool) -> None:
     print(f"Created: {dest}")
 
 
-def create_doc_file(check_name: str, dry_run: bool) -> None:
+def create_doc_file(check_name: str, group: bool, dry_run: bool) -> None:
     dash_name = check_name.replace("_", "-")
-
-    dest = (
-        PROJECT_ROOT
-        / "website"
-        / "docs"
-        / "GCM_Health_Checks"
-        / "health_checks"
-        / f"{dash_name}.md"
+    docs_base = (
+        PROJECT_ROOT / "website" / "docs" / "GCM_Health_Checks" / "health_checks"
     )
 
-    if dest.exists():
-        print(f"Skipping doc file: {dest} already exists")
-        return
+    if group:
+        dest_dir = docs_base / dash_name
+        readme = dest_dir / "README.md"
+        subcommand_doc = dest_dir / "example-subcommand.md"
 
-    content = _render(DOC_FILE, dash_name=dash_name)
+        if dest_dir.exists():
+            print(f"Skipping doc directory: {dest_dir} already exists")
+            return
 
-    if dry_run:
-        print(f"[dry-run] Would create: {dest}")
-        return
+        if dry_run:
+            print(f"[dry-run] Would create: {readme}")
+            print(f"[dry-run] Would create: {subcommand_doc}")
+            return
 
-    dest.write_text(content)
-    print(f"Created: {dest}")
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        readme.write_text(_render(DOC_FILE_GROUP, dash_name=dash_name))
+        print(f"Created: {readme}")
+        subcommand_doc.write_text(
+            _render(DOC_FILE_GROUP_SUBCOMMAND, dash_name=dash_name)
+        )
+        print(f"Created: {subcommand_doc}")
+    else:
+        dest = docs_base / f"{dash_name}.md"
+
+        if dest.exists():
+            print(f"Skipping doc file: {dest} already exists")
+            return
+
+        if dry_run:
+            print(f"[dry-run] Would create: {dest}")
+            return
+
+        dest.write_text(_render(DOC_FILE, dash_name=dash_name))
+        print(f"Created: {dest}")
 
 
 # ---------------------------------------------------------------------------
@@ -420,7 +564,7 @@ def create_doc_file(check_name: str, dry_run: bool) -> None:
 
 
 def update_init(check_name: str, dry_run: bool) -> None:
-    """Add import and __all__ entry to checks/__init__.py (alphabetical)."""
+    """Add import (alphabetical) and __all__ entry to checks/__init__.py."""
     init_path = PROJECT_ROOT / "gcm" / "health_checks" / "checks" / "__init__.py"
     content = init_path.read_text()
 
@@ -620,7 +764,7 @@ def update_features(check_name: str, dry_run: bool) -> None:
 # ---------------------------------------------------------------------------
 
 
-def run_post_scaffold() -> None:
+def run_post_scaffold(check_name: str) -> None:
     """Run feature generation and code formatting after scaffolding."""
     gen_script = PROJECT_ROOT / "bin" / "generate_features.py"
     if gen_script.exists():
@@ -637,16 +781,37 @@ def run_post_scaffold() -> None:
     else:
         print(f"Skipping feature generation: {gen_script} not found")
 
-    print("Running ufmt format...")
-    result = subprocess.run(
-        [sys.executable, "-m", "ufmt", "format", "gcm"],
-        cwd=str(PROJECT_ROOT),
-    )
-    if result.returncode != 0:
-        print(
-            f"Warning: ufmt format exited with code {result.returncode}",
-            file=sys.stderr,
+    # Only format the files that were created or modified by the scaffold.
+    files_to_format = [
+        PROJECT_ROOT / "gcm" / "health_checks" / "checks" / f"{check_name}.py",
+        PROJECT_ROOT
+        / "gcm"
+        / "tests"
+        / "health_checks_tests"
+        / f"test_{check_name}.py",
+        PROJECT_ROOT / "gcm" / "health_checks" / "checks" / "__init__.py",
+        PROJECT_ROOT / "gcm" / "health_checks" / "cli" / "health_checks.py",
+        PROJECT_ROOT / "gcm" / "schemas" / "health_check" / "health_check_name.py",
+        PROJECT_ROOT
+        / "gcm"
+        / "monitoring"
+        / "features"
+        / "feature_definitions"
+        / "health_checks_features.py",
+    ]
+    targets = [str(f) for f in files_to_format if f.exists()]
+
+    if targets:
+        print("Running ufmt format on scaffolded files...")
+        result = subprocess.run(
+            [sys.executable, "-m", "ufmt", "format", *targets],
+            cwd=str(PROJECT_ROOT),
         )
+        if result.returncode != 0:
+            print(
+                f"Warning: ufmt format exited with code {result.returncode}",
+                file=sys.stderr,
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -669,7 +834,7 @@ def main() -> None:
         "check_name",
         help=(
             "Snake_case name of the new health check (e.g. check_ntp_sync). "
-            "Must start with 'check_' and contain only lowercase letters and underscores."
+            "Must start with 'check_' and contain only lowercase letters, digits, and underscores."
         ),
     )
     parser.add_argument(
@@ -694,9 +859,9 @@ def main() -> None:
     # 1. Create check file
     create_check_file(check_name, group=args.group, dry_run=args.dry_run)
     # 2. Create test file
-    create_test_file(check_name, dry_run=args.dry_run)
+    create_test_file(check_name, group=args.group, dry_run=args.dry_run)
     # 3. Create doc file
-    create_doc_file(check_name, dry_run=args.dry_run)
+    create_doc_file(check_name, group=args.group, dry_run=args.dry_run)
     # 4. Update checks/__init__.py
     update_init(check_name, dry_run=args.dry_run)
     # 5. Update health_checks.py CLI
@@ -705,10 +870,15 @@ def main() -> None:
     update_enum(check_name, dry_run=args.dry_run)
     # 7. Update health_checks_features.py feature flags
     update_features(check_name, dry_run=args.dry_run)
+    if args.group:
+        # 8. Add subcommand-level enum and feature flag entries
+        subcmd_name = f"{check_name}_example_subcommand"
+        update_enum(subcmd_name, dry_run=args.dry_run)
+        update_features(subcmd_name, dry_run=args.dry_run)
 
     if not args.dry_run:
         # 8. Regenerate feature flags and format generated code
-        run_post_scaffold()
+        run_post_scaffold(check_name)
 
         print(f"\nDone! Health check '{check_name}' scaffolded successfully.")
         print("Next steps:")
@@ -720,11 +890,26 @@ def main() -> None:
             f"  2. Update the test in "
             f"gcm/tests/health_checks_tests/test_{check_name}.py"
         )
-        print(
-            f"  3. Update the doc stub in "
-            f"website/docs/GCM_Health_Checks/health_checks/"
-            f"{check_name.replace('_', '-')}.md"
-        )
+        dash_name = check_name.replace("_", "-")
+        if args.group:
+            print(
+                f"  3. Update the group README in "
+                f"website/docs/GCM_Health_Checks/health_checks/{dash_name}/README.md\n"
+                f"  4. Update the subcommand doc in "
+                f"website/docs/GCM_Health_Checks/health_checks/{dash_name}/example-subcommand.md\n"
+                f"  5. Rename 'example_subcommand' to a real subcommand name\n"
+                f"  6. Rename 'example-subcommand.md' to match the subcommand\n"
+                f"  7. Add per-subcommand enum entries in "
+                f"gcm/schemas/health_check/health_check_name.py\n"
+                f"  8. Add per-subcommand feature flags in "
+                f"gcm/monitoring/features/feature_definitions/"
+                f"health_checks_features.py"
+            )
+        else:
+            print(
+                f"  3. Update the doc stub in "
+                f"website/docs/GCM_Health_Checks/health_checks/{dash_name}.md"
+            )
 
 
 if __name__ == "__main__":
