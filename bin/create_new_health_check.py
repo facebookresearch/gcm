@@ -877,7 +877,7 @@ def main() -> None:
         update_features(subcmd_name, dry_run=args.dry_run)
 
     if not args.dry_run:
-        # 8. Regenerate feature flags and format generated code
+        # Regenerate feature flags and format generated code
         run_post_scaffold(check_name)
 
         print(f"\nDone! Health check '{check_name}' scaffolded successfully.")
@@ -899,11 +899,10 @@ def main() -> None:
                 f"website/docs/GCM_Health_Checks/health_checks/{dash_name}/example-subcommand.md\n"
                 f"  5. Rename 'example_subcommand' to a real subcommand name\n"
                 f"  6. Rename 'example-subcommand.md' to match the subcommand\n"
-                f"  7. Add per-subcommand enum entries in "
-                f"gcm/schemas/health_check/health_check_name.py\n"
-                f"  8. Add per-subcommand feature flags in "
-                f"gcm/monitoring/features/feature_definitions/"
-                f"health_checks_features.py"
+                f"  7. Rename the scaffolded enum/feature entries to match your subcommand\n"
+                f"     (in gcm/schemas/health_check/health_check_name.py and\n"
+                f"     gcm/monitoring/features/feature_definitions/health_checks_features.py)\n"
+                f"  8. Add enum and feature flag entries for any additional subcommands"
             )
         else:
             print(
