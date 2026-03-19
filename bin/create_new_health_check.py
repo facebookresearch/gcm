@@ -431,16 +431,14 @@ health_checks {dash_name} \\
 
 
 def validate_name(name: str) -> str:
-    """Validate check_name and return it if valid, else exit with error."""
+    """Validate check_name and return it if valid, else raise ValueError."""
     if not re.match(r"^check_[a-z][a-z0-9_]*$", name):
-        print(
-            f"Error: '{name}' is not a valid check name.\n"
+        raise ValueError(
+            f"'{name}' is not a valid check name.\n"
             "Name must be lowercase letters, digits, and underscores only and match: "
             "^check_[a-z][a-z0-9_]*$\n"
-            "Example: check_ntp_sync",
-            file=sys.stderr,
+            "Example: check_ntp_sync"
         )
-        sys.exit(1)
     return name
 
 
@@ -614,19 +612,24 @@ def update_init(check_name: str, dry_run: bool) -> None:
     if f'"{check_name}"' in content:
         print("Skipping __init__.py __all__: already exists")
     else:
-        # Append before the closing ].
-        new_content = content.replace(
-            "]\n",
-            f"{all_entry}]\n",
-            1,
-        )
-        if new_content == content:
+        # Find the __all__ block and its closing ] specifically.
+        all_start = content.find("__all__ = [")
+        if all_start == -1:
             print(
-                f"Warning: could not find insertion point in {init_path}. "
+                f"Warning: could not find __all__ in {init_path}. "
                 "Please add the __all__ entry manually.",
                 file=sys.stderr,
             )
             return
+        close_bracket = content.find("]", all_start)
+        if close_bracket == -1:
+            print(
+                f"Warning: could not find closing ] for __all__ in {init_path}. "
+                "Please add the __all__ entry manually.",
+                file=sys.stderr,
+            )
+            return
+        new_content = content[:close_bracket] + all_entry + content[close_bracket:]
         if dry_run:
             print(f"[dry-run] Would add __all__ entry to {init_path}")
         else:
@@ -645,21 +648,40 @@ def update_cli(check_name: str, dry_run: bool) -> None:
         print(f"Skipping health_checks.py: checks.{check_name} already exists")
         return
 
-    # Insert before the closing ] of list_of_checks.
-    new_content = content.replace("]\n\nfor check", f"{entry}]\n\nfor check", 1)
-    if new_content == content:
-        print(
-            f"Warning: could not find insertion point in {cli_path}. "
-            "Please add the entry manually.",
-            file=sys.stderr,
-        )
-        return
+    # Find existing checks.* entries and insert alphabetically.
+    entry_pattern = re.compile(r"^    checks\.\w+,$", re.MULTILINE)
+    existing = list(entry_pattern.finditer(content))
+
+    if existing:
+        inserted = False
+        for match in existing:
+            if entry.strip() < match.group().strip():
+                pos = match.start()
+                content = content[:pos] + entry + content[pos:]
+                inserted = True
+                break
+        if not inserted:
+            # Append after the last entry.
+            last = existing[-1]
+            pos = last.end() + 1
+            content = content[:pos] + entry + content[pos:]
+    else:
+        # Fallback: insert before the closing ] of list_of_checks.
+        new_content = content.replace("]\n\nfor check", f"{entry}]\n\nfor check", 1)
+        if new_content == content:
+            print(
+                f"Warning: could not find insertion point in {cli_path}. "
+                "Please add the entry manually.",
+                file=sys.stderr,
+            )
+            return
+        content = new_content
 
     if dry_run:
         print(f"[dry-run] Would add checks.{check_name} to {cli_path}")
         return
 
-    cli_path.write_text(new_content)
+    cli_path.write_text(content)
     print(f"Updated {cli_path}")
 
 
@@ -700,8 +722,20 @@ def update_enum(check_name: str, dry_run: bool) -> None:
             pos = last.end() + 1
             content = content[:pos] + new_line + content[pos:]
     else:
-        # No existing CHECK_ entries; append before end of class.
-        content = content.rstrip("\n") + "\n" + new_line
+        # No existing CHECK_ entries; find class body and insert there.
+        class_match = re.search(
+            r"^class HealthCheckName\(Enum\):\s*$", content, re.MULTILINE
+        )
+        if class_match:
+            pos = class_match.end() + 1
+            content = content[:pos] + new_line + content[pos:]
+        else:
+            print(
+                f"Warning: could not find HealthCheckName class in {enum_path}. "
+                "Please add the entry manually.",
+                file=sys.stderr,
+            )
+            return
 
     if dry_run:
         print(f"[dry-run] Would add {enum_key} to {enum_path}")
@@ -749,7 +783,20 @@ def update_features(check_name: str, dry_run: bool) -> None:
             pos = last.end() + 1
             content = content[:pos] + new_line + content[pos:]
     else:
-        content = content.rstrip("\n") + "\n" + new_line
+        # No existing disable_ fields; find class body and insert there.
+        class_match = re.search(
+            r"^class HealthChecksFeatures:\s*$", content, re.MULTILINE
+        )
+        if class_match:
+            pos = class_match.end() + 1
+            content = content[:pos] + new_line + content[pos:]
+        else:
+            print(
+                f"Warning: could not find HealthChecksFeatures class in "
+                f"{features_path}. Please add the entry manually.",
+                file=sys.stderr,
+            )
+            return
 
     if dry_run:
         print(f"[dry-run] Would add {field_name} to {features_path}")
@@ -851,7 +898,11 @@ def main() -> None:
     )
 
     args = parser.parse_args()
-    check_name = validate_name(args.check_name)
+    try:
+        check_name = validate_name(args.check_name)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
 
     if args.dry_run:
         print(f"[dry-run] Scaffolding health check: {check_name}")

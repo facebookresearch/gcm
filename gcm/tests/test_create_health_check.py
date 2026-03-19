@@ -94,10 +94,9 @@ def test_validate_name_valid() -> None:
     ],
 )
 def test_validate_name_invalid(bad_name: str) -> None:
-    """Invalid names cause sys.exit(1)."""
-    with pytest.raises(SystemExit) as exc_info:
+    """Invalid names raise ValueError."""
+    with pytest.raises(ValueError, match="is not a valid check name"):
         scaffold.validate_name(bad_name)
-    assert exc_info.value.code == 1
 
 
 # ---------------------------------------------------------------------------
