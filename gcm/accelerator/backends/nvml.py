@@ -160,6 +160,21 @@ class NVMLBackend:
             ),
         )
 
+    def get_raw_handle(self, device_id: str) -> Any:
+        client = self._ensure_client()
+        if device_id in self._handles:
+            return self._handles[device_id]
+
+        try:
+            index = int(device_id)
+            handle = client.get_device_by_index(index)
+            self._handles[device_id] = handle
+            return handle
+        except (ValueError, DeviceTelemetryException) as e:
+            raise UnsupportedOperationError(
+                f"invalid NVML device id: {device_id}"
+            ) from e
+
     def close(self) -> None:
         client = self._client
         self._client = None

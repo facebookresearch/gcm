@@ -22,6 +22,8 @@ from typing import (
 import click
 import gni_lib
 import psutil
+from gcm.accelerator.manager import AcceleratorManager
+from gcm.accelerator.registry import default_backend_factories
 from gcm.health_checks.check_utils.output_context_manager import OutputContext
 from gcm.health_checks.check_utils.telem import TelemetryContext
 from gcm.health_checks.click import common_arguments, telemetry_argument
@@ -32,6 +34,7 @@ from gcm.health_checks.device_telemetry_utils import get_gpu_devices
 from gcm.health_checks.env_variables import EnvCtx
 from gcm.health_checks.measurement_units import convert_bytes
 from gcm.health_checks.types import CHECK_TYPE, CheckEnv, ExitCode
+from gcm.monitoring.accelerator_adapter import AcceleratorTelemetryAdapter
 from gcm.monitoring.click import heterogeneous_cluster_v1_option
 from gcm.monitoring.device_telemetry_client import (
     DeviceTelemetryClient,
@@ -60,10 +63,10 @@ class NvidiaSmiCliImpl:
     log_folder: str
 
     def get_device_telemetry(self) -> DeviceTelemetryClient:
-        # Fallback to direct NVML client until check_nvidia_smi is refactored
-        from gcm.monitoring.device_telemetry_nvml import NVMLDeviceTelemetryClient
-
-        return NVMLDeviceTelemetryClient()
+        # Use Accelerator Manager + Adapter for legacy support
+        # This ensures all paths go through the new accelerator interface
+        manager = AcceleratorManager(factories=default_backend_factories())
+        return AcceleratorTelemetryAdapter(manager)
 
 
 def check_gpu_num(

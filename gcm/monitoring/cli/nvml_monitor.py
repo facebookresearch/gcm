@@ -29,6 +29,7 @@ from gcm.accelerator.backend import BackendName
 from gcm.accelerator.manager import AcceleratorManager
 from gcm.accelerator.registry import default_backend_factories
 from gcm.exporters import registry
+from gcm.monitoring.accelerator_adapter import AcceleratorTelemetryAdapter
 from gcm.monitoring.accumulate import Accumulator
 from gcm.monitoring.click import (
     click_default_cmd,
@@ -278,10 +279,10 @@ class CliObjectImpl:
     clock: Clock = field(default_factory=ClockImpl)
 
     def get_device_telemetry(self) -> DeviceTelemetryClient:
-        # Fallback to direct NVML client if needed, or update to use HAL
-        from gcm.monitoring.device_telemetry_nvml import NVMLDeviceTelemetryClient
-
-        return NVMLDeviceTelemetryClient()
+        # Use Accelerator Manager + Adapter for legacy support
+        # This ensures all paths go through the new accelerator interface
+        manager = AcceleratorManager(factories=default_backend_factories())
+        return AcceleratorTelemetryAdapter(manager)
 
     def read_env(self, process_id: int) -> Env:
         return read_environ_from_proc(process_id)
