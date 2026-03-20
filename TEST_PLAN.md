@@ -43,6 +43,7 @@ Verify that `nvml_monitor.py` correctly fetches device count and metrics via the
 
 **Verification Step:**
 Verify that `check_nvidia_smi.py` correctly detects GPU count and running processes via the adapter.
+Also verified `gcm/tests/test_gcm.py::test_health_checks_backend_nvml_full_run` which exercises the full health check loop. Updated test to handle potential extra output from check execution.
 
 ## Refactoring Status
 

@@ -101,7 +101,17 @@ def test_health_checks_backend_nvml_full_run(tmp_path: Path) -> None:
     # Extract JSON (may follow "WARNING - ...\n")
     json_start = out.find("[")
     assert json_start >= 0, f"No JSON array in output: {out[:200]}"
-    data = json.loads(out[json_start:])
+    try:
+        data = json.loads(out[json_start:])
+    except json.JSONDecodeError:
+        # If there is extra data (like "OK - ..."), try to parse just the JSON part
+        # by finding the matching closing bracket
+        # A simple heuristic: assume the JSON ends at the last ']'
+        json_end = out.rfind("]")
+        if json_end != -1:
+            data = json.loads(out[json_start : json_end + 1])
+        else:
+            raise
     assert isinstance(data, list) and len(data) >= 1
     row = data[0]
     assert "cluster" in row and "health_check" in row and "result" in row

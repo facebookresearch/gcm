@@ -1,5 +1,5 @@
 [flake8]
-ignore = E501, W503, N806, N813, N818, E704
+ignore = E501, W503, N806, N813, N818, E704, E203
 max-line-length = 88
 exclude = gcm/gen,*.pyi
 # relative imports break buck
