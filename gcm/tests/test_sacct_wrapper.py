@@ -323,7 +323,11 @@ def test_get_patched_sacct_cmd(
     start_time_slack: timedelta,
     other_extensions: Optional[Callable[[List[str]], None]],
     expected: List[str],
+    tz_env: Optional[str],
+    monkeypatch: MonkeyPatch,
 ) -> None:
+    if tz_env is not None:
+        monkeypatch.setenv("TZ", tz_env)
     assert (
         get_patched_sacct_cmd(
             sacct_args,
