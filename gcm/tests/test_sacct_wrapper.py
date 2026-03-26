@@ -317,7 +317,23 @@ def test_not_should_patch_sacct_cmd(
             ],
             None,
         ),
-        # TODO: daylight savings
+        # daylight savings
+        (
+            ("-P",),
+            datetime.fromisoformat("2021-03-14T03:01:00-07:00"),
+            ["jobid"],
+            timedelta(minutes=2),
+            None,
+            [
+                "sacct",
+                "-P",
+                "-o",
+                "jobid,end",
+                "-S",
+                "2021-03-14T01:59:00",
+            ],
+            "America/Los_Angeles",
+        ),
     ],
 )
 def test_get_patched_sacct_cmd(
