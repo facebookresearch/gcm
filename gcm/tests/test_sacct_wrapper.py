@@ -318,6 +318,8 @@ def test_not_should_patch_sacct_cmd(
             None,
         ),
         # daylight savings
+        # DST spring-forward (America/Los_Angeles): 03:01 PDT minus 2m slack
+        # crosses into 01:59 PST; naive local -S must match wall clock.
         (
             ("-P",),
             datetime.fromisoformat("2021-03-14T03:01:00-07:00"),
