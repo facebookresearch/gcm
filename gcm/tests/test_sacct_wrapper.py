@@ -265,6 +265,7 @@ def test_not_should_patch_sacct_cmd(
                 "-S",
                 "2019-12-31T23:58:00",
             ],
+            None,
         ),
         (
             ("-P",),
@@ -280,6 +281,7 @@ def test_not_should_patch_sacct_cmd(
                 "-S",
                 "2020-01-01T11:58:00",
             ],
+            None,
         ),
         (
             ("-P",),
@@ -295,6 +297,7 @@ def test_not_should_patch_sacct_cmd(
                 "-S",
                 "2020-01-01T11:58:00",
             ],
+            None,
         ),
         (
             ("-P",),
@@ -312,6 +315,7 @@ def test_not_should_patch_sacct_cmd(
                 "-S",
                 "2020-01-01T11:58:00",
             ],
+            None,
         ),
         # TODO: daylight savings
     ],
