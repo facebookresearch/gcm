@@ -247,7 +247,7 @@ def test_not_should_patch_sacct_cmd(
 
 
 @pytest.mark.parametrize(
-    "sacct_args, starttime, fmt_list, start_time_slack, other_extensions, expected",
+    "sacct_args, starttime, fmt_list, start_time_slack, other_extensions, expected, tz_env",
     [
         (
             ("-P", "-u", "user"),
