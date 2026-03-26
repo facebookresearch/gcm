@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Callable, cast, Generator, List, Optional, Set, Tuple, Type, Union
 
 import pytest
+from _pytest.monkeypatch import MonkeyPatch
 from click.testing import CliRunner
 
 from gcm.monitoring.cli.sacct_wrapper import (
