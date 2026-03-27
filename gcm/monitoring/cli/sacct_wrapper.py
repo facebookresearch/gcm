@@ -335,10 +335,8 @@ def get_sacct_lines(stdout: IO[str], delimiter: str) -> Generator[str, None, Non
                     f"The following sacct line has more delimiters than expected: {line}"
                 )
 
-            # escape line breakers (match test fixtures: " \\n" token)
-            # NOTE: We don't add a trailing space because the next physical line
-            # in sacct output typically begins with a space already.
-            prev_line += line.replace("\n", " \\n")
+            # escape line breakers
+            prev_line += line.replace("\n", "\\n")
             prev_line_delimiters += line_delimiters
         else:
             yield line
