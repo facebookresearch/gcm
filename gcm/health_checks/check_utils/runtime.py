@@ -165,4 +165,5 @@ class HealthCheckRuntime(ContextManager["HealthCheckRuntime"]):
         """Set the final exit code and message, then terminate via ``sys.exit``."""
         self.exit_code = exit_code
         self.msg = msg
+        self.logger.info(f"exit code {exit_code}: {msg}")
         sys.exit(exit_code.value)
