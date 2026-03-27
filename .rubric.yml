@@ -1,0 +1,60 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+version: 1
+thresholds:
+  large_change_files: 50
+  large_change_lines: 1200
+
+rules:
+  - id: ci
+    description: CI and rubric configuration updates
+    paths:
+      - ".github/**"
+      - ".rubric.yml"
+    checks:
+      - id: ci-yaml-validation
+        command: "python .github/scripts/rubric_checks.py ci --from-changed"
+
+  - id: docs
+    description: Documentation updates
+    paths:
+      - "docs/**"
+      - "website/docs/**"
+      - "gcm/docs/**"
+      - "**/*.md"
+    checks:
+      - id: docs-validation
+        command: "python .github/scripts/rubric_checks.py docs --from-changed"
+
+  - id: training
+    description: Training and experiment config updates
+    paths:
+      - "training/**"
+      - "experiments/**"
+      - "configs/**"
+    checks:
+      - id: reproducibility-config
+        command: "python .github/scripts/rubric_checks.py reproducibility --from-changed"
+
+  - id: python-src
+    description: Python source updates
+    paths:
+      - "gcm/**/*.py"
+    checks:
+      - id: lint
+        command: "nox -s lint"
+      - id: typecheck
+        command: "nox -s typecheck"
+
+  - id: go-src
+    description: Go source updates
+    paths:
+      - "shelper/**/*.go"
+      - "slurmprocessor/**/*.go"
+    checks:
+      - id: go-shelper-tests
+        command: "go test ./..."
+        working_directory: "shelper"
+      - id: go-slurmprocessor-tests
+        command: "go test ./..."
+        working_directory: "slurmprocessor"

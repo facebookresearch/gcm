@@ -1,0 +1,96 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+name: PR Rubric Router
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  rubric-route-and-check:
+    runs-on: ubuntu-22.04
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install router dependencies
+        run: python -m pip install pyyaml
+
+      - name: Build rubric routing plan
+        run: |
+          python .github/scripts/pr_rubric_router.py \
+            --config .rubric.yml \
+            --base "${{ github.event.pull_request.base.sha }}" \
+            --head "${{ github.event.pull_request.head.sha }}" \
+            --json-out .rubric_routing_report.json \
+            --md-out .rubric_routing_report.md
+
+          cp .rubric_routing_report.json .rubric_changed_files.json
+
+      - name: Publish routing summary
+        run: cat .rubric_routing_report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Detect runtime requirements
+        id: detect
+        run: |
+          python - <<'PY'
+          import json
+
+          payload = json.load(open('.rubric_routing_report.json'))
+          checks = payload.get('selected_checks', [])
+          commands = [check.get('command', '') for check in checks]
+
+          need_dev = any(cmd.startswith('nox ') for cmd in commands)
+          need_go = any(cmd.startswith('go ') for cmd in commands)
+
+          with open('/tmp/rubric_outputs.txt', 'w') as f:
+            f.write(f'need_dev={1 if need_dev else 0}\n')
+            f.write(f'need_go={1 if need_go else 0}\n')
+          PY
+          cat /tmp/rubric_outputs.txt >> "$GITHUB_OUTPUT"
+
+      - name: Setup Go
+        if: steps.detect.outputs.need_go == '1'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'shelper/go.mod'
+
+      - name: Install dev dependencies
+        if: steps.detect.outputs.need_dev == '1'
+        run: |
+          python -m pip install -r dev-requirements.txt
+          python -m pip install --no-deps -e .
+
+      - name: Execute selected rubric checks
+        run: |
+          python .github/scripts/pr_rubric_runner.py \
+            --routing-json .rubric_routing_report.json \
+            --results-json .rubric_results.json \
+            --results-md .rubric_results.md
+
+      - name: Publish check summary
+        if: always()
+        run: cat .rubric_results.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload rubric artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rubric-report
+          path: |
+            .rubric_routing_report.json
+            .rubric_routing_report.md
+            .rubric_results.json
+            .rubric_results.md
