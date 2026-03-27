@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Callable, cast, Generator, List, Optional, Set, Tuple, Type, Union
 
 import pytest
+from _pytest.monkeypatch import MonkeyPatch
 from click.testing import CliRunner
 
 from gcm.monitoring.cli.sacct_wrapper import (
@@ -247,7 +248,7 @@ def test_not_should_patch_sacct_cmd(
 
 
 @pytest.mark.parametrize(
-    "sacct_args, starttime, fmt_list, start_time_slack, other_extensions, expected",
+    "sacct_args, starttime, fmt_list, start_time_slack, other_extensions, expected, tz_env",
     [
         (
             ("-P", "-u", "user"),
@@ -265,6 +266,7 @@ def test_not_should_patch_sacct_cmd(
                 "-S",
                 "2019-12-31T23:58:00",
             ],
+            None,
         ),
         (
             ("-P",),
@@ -280,6 +282,7 @@ def test_not_should_patch_sacct_cmd(
                 "-S",
                 "2020-01-01T11:58:00",
             ],
+            None,
         ),
         (
             ("-P",),
@@ -295,6 +298,7 @@ def test_not_should_patch_sacct_cmd(
                 "-S",
                 "2020-01-01T11:58:00",
             ],
+            None,
         ),
         (
             ("-P",),
@@ -312,8 +316,27 @@ def test_not_should_patch_sacct_cmd(
                 "-S",
                 "2020-01-01T11:58:00",
             ],
+            None,
         ),
-        # TODO: daylight savings
+        # daylight savings
+        # DST spring-forward (America/Los_Angeles): 03:01 PDT minus 2m slack
+        # crosses into 01:59 PST; naive local -S must match wall clock.
+        (
+            ("-P",),
+            datetime.fromisoformat("2021-03-14T03:01:00-07:00"),
+            ["jobid"],
+            timedelta(minutes=2),
+            None,
+            [
+                "sacct",
+                "-P",
+                "-o",
+                "jobid,end",
+                "-S",
+                "2021-03-14T01:59:00",
+            ],
+            "America/Los_Angeles",
+        ),
     ],
 )
 def test_get_patched_sacct_cmd(
@@ -323,7 +346,11 @@ def test_get_patched_sacct_cmd(
     start_time_slack: timedelta,
     other_extensions: Optional[Callable[[List[str]], None]],
     expected: List[str],
+    tz_env: Optional[str],
+    monkeypatch: MonkeyPatch,
 ) -> None:
+    if tz_env is not None:
+        monkeypatch.setenv("TZ", tz_env)
     assert (
         get_patched_sacct_cmd(
             sacct_args,
