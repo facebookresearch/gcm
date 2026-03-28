@@ -8,8 +8,7 @@ readme = "README.md"
 description = "GPU Cluster Monitoring (GCM): Large-Scale AI Research Cluster Monitoring"
 requires-python = ">=3.10"
 dependencies = [
-  # TODO (T198128870): Unpin the requests version
-  "requests==2.33.0",
+  "requests>=2.33.0",
   "pynvml==11.4.*",
   "typing_extensions",
   "click==8.0.4",
