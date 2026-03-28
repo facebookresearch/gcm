@@ -1,5 +1,5 @@
 ---
-sidebar_position: 7
+sidebar_position: 6
 ---
 
 # Adding New Exporter
@@ -49,6 +49,15 @@ This method is responsible for exporting the data to the destination. It receive
 - These are commonly used to treat data differently at export time, if needed
 
 To see a real implementation of a simple exporter class and its write method, you can see the stdout exporter [here](https://github.com/facebookresearch/gcm/blob/main/gcm/exporters/stdout.py).
+
+4. Implement the `shutdown` method.
+
+This method is called when GCM is done writing and needs to clean up. It should flush any buffered data and release resources (connections, file handles, etc.). For simple exporters with no resources to release, an empty implementation is fine:
+
+```python
+def shutdown(self) -> None:
+    pass
+```
 
 After you've completed this step, you should be able to test calling your new exporter from the CLI:
 

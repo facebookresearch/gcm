@@ -1,20 +1,18 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 import logging
-import os
 import re
-import socket
-import sys
-from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Collection, List, Optional, Protocol, Tuple
 
 import click
-
-import gni_lib
-from gcm.health_checks.check_utils.output_context_manager import OutputContext
-from gcm.health_checks.check_utils.telem import TelemetryContext
+from gcm.health_checks.check_utils.mce_severity import (
+    classify_lines,
+    MCE_SEVERITY_PATTERNS,
+)
+from gcm.health_checks.check_utils.pcie_severity import PCIE_AER_SEVERITY_PATTERNS
+from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
 from gcm.health_checks.check_utils.xid_error_codes import ErrorCause
 from gcm.health_checks.click import (
     common_arguments,
@@ -30,12 +28,9 @@ from gcm.health_checks.subprocess import (
 )
 from gcm.health_checks.types import CHECK_TYPE, CheckEnv, ExitCode, LOG_LEVEL
 from gcm.monitoring.click import heterogeneous_cluster_v1_option
-
 from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import (
     FeatureValueHealthChecksFeatures,
 )
-from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
-from gcm.monitoring.utils.monitor import init_logger
 from gcm.schemas.health_check.health_check_name import HealthCheckName
 from typeguard import typechecked
 
@@ -55,6 +50,14 @@ class Syslog(CheckEnv, Protocol):
     ) -> PipedShellCommandOut: ...
 
     def get_io_error_report(
+        self, timeout_secs: int, logger: logging.Logger
+    ) -> PipedShellCommandOut: ...
+
+    def get_mce_report(
+        self, timeout_secs: int, logger: logging.Logger
+    ) -> PipedShellCommandOut: ...
+
+    def get_pcie_aer_report(
         self, timeout_secs: int, logger: logging.Logger
     ) -> PipedShellCommandOut: ...
 
@@ -96,6 +99,20 @@ class SyslogImpl:
             timeout_secs,
         )
         return dmesg_out
+
+    def get_mce_report(
+        self, timeout_secs: int, logger: logging.Logger
+    ) -> PipedShellCommandOut:
+        logger.info("Running command `dmesg | grep -i 'mce:\\|Machine Check'`")
+        return piped_shell_command(
+            ["dmesg", r"grep -i 'mce:\|Machine Check'"], timeout_secs
+        )
+
+    def get_pcie_aer_report(
+        self, timeout_secs: int, logger: logging.Logger
+    ) -> PipedShellCommandOut:
+        logger.info("Running command `dmesg | grep 'AER.*error'`")
+        return piped_shell_command(["dmesg", "grep 'AER.*error'"], timeout_secs)
 
 
 def process_link_flap_output(output: str, error_code: int) -> Tuple[ExitCode, str]:
@@ -175,6 +192,78 @@ def process_io_errors_output(output: str, error_code: int) -> Tuple[ExitCode, st
     return exit_code, msg
 
 
+def process_mce_output(output: str, error_code: int) -> Tuple[ExitCode, str]:
+    if error_code > 0:
+        return (
+            ExitCode.WARN,
+            f"dmesg command FAILED to execute. {error_code=}, {output=}",
+        )
+    if output == "":
+        return ExitCode.OK, "No MCE errors detected."
+
+    by_severity = classify_lines(output, MCE_SEVERITY_PATTERNS)
+    critical = len(by_severity[ExitCode.CRITICAL])
+    warn = len(by_severity[ExitCode.WARN])
+    info = len(by_severity[ExitCode.OK])
+
+    parts: List[str] = []
+    if critical:
+        parts.append(f"{critical=}")
+    if warn:
+        parts.append(f"{warn=}")
+    if info:
+        parts.append(f"{info=}")
+
+    total = critical + warn + info
+    detail = ", ".join(parts)
+
+    exit_code = ExitCode.OK
+    if warn > 0:
+        exit_code = ExitCode.WARN
+    if critical > 0:
+        exit_code = ExitCode.CRITICAL
+    return (
+        exit_code,
+        f"{total} MCE event(s) detected ({detail}).",
+    )
+
+
+def process_pcie_aer_output(output: str, error_code: int) -> Tuple[ExitCode, str]:
+    if error_code > 0:
+        return (
+            ExitCode.WARN,
+            f"dmesg command FAILED to execute. {error_code=}, {output=}",
+        )
+    if output == "":
+        return ExitCode.OK, "No PCIe AER errors detected."
+
+    by_severity = classify_lines(output, PCIE_AER_SEVERITY_PATTERNS)
+    critical = len(by_severity[ExitCode.CRITICAL])
+    warn = len(by_severity[ExitCode.WARN])
+    info = len(by_severity[ExitCode.OK])
+
+    parts: List[str] = []
+    if critical:
+        parts.append(f"{critical=}")
+    if warn:
+        parts.append(f"{warn=}")
+    if info:
+        parts.append(f"{info=}")
+
+    total = critical + warn + info
+    detail = ", ".join(parts)
+
+    exit_code = ExitCode.OK
+    if warn > 0:
+        exit_code = ExitCode.WARN
+    if critical > 0:
+        exit_code = ExitCode.CRITICAL
+    return (
+        exit_code,
+        f"{total} PCIe AER error(s) detected ({detail}).",
+    )
+
+
 @check_syslogs.command()
 @common_arguments
 @timeout_argument
@@ -198,64 +287,24 @@ def link_flaps(
 ) -> None:
     """Check system logs for error messages"""
 
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-
-    logger.info(
-        f"check_syslogs link_flaps: cluster: {cluster}, node: {node}, type: {type}"
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     if obj is None:
         obj = SyslogImpl(cluster, type, log_level, log_folder)
 
-    exit_code = ExitCode.UNKNOWN
-    msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.LINK_FLAP.value,
-                node=node,
-                get_exit_code_msg=lambda: (exit_code, msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type, HealthCheckName.LINK_FLAP, lambda: (exit_code, msg), verbose_out
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_link_flap():
-            exit_code = ExitCode.OK
-            msg = f"{HealthCheckName.LINK_FLAP.value} is disabled by killswitch."
-            logger.info(msg)
-            sys.exit(exit_code.value)
-
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.LINK_FLAP,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_link_flap(),
+    ) as rt:
         try:
             link_flap_output: ShellCommandOut = obj.get_link_flap_report(
-                Path(syslog_file), timeout, logger
+                Path(syslog_file), timeout, rt.logger
             )
         except Exception as e:
             link_flap_output = handle_subprocess_exception(e)
@@ -264,9 +313,7 @@ def link_flaps(
             link_flap_output.stdout,
             link_flap_output.returncode,
         )
-        logger.info(f"exit code {exit_code}: {msg}")
-
-    sys.exit(exit_code.value)
+        rt.finish(exit_code, msg)
 
 
 @check_syslogs.command()
@@ -290,61 +337,23 @@ def xid(
 ) -> None:
     """Check dmesg for Xid errors"""
 
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-
-    logger.info(f"check_syslogs xid: cluster: {cluster}, node: {node}, type: {type}")
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     if obj is None:
         obj = SyslogImpl(cluster, type, log_level, log_folder)
 
-    exit_code = ExitCode.UNKNOWN
-    msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.XID_ERRORS.value,
-                node=node,
-                get_exit_code_msg=lambda: (exit_code, msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type, HealthCheckName.XID_ERRORS, lambda: (exit_code, msg), verbose_out
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_xid_errors():
-            exit_code = ExitCode.OK
-            msg = f"{HealthCheckName.XID_ERRORS.value} is disabled by killswitch."
-            logger.info(msg)
-            sys.exit(exit_code.value)
-
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.XID_ERRORS,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_xid_errors(),
+    ) as rt:
         try:
-            xid_output: PipedShellCommandOut = obj.get_xid_report(timeout, logger)
+            xid_output: PipedShellCommandOut = obj.get_xid_report(timeout, rt.logger)
         except Exception as e:
             exc_out = handle_subprocess_exception(e)
             xid_output = PipedShellCommandOut([exc_out.returncode], exc_out.stdout)
@@ -353,9 +362,7 @@ def xid(
             xid_output.stdout,
             xid_output.returncode[0],
         )
-        logger.info(f"exit code {exit_code}: {msg}")
-
-    sys.exit(exit_code.value)
+        rt.finish(exit_code, msg)
 
 
 @check_syslogs.command()
@@ -379,64 +386,24 @@ def io_errors(
 ) -> None:
     """Check dmesg for IO errors"""
 
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-
-    logger.info(
-        f"check_syslogs io-errors: cluster: {cluster}, node: {node}, type: {type}"
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     if obj is None:
         obj = SyslogImpl(cluster, type, log_level, log_folder)
 
-    exit_code = ExitCode.UNKNOWN
-    msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.IO_ERRORS.value,
-                node=node,
-                get_exit_code_msg=lambda: (exit_code, msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type, HealthCheckName.IO_ERRORS, lambda: (exit_code, msg), verbose_out
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_io_errors():
-            exit_code = ExitCode.OK
-            msg = f"{HealthCheckName.IO_ERRORS.value} is disabled by killswitch."
-            logger.info(msg)
-            sys.exit(exit_code.value)
-
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.IO_ERRORS,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_io_errors(),
+    ) as rt:
         try:
             io_error_output: PipedShellCommandOut = obj.get_io_error_report(
-                timeout, logger
+                timeout, rt.logger
             )
         except Exception as e:
             exc_out = handle_subprocess_exception(e)
@@ -446,6 +413,104 @@ def io_errors(
             io_error_output.stdout,
             io_error_output.returncode[0],
         )
-        logger.info(f"exit code {exit_code}: {msg}")
+        rt.finish(exit_code, msg)
 
-    sys.exit(exit_code.value)
+
+@check_syslogs.command()
+@common_arguments
+@timeout_argument
+@telemetry_argument
+@heterogeneous_cluster_v1_option
+@click.pass_obj
+@typechecked
+def mce(
+    obj: Optional[Syslog],
+    cluster: str,
+    type: CHECK_TYPE,
+    log_level: LOG_LEVEL,
+    log_folder: str,
+    timeout: int,
+    sink: str,
+    sink_opts: Collection[str],
+    verbose_out: bool,
+    heterogeneous_cluster_v1: bool,
+) -> None:
+    """Check dmesg for Machine Check Exception (MCE) errors"""
+
+    if obj is None:
+        obj = SyslogImpl(cluster, type, log_level, log_folder)
+
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.MCE_ERRORS,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_mce_errors(),
+    ) as rt:
+        try:
+            mce_output: PipedShellCommandOut = obj.get_mce_report(timeout, rt.logger)
+        except Exception as e:
+            exc_out = handle_subprocess_exception(e)
+            mce_output = PipedShellCommandOut([exc_out.returncode], exc_out.stdout)
+
+        exit_code, msg = process_mce_output(
+            mce_output.stdout,
+            mce_output.returncode[0],
+        )
+        rt.finish(exit_code, msg)
+
+
+@check_syslogs.command()
+@common_arguments
+@timeout_argument
+@telemetry_argument
+@heterogeneous_cluster_v1_option
+@click.pass_obj
+@typechecked
+def pcie_aer(
+    obj: Optional[Syslog],
+    cluster: str,
+    type: CHECK_TYPE,
+    log_level: LOG_LEVEL,
+    log_folder: str,
+    timeout: int,
+    sink: str,
+    sink_opts: Collection[str],
+    verbose_out: bool,
+    heterogeneous_cluster_v1: bool,
+) -> None:
+    """Check dmesg for PCIe Advanced Error Reporting (AER) errors"""
+
+    if obj is None:
+        obj = SyslogImpl(cluster, type, log_level, log_folder)
+
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.PCIE_AER_ERRORS,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_pcie_aer_errors(),
+    ) as rt:
+        try:
+            pcie_aer_output: PipedShellCommandOut = obj.get_pcie_aer_report(
+                timeout, rt.logger
+            )
+        except Exception as e:
+            exc_out = handle_subprocess_exception(e)
+            pcie_aer_output = PipedShellCommandOut([exc_out.returncode], exc_out.stdout)
+
+        exit_code, msg = process_pcie_aer_output(
+            pcie_aer_output.stdout,
+            pcie_aer_output.returncode[0],
+        )
+        rt.finish(exit_code, msg)

@@ -2,7 +2,7 @@
 
 :::tip
 
-Exporters are shared between [GCM Monitoring](../../GCM_Monitoring/getting_started) and [GCM Health Checks](../../GCM_Health_Checks/getting_started).
+Exporters are shared between [GCM Monitoring](../../GCM_Monitoring/getting_started.md) and [GCM Health Checks](../getting_started.md).
 
 :::
 
@@ -25,6 +25,7 @@ GCM includes several built-in exporters for different use cases:
 | [Graph API](graph_api.md) | `graph_api` | Meta's internal backends |
 | [OpenTelemetry](otel.md) | `otel` | OTLP-compatible backends |
 | [Stdout](stdout.md) | `stdout` | Terminal output |
+| [Webhook](webhook.md) | `webhook` | HTTP endpoint forwarding |
 
 ## Plugin System
 

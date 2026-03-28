@@ -35,6 +35,7 @@ from gcm.schemas.slurm.sinfo_node import SinfoNode
 from gcm.schemas.slurm.sinfo_row import SinfoRow
 from gcm.schemas.slurm.sprio import SPRIO_FORMAT_SPEC, SPRIO_HEADER
 from gcm.schemas.slurm.squeue import JOB_DATA_SLURM_FIELDS, JobData
+from gcm.schemas.slurm.sshare import SshareRow
 
 if TYPE_CHECKING:
     from _typeshed import DataclassInstance
@@ -130,6 +131,17 @@ class SlurmClient(Protocol):
         Lines should not have a trailing newline.
         If an error occurs during execution, RuntimeError should be raised.
         """
+
+    def sshare(self) -> Iterable[str]:
+        """Get lines of sshare output showing fair-share data.
+        Each line should be pipe separated.
+        The first line defines the fieldnames. The rest are the rows.
+        Lines should not have a trailing newline.
+        If an error occurs during execution, RuntimeError should be raised.
+        """
+
+    def sshare_structured(self) -> Iterable[SshareRow]:
+        """Get fair-share data as structured SshareRow instances."""
 
 
 class SlurmCliClient(SlurmClient):
@@ -405,4 +417,13 @@ class SlurmCliClient(SlurmClient):
         yield SPRIO_HEADER
         yield from _gen_lines(
             self.__popen(["sprio", "-h", "--sort=r,-y", "-o", SPRIO_FORMAT_SPEC])
+        )
+
+    def sshare(self) -> Iterable[str]:
+        return _gen_lines(self.__popen(["sshare", "-a", "-P"]))
+
+    def sshare_structured(self) -> Iterable[SshareRow]:
+        raise NotImplementedError(
+            "sshare_structured is not yet implemented for SlurmCliClient; "
+            "use SlurmRestClient"
         )

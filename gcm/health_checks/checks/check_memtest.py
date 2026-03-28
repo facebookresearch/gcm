@@ -3,18 +3,12 @@
 import logging
 import os
 import pathlib
-import socket
-import sys
 from concurrent.futures import as_completed, ThreadPoolExecutor
-from contextlib import ExitStack
 from shlex import join
 from typing import Callable, Collection, Dict, List, Literal, Optional, Tuple
 
 import click
-
-import gni_lib
-from gcm.health_checks.check_utils.output_context_manager import OutputContext
-from gcm.health_checks.check_utils.telem import TelemetryContext
+from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
 from gcm.health_checks.click import (
     common_arguments,
     telemetry_argument,
@@ -28,12 +22,9 @@ from gcm.health_checks.subprocess import (
 )
 from gcm.health_checks.types import CHECK_TYPE, ExitCode
 from gcm.monitoring.click import heterogeneous_cluster_v1_option
-
 from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import (
     FeatureValueHealthChecksFeatures,
 )
-from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
-from gcm.monitoring.utils.monitor import init_logger
 from gcm.schemas.health_check.health_check_name import HealthCheckName
 from typeguard import typechecked
 
@@ -145,63 +136,20 @@ def memtest(
     gpu_devices: Collection[int],
 ) -> None:
     """Check to make sure a memory block of specified size can be allocated."""
-    node: str = socket.gethostname()
-
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-    logger.info(f"cuda check_memtest: cluster: {cluster}, node: {node}, type: {type}")
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     run_memtest: FnCudaMemTest = default_cuda_memtest if obj is None else obj
-    exit_codes = []
-    overall_exit_code = ExitCode.UNKNOWN
-    overall_msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.CUDA_MEMTEST.value,
-                node=node,
-                get_exit_code_msg=lambda: (overall_exit_code, overall_msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type,
-                HealthCheckName.CUDA_MEMTEST,
-                lambda: (overall_exit_code, overall_msg),
-                verbose_out,
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_cuda_memtest():
-            overall_exit_code = ExitCode.OK
-            overall_msg = (
-                f"{HealthCheckName.CUDA_MEMTEST.value} is disabled by killswitch."
-            )
-            logger.info(overall_msg)
-            sys.exit(overall_exit_code.value)
 
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.CUDA_MEMTEST,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_cuda_memtest(),
+    ) as rt:
         devices = []
         if len(gpu_devices):
             devices = list(gpu_devices)
@@ -216,6 +164,9 @@ def memtest(
                 else:
                     devices = [int(device) for device in devices_env.split(",")]
 
+        exit_codes = []
+        overall_exit_code = ExitCode.UNKNOWN
+        overall_msg = ""
         with EnvCtx({"CUDA_VISIBLE_DEVICES": None}):
             exit_code = ExitCode.UNKNOWN
             device_messages = ["Running cuda memory test in parallel."]
@@ -224,10 +175,10 @@ def memtest(
                 devices,
                 size,
                 timeout,
-                logger,
+                rt.logger,
                 run_memtest,
             )
-            logger.debug(f"Cuda memory test results for {len(results)} devices: \n")
+            rt.logger.debug(f"Cuda memory test results for {len(results)} devices: \n")
             for device_id, full_result in results.items():
                 result, exit_code = full_result
                 device_msg = ""
@@ -249,5 +200,4 @@ def memtest(
             overall_msg += "\nCUDA memory test failed to execute"
 
         overall_msg += "\n" + "\n".join(device_messages)
-        logger.info(f"exit code {overall_exit_code}: {overall_msg}")
-        sys.exit(overall_exit_code.value)
+        rt.finish(overall_exit_code, overall_msg)

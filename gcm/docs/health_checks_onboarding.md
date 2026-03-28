@@ -126,7 +126,7 @@ The next code snippet shows the beginning of the check. This boiler plate code i
     if obj is None: # <-- during normal invocation this is None. It is not None when called from our unit tests.
         obj = StorageCheckImpl(cluster, type, log_level, log_folder)
 
-    overall_exit_code = ExitCode.UNKNOW # <-- initialize the exit code and messages to be returned
+    overall_exit_code = ExitCode.UNKNOWN # <-- initialize the exit code and messages to be returned
     overall_msg = ""
 ```
 

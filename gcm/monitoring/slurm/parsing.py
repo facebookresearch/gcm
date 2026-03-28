@@ -1,5 +1,6 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
+import logging
 import re
 import string
 from datetime import timedelta
@@ -15,6 +16,8 @@ from gcm.monitoring.utils.parsing.combinators import (
     discard_result,
     first_of,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def parse_cpus_alloc(v: str) -> int:
@@ -75,6 +78,48 @@ def parse_gres_or_tres(v: str) -> int:
         return parse_tres(v)
 
 
+def mb_to_bytes(value: int) -> int:
+    """Convert megabytes to bytes."""
+    return value * 1_000_000
+
+
+def parse_memory_to_bytes(value: str) -> int:
+    """Parse a memory value to bytes.
+
+    Handles plain integers (assumed MB, Slurm default) and suffixed
+    strings (M, G, T, P). This is the single robust entry point for
+    all memory parsing.
+    """
+    if not value or value == "0":
+        return 0
+
+    suffix = value[-1]
+    if suffix.isdigit():
+        # Plain integer = MB (Slurm default unit)
+        return int(value) * 1_000_000
+
+    multipliers = {
+        "M": 1_000_000,
+        "G": 1_000_000_000,
+        "T": 1_000_000_000_000,
+        "P": 1_000_000_000_000_000,
+    }
+    if suffix not in multipliers:
+        raise ValueError(f"Unrecognized suffix in {value}")
+    return int(float(value[:-1]) * multipliers[suffix])
+
+
+def maybe_parse_memory_to_bytes(v: str) -> int | None:
+    """Parse memory to bytes, returning None for non-parseable values (N/A, empty, etc)."""
+    if not v or v in {"N/A", "(null)"}:
+        return None
+    try:
+        return parse_memory_to_bytes(v)
+    except (ValueError, TypeError):
+        logger.error(f"Failed to parse memory value: {v!r}")
+        return None
+
+
 def convert_memory_to_mb(value: str) -> int:
     """Helper function to convert memory values with units to MB.
 
@@ -89,7 +134,8 @@ def convert_memory_to_mb(value: str) -> int:
 
     suffix = value[-1]
     if suffix.isdigit():
-        return int(int(value) * 1e-6)
+        # Plain integer = MB (Slurm default unit)
+        return int(value)
 
     if suffix == "P":
         multiplier = 1_000_000_000

@@ -79,6 +79,9 @@ class FakeHealthCheckGraphAPI(SinkImpl):
     def write(self, data: Log, additional_params: SinkAdditionalParams) -> None:
         raise RuntimeError("Mocked error")
 
+    def shutdown(self) -> None:
+        pass
+
 
 def test_telemetry_exception_not_affecting_check_output(
     tmp_path: Path,

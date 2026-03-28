@@ -1,0 +1,8 @@
+[
+  {"Account": "root", "User": "", "RawShares": "1", "NormShares": "1.000000", "RawUsage": "123456789", "NormUsage": "1.000000", "EffectvUsage": "1.000000", "FairShare": "0.000000", "GrpTRESMins": "", "TRESRunMins": ""},
+  {"Account": "research", "User": "", "RawShares": "100", "NormShares": "0.500000", "RawUsage": "50000000", "NormUsage": "0.404858", "EffectvUsage": "0.404858", "FairShare": "0.500000", "GrpTRESMins": "", "TRESRunMins": ""},
+  {"Account": "research", "User": "alice", "RawShares": "100", "NormShares": "0.200000", "RawUsage": "10000000", "NormUsage": "0.200000", "EffectvUsage": "0.200000", "FairShare": "0.600000", "GrpTRESMins": "", "TRESRunMins": "cpu=500,gres/gpu=200"},
+  {"Account": "research", "User": "bob", "RawShares": "100", "NormShares": "0.200000", "RawUsage": "20000000", "NormUsage": "0.400000", "EffectvUsage": "0.400000", "FairShare": "0.400000", "GrpTRESMins": "", "TRESRunMins": "cpu=1000,gres/gpu=400"},
+  {"Account": "training", "User": "", "RawShares": "100", "NormShares": "0.500000", "RawUsage": "73456789", "NormUsage": "0.595142", "EffectvUsage": "0.595142", "FairShare": "0.500000", "GrpTRESMins": "", "TRESRunMins": ""},
+  {"Account": "training", "User": "carol", "RawShares": "50", "NormShares": "0.100000", "RawUsage": "30000000", "NormUsage": "0.408163", "EffectvUsage": "0.408163", "FairShare": "0.300000", "GrpTRESMins": "", "TRESRunMins": "cpu=2000,gres/gpu=800"}
+]

@@ -19,6 +19,10 @@ We welcome contributions in the form of:
 - [Issues and feature requests](https://github.com/facebookresearch/gcm/issues)
 - [Pull requests](https://github.com/facebookresearch/gcm/pulls)
 
+## RFCs
+
+For major architectural changes or design decisions, please open an RFC before submitting a pull request. Use the [RFC issue template](https://github.com/facebookresearch/gcm/issues/new?template=rfc.yml) to start a discussion. You can also browse [previous RFCs](https://github.com/facebookresearch/gcm/issues?q=label%3ARFC+sort%3Aupdated-desc) for reference.
+
 ## Pull Requests
 
 1. Fork the repo and create your feature branch from `main`

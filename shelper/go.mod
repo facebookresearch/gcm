@@ -1,4 +1,4 @@
-module github.com/fairinternal/fair-cluster-monitoring/shelper
+module github.com/facebookresearch/gcm/shelper
 
 go 1.24.3
 

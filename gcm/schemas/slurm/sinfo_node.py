@@ -2,8 +2,8 @@
 # All rights reserved.
 from dataclasses import dataclass
 
-from gcm.monitoring.coerce import maybe_int
 from gcm.monitoring.slurm.parsing import (
+    maybe_parse_memory_to_bytes,
     parse_cpus_alloc,
     parse_cpus_idle,
     parse_cpus_other,
@@ -38,8 +38,8 @@ class NodeData(DerivedCluster):
     CPUS_IDLE: int = parsed_field(parser=parse_cpus_idle, field_name="CPUS(A/I/O/T)")
     CPUS_OTHER: int = parsed_field(parser=parse_cpus_other, field_name="CPUS(A/I/O/T)")
     CPUS_TOTAL: int = parsed_field(parser=parse_cpus_total, field_name="CPUS(A/I/O/T)")
-    FREE_MEM: int | None = parsed_field(parser=maybe_int)
-    MEMORY: int | None = parsed_field(parser=maybe_int)
+    FREE_MEM: int | None = parsed_field(parser=maybe_parse_memory_to_bytes)
+    MEMORY: int | None = parsed_field(parser=maybe_parse_memory_to_bytes)
     NUM_GPUS: int = parsed_field(parser=parse_gres, field_name="GRES")
     USER: str = parsed_field(parser=str)
     REASON: str = parsed_field(parser=str)

@@ -3,7 +3,7 @@
 import json
 from importlib import resources
 from importlib.resources import as_file, files
-from typing import Generator
+from typing import Any, Generator
 from unittest.mock import Mock
 
 import pytest
@@ -14,7 +14,6 @@ from gcm.schemas.log import Log
 from gcm.schemas.slurm.sprio import SprioPayload, SprioRow
 from gcm.tests import data
 from gcm.tests.fakes import FakeClock
-
 
 TEST_CLUSTER = "test_cluster"
 TEST_DS = "test_ds"
@@ -29,13 +28,13 @@ class FakeSlurmClient(SlurmCliClient):
 
 
 @pytest.fixture(scope="module")
-def dataset_contents() -> list[dict[str, str | float]]:
+def dataset_contents() -> list[dict[str, Any]]:
     dataset = "sample-sprio-expected.json"
     with as_file(files(data).joinpath(dataset)) as path:
         return json.load(path.open())
 
 
-def test_collect_sprio(dataset_contents: list[dict[str, str | float]]) -> None:
+def test_collect_sprio(dataset_contents: list[dict[str, Any]]) -> None:
     sink_impl = Mock()
 
     data_result = collect_sprio(
