@@ -60,7 +60,9 @@ jobs:
         uses: luccabb/claude-code-action@7f39722b8a782471258f32e1d5a9a531b2b68056
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          model: "claude-opus-4-6"
+          claude_args: "--model claude-opus-4-6"
+          additional_permissions: |
+            actions: read
 
           # Optional: Customize the trigger phrase (default: @claude)
           # trigger_phrase: "/claude"
