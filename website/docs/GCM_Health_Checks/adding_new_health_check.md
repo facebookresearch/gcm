@@ -8,6 +8,26 @@ GCM Health Checks are designed to be easily extensible. Each check follows the s
 
 For a deep dive into the boilerplate and annotated code examples, see the [Deep Dive](health_checks_deep_dive.md).
 
+## Quick Start with Scaffold Tool
+
+Generate all required files and registrations automatically:
+
+```bash
+python bin/create_new_health_check.py check_my_check
+```
+
+For a grouped check (multiple sub-commands):
+```bash
+python bin/create_new_health_check.py check_my_check --group
+```
+
+Preview changes without modifying files:
+```bash
+python bin/create_new_health_check.py check_my_check --dry-run
+```
+
+The tool creates the check file, test file, and documentation stub, registers the check in all required locations, and automatically runs `generate_features.py` and `ufmt format gcm`. You still need to implement the actual check logic (steps 2-4), write real tests (step 7), fill in the documentation (step 8), add your check to `test_killswitches.py` (step 6), and run verification (step 9).
+
 ## 1. Create the check file
 
 Create a new file under [`gcm/health_checks/checks/`](https://github.com/facebookresearch/gcm/tree/main/gcm/health_checks/checks). The naming convention is `check_<name>.py`.
@@ -354,3 +374,4 @@ nox -s typecheck # mypy type checking
 | Telemetry context | [`gcm/health_checks/check_utils/telem.py`](https://github.com/facebookresearch/gcm/blob/main/gcm/health_checks/check_utils/telem.py) |
 | Deep dive | [Health Checks Deep Dive](health_checks_deep_dive.md) |
 | Killswitch tests | [`gcm/tests/health_checks_tests/test_killswitches.py`](https://github.com/facebookresearch/gcm/blob/main/gcm/tests/health_checks_tests/test_killswitches.py) |
+| Scaffold tool | [`bin/create_new_health_check.py`](https://github.com/facebookresearch/gcm/blob/main/bin/create_new_health_check.py) |

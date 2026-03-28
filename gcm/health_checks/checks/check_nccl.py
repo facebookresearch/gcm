@@ -2,12 +2,8 @@
 # All rights reserved.
 import itertools
 import logging
-
-import os
 import re
 import socket
-import sys
-from contextlib import ExitStack
 from dataclasses import dataclass
 from typing import (
     Any,
@@ -22,10 +18,7 @@ from typing import (
 )
 
 import click
-
-import gni_lib
-from gcm.health_checks.check_utils.output_context_manager import OutputContext
-from gcm.health_checks.check_utils.telem import TelemetryContext
+from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
 from gcm.health_checks.click import (
     common_arguments,
     telemetry_argument,
@@ -38,13 +31,10 @@ from gcm.health_checks.subprocess import (
 )
 from gcm.health_checks.types import CHECK_TYPE, ExitCode, LOG_LEVEL
 from gcm.monitoring.click import heterogeneous_cluster_v1_option
-
 from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import (
     FeatureValueHealthChecksFeatures,
 )
-from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
 from gcm.monitoring.slurm.nodelist_parsers import nodelist
-from gcm.monitoring.utils.monitor import init_logger
 from gcm.schemas.health_check.health_check_name import HealthCheckName
 
 FnShellCommand = Callable[[str, int], ShellCommandOut]
@@ -333,34 +323,10 @@ def check_nccl(
     Run NCCL tests to check both the performance and the correctness of NCCL operations.
     """
 
-    node: str = socket.gethostname()
-
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-
-    logger.info(f"check_nccl: cluster: {cluster}, node: {node}, type: {type}")
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     # TODO T140440592: include external binaries within this package
     # Currently, we assume that the user either has mpirun installed or
     # they should pass in the path to the binary
     mpirun_cmd = ["mpirun" if not mpi_binpath else mpi_binpath]
-
-    hosts: List[Tuple[str, ...]] = get_hosts(flavor, hostlist, logger, timeout)
 
     cmd_args: List[str] = [
         "--np",
@@ -387,35 +353,21 @@ def check_nccl(
     if runner is None:
         runner = shell_command
 
-    outputs: List[NCCLTestProcessedOutput] = []
-    exit_code = ExitCode.UNKNOWN
-    msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.NCCL_TESTS.value,
-                node=node,
-                get_exit_code_msg=lambda: (exit_code, msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type, HealthCheckName.NCCL_TESTS, lambda: (exit_code, msg), verbose_out
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_nccl_tests():
-            exit_code = ExitCode.OK
-            msg = f"{HealthCheckName.NCCL_TESTS.value} is disabled by killswitch."
-            logger.info(msg)
-            sys.exit(exit_code.value)
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.NCCL_TESTS,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_nccl_tests(),
+    ) as rt:
+        hosts: List[Tuple[str, ...]] = get_hosts(flavor, hostlist, rt.logger, timeout)
+        outputs: List[NCCLTestProcessedOutput] = []
+
         for host in hosts:
             for op in operations:
                 op_bin = nccl_tdir.rstrip("/") + "/" + op + "_perf"
@@ -426,7 +378,7 @@ def check_nccl(
                 cmd = mpirun_cmd + host_arg + cmd_args + [op_bin, nccl_topts]
                 cmd_str = " ".join(cmd)
 
-                logger.info(f"Running command '{cmd_str}'")
+                rt.logger.info(f"Running command '{cmd_str}'")
                 try:
                     output: ShellCommandOut = runner(cmd_str, timeout)
                 except Exception as e:
@@ -435,9 +387,9 @@ def check_nccl(
                 processed_output: NCCLTestProcessedOutput = process_nccl_test_ouput(
                     output, op, critical_threshold, warn_threshold
                 )
-                msg = f"Exit Code {processed_output.exitcode.value}: {processed_output.message}"
-                logger.info(msg)
-                logger.info(f"Output:\n{processed_output.stdout}")
+                msg = processed_output.message
+                rt.logger.info(msg)
+                rt.logger.info(f"Output:\n{processed_output.stdout}")
                 print(processed_output.stdout)
 
                 outputs += [processed_output]
@@ -449,4 +401,4 @@ def check_nccl(
         else:
             exit_code = ExitCode.OK
 
-        sys.exit(exit_code.value)
+        rt.finish(exit_code, msg)
