@@ -28,7 +28,6 @@ from gcm.schemas.slurm.sinfo_cpus_gpus import SinfoCpusGpus
 from gcm.schemas.slurm.sinfo_node_states import SinfoNodeStates
 from gcm.schemas.slurm.slurm_log import SLURMLogAccountMetrics
 
-
 LOGGER_NAME = "slurm.sinfo"
 log_error = error.log_error(logger_name=LOGGER_NAME)
 

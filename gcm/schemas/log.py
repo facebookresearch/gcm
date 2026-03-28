@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable, TYPE_CHECKING
 
-
 if TYPE_CHECKING:
     from _typeshed import DataclassInstance
 

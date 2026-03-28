@@ -2,6 +2,7 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 """Write datapoints to ODS via GraphQL."""
+
 from __future__ import annotations
 
 import json

@@ -20,7 +20,7 @@ Health checks are organized into the following categories:
 | [check-ipmitool](check-ipmitool.md) | Hardware | System Event Log (SEL) analysis for hardware errors |
 | [check-nccl](check-nccl.md) | GPU | NCCL collective operation performance testing |
 | [check-node](check-node) | System | Node uptime, kernel modules, and package repositories |
-| [check-nvidia-smi](check-nvidia-smi) | GPU | Comprehensive GPU health validation via NVML |
+| [check-nvidia-smi](check-nvidia-smi) | GPU | Comprehensive GPU health validation via NVML (including clock policy drift checks) |
 | [check-pci](check-pci.md) | Hardware | PCI device presence and PCIe link validation |
 | [check-process](check-process) | Process | Process existence and state validation |
 | [check-processor](check-processor) | CPU | CPU/processor configuration validation |

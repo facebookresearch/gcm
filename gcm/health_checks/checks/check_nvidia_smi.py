@@ -20,7 +20,6 @@ from typing import (
 )
 
 import click
-
 import gni_lib
 import psutil
 from gcm.health_checks.check_utils.output_context_manager import OutputContext
@@ -34,7 +33,6 @@ from gcm.health_checks.env_variables import EnvCtx
 from gcm.health_checks.measurement_units import convert_bytes
 from gcm.health_checks.types import CHECK_TYPE, CheckEnv, ExitCode
 from gcm.monitoring.click import heterogeneous_cluster_v1_option
-
 from gcm.monitoring.device_telemetry_client import (
     DeviceTelemetryClient,
     DeviceTelemetryException,
@@ -45,6 +43,7 @@ from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import 
 )
 from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
 from gcm.monitoring.utils.monitor import init_logger
+from gcm.schemas.gpu.application_clock_policy import ClockPolicy, evaluate_clock_policy
 from gcm.schemas.gpu.process import ProcessInfo
 from gcm.schemas.health_check.health_check_name import HealthCheckName
 from typeguard import typechecked
@@ -181,7 +180,7 @@ def kill_processes(
 
     # Wait for them to terminate (up to 'timeout' seconds)
     gone, alive = psutil.wait_procs(procs, timeout=timeout)
-    (_, exit_code, msg) = attempt_check_running_procs(
+    _, exit_code, msg = attempt_check_running_procs(
         attempt, devices, msg, device_telemetry
     )
 
@@ -221,7 +220,7 @@ def check_and_kill_running_procs(
         # This will restore the environment variable on exit
         with EnvCtx({"CUDA_VISIBLE_DEVICES": None}):
             for attempt in range(retry_count):
-                (pids, attempt_exit_code, msg) = attempt_check_running_procs(
+                pids, attempt_exit_code, msg = attempt_check_running_procs(
                     attempt, devices, msg, device_telemetry
                 )
                 if attempt_exit_code == ExitCode.OK:
@@ -235,7 +234,7 @@ def check_and_kill_running_procs(
         if force_kill_process and pids:
             proc_pids = [p_id.pid for p_id in pids]
             msg += f"running_procs check: force killed pids: {proc_pids}\n"
-            (is_killed, msg) = kill_processes(
+            is_killed, msg = kill_processes(
                 proc_pids, retry_count, devices, msg, device_telemetry
             )
             if is_killed:
@@ -293,6 +292,76 @@ def check_app_clock_freq(
 
     if exit_code == ExitCode.OK:
         msg = f"clock_freq check: exit_code: {ExitCode.OK}, Application frequencies are as expected.\n"
+    return exit_code, msg
+
+
+def check_clock_policy(
+    device_telemetry: DeviceTelemetryClient,
+    expected_graphics_freq: int,
+    expected_memory_freq: int,
+    warn_delta_mhz: int,
+    critical_delta_mhz: int,
+    logger: logging.Logger,
+) -> Tuple[ExitCode, str]:
+    """Validate per-GPU application clocks against a target policy."""
+    ff = FeatureValueHealthChecksFeatures()
+    if ff.get_healthchecksfeatures_disable_nvidia_smi_clock_policy():
+        msg = f"{HealthCheckName.NVIDIA_SMI_CLOCK_POLICY.value} is disabled by killswitch."
+        logger.info(msg)
+        return ExitCode.OK, msg
+
+    policy = ClockPolicy(
+        expected_graphics_freq=expected_graphics_freq,
+        expected_memory_freq=expected_memory_freq,
+        warn_delta_mhz=warn_delta_mhz,
+        critical_delta_mhz=critical_delta_mhz,
+    )
+
+    exit_code = ExitCode.UNKNOWN
+    msg = ""
+
+    try:
+        device_count = device_telemetry.get_device_count()
+    except DeviceTelemetryException as e:
+        return handle_device_telemetry_exception(e)
+
+    if device_count == 0:
+        return ExitCode.WARN, "clock_policy check: No GPUs were detected on this host."
+
+    has_observation = False
+    for device in range(device_count):
+        try:
+            handle = device_telemetry.get_device_by_index(device)
+            observed = handle.get_clock_freq()
+        except DeviceTelemetryException as e:
+            error_code, error_msg = handle_device_telemetry_exception(e)
+            if error_code > exit_code:
+                exit_code = error_code
+            msg += f"clock_policy check: GPU {device}: {error_msg}"
+            continue
+
+        has_observation = True
+        result = evaluate_clock_policy(observed, policy)
+        if result.severity > exit_code:
+            exit_code = result.severity
+
+        msg += (
+            "clock_policy check: "
+            f"GPU {device}, severity={result.severity.name}, "
+            f"expected=(graphics:{policy.expected_graphics_freq}, memory:{policy.expected_memory_freq}), "
+            f"observed=(graphics:{result.observed.graphics_freq}, memory:{result.observed.memory_freq}), "
+            f"delta_mhz=(graphics:{result.graphics_delta_mhz}, memory:{result.memory_delta_mhz})\n"
+        )
+
+    if not has_observation and exit_code == ExitCode.UNKNOWN:
+        return (
+            ExitCode.WARN,
+            "clock_policy check: No GPU clock observations were collected.",
+        )
+
+    if exit_code == ExitCode.UNKNOWN:
+        exit_code = ExitCode.OK
+
     return exit_code, msg
 
 
@@ -693,6 +762,7 @@ class TemperatureRequiredOption(click.Option):
             "running_procs_and_kill",
             "clock_freq",
             "gpu_temperature",
+            "clock_policy",
             "gpu_mem_usage",
             "gpu_retired_pages",
             "ecc_uncorrected_volatile_total",
@@ -710,15 +780,33 @@ class TemperatureRequiredOption(click.Option):
 @click.option("--gpu_num", type=click.INT, default=8)
 @click.option(
     "--gpu_app_freq",
-    type=click.INT,
+    "--expected-graphics-freq",
+    type=click.IntRange(min=0),
     default=1155,
-    help="Select what the GPU application frequency should be (MHz).",
+    show_default=True,
+    help="Expected GPU graphics application clock frequency (MHz).",
 )
 @click.option(
     "--gpu_app_mem_freq",
-    type=click.INT,
+    "--expected-memory-freq",
+    type=click.IntRange(min=0),
     default=1593,
-    help="Select what the GPU memory application frequency should be (MHz).",
+    show_default=True,
+    help="Expected GPU memory application clock frequency (MHz).",
+)
+@click.option(
+    "--warn-delta-mhz",
+    type=click.IntRange(min=0),
+    default=30,
+    show_default=True,
+    help="Warn if absolute drift from policy exceeds this many MHz.",
+)
+@click.option(
+    "--critical-delta-mhz",
+    type=click.IntRange(min=0),
+    default=75,
+    show_default=True,
+    help="Critical if absolute drift from policy exceeds this many MHz.",
 )
 @click.option(
     "--gpu_temperature_threshold",
@@ -791,6 +879,8 @@ def check_nvidia_smi(
     gpu_num: int,
     gpu_app_freq: int,
     gpu_app_mem_freq: int,
+    warn_delta_mhz: int,
+    critical_delta_mhz: int,
     gpu_temperature_threshold: Optional[int],
     gpu_mem_usage_threshold: int,
     gpu_retired_pages_threshold: int,
@@ -828,6 +918,12 @@ def check_nvidia_smi(
 
     if obj is None:
         obj = NvidiaSmiCliImpl(cluster, type, log_level, log_folder)
+
+    if "clock_policy" in check and critical_delta_mhz < warn_delta_mhz:
+        raise click.BadParameter(
+            "critical-delta-mhz must be greater than or equal to warn-delta-mhz",
+            param_hint="--critical-delta-mhz",
+        )
 
     overall_exit_code = ExitCode.UNKNOWN
     overall_msg = ""
@@ -875,6 +971,18 @@ def check_nvidia_smi(
             HealthCheckName.NVIDIA_SMI_CLOCK_FREQ,
             lambda: check_app_clock_freq(
                 device_telemetry, gpu_app_freq, gpu_app_mem_freq, logger
+            ),
+        ),
+        (
+            "clock_policy",
+            HealthCheckName.NVIDIA_SMI_CLOCK_POLICY,
+            lambda: check_clock_policy(
+                device_telemetry,
+                gpu_app_freq,
+                gpu_app_mem_freq,
+                warn_delta_mhz,
+                critical_delta_mhz,
+                logger,
             ),
         ),
         (

@@ -3,7 +3,6 @@
   "position": 4,
   "link": {
     "type": "generated-index",
-    "title": "Getting Started",
-    "slug": "/GCM_GPU_Metrics/getting_started"
+    "slug": "GCM_GPU_Metrics"
   }
 }

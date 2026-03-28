@@ -5,22 +5,14 @@
 import enum
 import logging
 import re
-import socket
-import sys
 from collections.abc import Collection
-from contextlib import ExitStack
 from dataclasses import dataclass
-from pathlib import Path
 from subprocess import SubprocessError
 from typing import Optional, Protocol
 
 import click
-
-import gni_lib
-
-from gcm.health_checks.check_utils.output_context_manager import OutputContext
 from gcm.health_checks.check_utils.output_utils import CheckOutput
-from gcm.health_checks.check_utils.telem import TelemetryContext
+from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
 from gcm.health_checks.click import (
     common_arguments,
     telemetry_argument,
@@ -36,8 +28,6 @@ from gcm.monitoring.click import heterogeneous_cluster_v1_option
 from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import (
     FeatureValueHealthChecksFeatures,
 )
-from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
-from gcm.monitoring.utils.monitor import init_logger
 from gcm.schemas.health_check.health_check_name import HealthCheckName
 from typeguard import typechecked
 
@@ -235,76 +225,25 @@ def check_sensors(
     heterogeneous_cluster_v1: bool,
 ) -> None:
     """Invoke ipmi-sensors and return the output."""
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=str(Path(log_folder) / type / "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-    logger.info(
-        "check-sensors: cluster: %s, node: %s, type: %s",
-        cluster,
-        node,
-        type,
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     if not obj:
         obj = SensorsCheckImpl(cluster, type, log_level, log_folder)
 
-    exit_code = ExitCode.UNKNOWN
-    msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.CHECK_SENSORS.value,
-                node=node,
-                get_exit_code_msg=lambda: (exit_code, msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type,
-                HealthCheckName.CHECK_SENSORS,
-                lambda: (exit_code, msg),
-                verbose_out,
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_check_sensors():
-            exit_code = ExitCode.OK
-            logger.info(
-                "%s is disabled by killswitch",
-                HealthCheckName.CHECK_SENSORS.value,
-            )
-            sys.exit(exit_code.value)
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.CHECK_SENSORS,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_check_sensors(),
+    ) as rt:
         try:
-            sensors_out: ShellCommandOut = obj.get_sensors(timeout, logger)
+            sensors_out: ShellCommandOut = obj.get_sensors(timeout, rt.logger)
         except SubprocessError as e:
             sensors_out = handle_subprocess_exception(e)
 
         check = process_sensors_out(sensors_out.stdout, sensors_out.returncode)
-        exit_code = check.check_status
-        msg = str(check)
-
-        logger.info("exit code %d: %s", check.check_status.value, check)
-
-        sys.exit(exit_code.value)
+        rt.finish(check.check_status, str(check))

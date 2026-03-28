@@ -156,8 +156,10 @@ class IteratorFakeGPUDevice:
     power_limit: int
     retired_pages_double_bit_ecc_error: List[int]
     retired_pages_multiple_single_bit_ecc_errors: List[int]
-    application_clock_info: ApplicationClockInfo = ApplicationClockInfo(
-        graphics_freq=1155, memory_freq=1593
+    application_clock_info: ApplicationClockInfo = field(
+        default_factory=lambda: ApplicationClockInfo(
+            graphics_freq=1155, memory_freq=1593
+        )
     )
 
     def get_compute_processes(self) -> List[ProcessInfo]:

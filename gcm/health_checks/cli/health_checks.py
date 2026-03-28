@@ -11,7 +11,6 @@ import click
 from gcm._version import __version__
 from gcm.health_checks import checks
 from gcm.health_checks.click import DEFAULT_CONFIG_PATH
-
 from gcm.monitoring.click import (
     DaemonGroup,
     detach_option,

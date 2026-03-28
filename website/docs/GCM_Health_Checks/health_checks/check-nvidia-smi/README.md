@@ -7,6 +7,7 @@ Comprehensive GPU health validation using NVIDIA's NVML (NVIDIA Management Libra
 | Check | Purpose | Key Feature |
 |-------|---------|-------------|
 | [clock_freq](./clock_freq.md) | Clock frequency validation | Ensure GPU/memory clocks meet minimums |
+| [clock_policy](./clock_policy.md) | Clock policy drift detection | Validate expected clocks with WARN/CRITICAL drift thresholds |
 | [ecc_corrected_volatile_total](./ecc_corrected_volatile_total.md) | Corrected ECC errors | Monitor corrected error accumulation |
 | [ecc_uncorrected_volatile_total](./ecc_uncorrected_volatile_total.md) | Uncorrected ECC errors | Validate uncorrected error counts |
 | [gpu_mem_usage](./gpu_mem_usage.md) | Memory usage check | Verify GPU memory usage below limit |

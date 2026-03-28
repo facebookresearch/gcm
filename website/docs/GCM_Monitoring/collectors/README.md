@@ -16,6 +16,8 @@ This directory contains documentation for all GCM monitoring collectors. Collect
 - **[scontrol_config](scontrol_config.md)** - Collects cluster-wide configuration
 - **[slurm_job_monitor](slurm_job_monitor.md)** - Real-time node and job monitoring
 - **[slurm_monitor](slurm_monitor.md)** - Comprehensive cluster-wide metrics aggregation
+- **[sprio](sprio.md)** - Collects job priority factors for pending jobs
+- **[sshare](sshare.md)** - Collects fair-share scheduling data
 
 ## Common Concepts
 
@@ -25,7 +27,7 @@ Collectors support pluggable sinks via the `--sink` and `--sink-opts` options:
 - `stdout`: Console output
 - `otel`: OTLP-compatible backends
 
-Check out [Exporters](../exporters).
+Check out [Exporters](../exporters/README.md).
 
 ### Common CLI Options
 All collectors share these standard options:

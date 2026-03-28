@@ -26,6 +26,7 @@ disable_service_status = true
 disable_package_version = true
 disable_nccl_tests = true
 disable_nvidia_smi = false
+disable_nvidia_smi_clock_policy = true
 disable_nvidia_smi_gpu_num = true
 disable_nvidia_smi_clock_freq = true
 disable_nvidia_smi_running_procs = true

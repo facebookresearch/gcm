@@ -58,7 +58,7 @@ def otel_log_init(
 
 def otel_metric_init(
     resource_attributes: Optional[DictConfig], otel_endpoint: str, otel_timeout: int
-) -> Meter:
+) -> tuple[Meter, MeterProvider]:
     resource_attrs_dict: Dict[str, Any] = cast(
         Dict[str, Any],
         (
@@ -77,7 +77,7 @@ def otel_metric_init(
         exporter, export_interval_millis=60000, export_timeout_millis=5000
     )
     meter_provider = MeterProvider(resource=resource, metric_readers=[reader])
-    return meter_provider.get_meter("gcm-meter")
+    return meter_provider.get_meter("gcm-meter"), meter_provider
 
 
 def get_otel_endpoint(otel_endpoint: Optional[str]) -> str:
@@ -116,20 +116,24 @@ class Otel:
             if attributes is not None:
                 attributes[SERVICE_NAME] = "gcm"
 
-        logger_provider = otel_log_init(
+        self._logger_provider = otel_log_init(
             log_resource_attributes, endpoint + "/v1/logs", timeout
         )
         self.otel_logger = logging.getLogger("gcm")
         otel_handler = LoggingHandler(
-            level=logging._nameToLevel["INFO"], logger_provider=logger_provider
+            level=logging._nameToLevel["INFO"], logger_provider=self._logger_provider
         )
         self.otel_logger.setLevel(logging.INFO)
         self.otel_logger.addHandler(otel_handler)
 
-        self.meter = otel_metric_init(
+        self.meter, self._meter_provider = otel_metric_init(
             metric_resource_attributes, endpoint + "/v1/metrics", timeout
         )
         self.metrics_instruments: dict[str, _Gauge] = {}
+
+    def shutdown(self) -> None:
+        self._logger_provider.shutdown()
+        self._meter_provider.shutdown()
 
     def assert_never(self, x: Never) -> Never:
         raise AssertionError(f"Unhandled type: {type(x).__name__}")

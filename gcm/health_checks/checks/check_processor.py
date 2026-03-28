@@ -1,24 +1,17 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 import logging
-import os
 import re
-import socket
-import sys
-from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Collection, Dict, Iterable, List, Optional, Protocol, Tuple
 
 import click
-
-import gni_lib
-from gcm.health_checks.check_utils.output_context_manager import OutputContext
 from gcm.health_checks.check_utils.processor_memory_utils import (
     get_mem_attributes,
     MemAttrs,
 )
-from gcm.health_checks.check_utils.telem import TelemetryContext
+from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
 from gcm.health_checks.click import (
     common_arguments,
     telemetry_argument,
@@ -33,12 +26,9 @@ from gcm.health_checks.subprocess import (
 )
 from gcm.health_checks.types import CHECK_TYPE, CheckEnv, ExitCode, LOG_LEVEL
 from gcm.monitoring.click import heterogeneous_cluster_v1_option
-
 from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import (
     FeatureValueHealthChecksFeatures,
 )
-from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
-from gcm.monitoring.utils.monitor import init_logger
 from gcm.schemas.health_check.health_check_name import HealthCheckName
 from typeguard import typechecked
 
@@ -196,61 +186,23 @@ def processor_freq(
 ) -> None:
     """Check if the processor freq is at least as specified"""
 
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-    logger.info(
-        f"check-processor processor-freq: cluster: {cluster}, node: {node}, type: {type}."
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     if obj is None:
         obj = ProcessorCheckImpl(cluster, type, log_level, log_folder)
 
-    exit_code = ExitCode.UNKNOWN
-    msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.PROC_FREQ.value,
-                node=node,
-                get_exit_code_msg=lambda: (exit_code, msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type, HealthCheckName.PROC_FREQ, lambda: (exit_code, msg), verbose_out
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_proc_freq():
-            exit_code = ExitCode.OK
-            msg = f"{HealthCheckName.PROC_FREQ.value} is disabled by killswitch."
-            logger.info(msg)
-            sys.exit(exit_code.value)
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.PROC_FREQ,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_proc_freq(),
+    ) as rt:
         try:
-            cpu_freq_out: ShellCommandOut = obj.get_cpu_freq(timeout, logger)
+            cpu_freq_out: ShellCommandOut = obj.get_cpu_freq(timeout, rt.logger)
         except Exception as e:
             cpu_freq_out = handle_subprocess_exception(e)
 
@@ -258,9 +210,7 @@ def processor_freq(
             cpu_freq_out.stdout, cpu_freq_out.returncode, proc_freq
         )
 
-        logger.info(f"exit code {exit_code}: {msg}")
-
-        sys.exit(exit_code.value)
+        rt.finish(exit_code, msg)
 
 
 @check_processor.command()
@@ -298,65 +248,24 @@ def cpufreq_governor(
 ) -> None:
     """Check that all processors have the specified scaling governor"""
 
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-    logger.info(
-        f"check-processor cpufreq-governor: cluster: {cluster}, node: {node}, type: {type}, governor: {governor},  sys_freq_file: {sys_freq_file}."
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     if obj is None:
         obj = ProcessorCheckImpl(cluster, type, log_level, log_folder)
 
-    exit_code = ExitCode.UNKNOWN
-    msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.FREQ_GOVERNOR.value,
-                node=node,
-                get_exit_code_msg=lambda: (exit_code, msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type,
-                HealthCheckName.FREQ_GOVERNOR,
-                lambda: (exit_code, msg),
-                verbose_out,
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_freq_governor():
-            exit_code = ExitCode.OK
-            msg = f"{HealthCheckName.FREQ_GOVERNOR.value} is disabled by killswitch."
-            logger.info(msg)
-            sys.exit(exit_code.value)
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.FREQ_GOVERNOR,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_freq_governor(),
+    ) as rt:
         try:
             cpufreq_governor_out: PipedShellCommandOut = obj.get_cpufreq_governor(
-                timeout, sys_freq_file, logger
+                timeout, sys_freq_file, rt.logger
             )
         except Exception as e:
             exc_out = handle_subprocess_exception(e)
@@ -370,9 +279,7 @@ def cpufreq_governor(
             governor,
         )
 
-        logger.info(f"exit code {exit_code}: {msg}")
-
-        sys.exit(exit_code.value)
+        rt.finish(exit_code, msg)
 
 
 class CheckIfRequiredOptionDimm(click.Option):
@@ -467,70 +374,27 @@ def check_mem_size(
 ) -> None:
     """Check if the memory size, dimms and total size, is as expected"""
 
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-
-    logger.info(
-        f"check-processor check-mem-size: cluster: {cluster}, node: {node}, type: {type}."
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     if obj is None:
         obj = ProcessorCheckImpl(cluster, type, log_level, log_folder)
 
-    exit_code = ExitCode.UNKNOWN
-    msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.CHECK_MEM_SIZE.value,
-                node=node,
-                get_exit_code_msg=lambda: (exit_code, msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type,
-                HealthCheckName.CHECK_MEM_SIZE,
-                lambda: (exit_code, msg),
-                verbose_out,
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_check_mem_size():
-            exit_code = ExitCode.OK
-            msg = f"{HealthCheckName.CHECK_MEM_SIZE.value} is disabled by killswitch."
-            logger.info(msg)
-            sys.exit(exit_code.value)
-
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.CHECK_MEM_SIZE,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_check_mem_size(),
+    ) as rt:
         if dimms is None or total_size is None:
-            mem_attributes: MemAttrs = get_mem_attributes(node)
+            mem_attributes: MemAttrs = get_mem_attributes(rt.node)
             dimms = mem_attributes["dimms"]
             total_size = mem_attributes["total_size_gb"]
         try:
-            mem_out: PipedShellCommandOut = obj.get_mem_info(timeout, logger)
+            mem_out: PipedShellCommandOut = obj.get_mem_info(timeout, rt.logger)
         except Exception as e:
             exc_out = handle_subprocess_exception(e)
             mem_out = PipedShellCommandOut([exc_out.returncode], exc_out.stdout)
@@ -539,9 +403,7 @@ def check_mem_size(
             mem_out.stdout, mem_out.returncode[0], dimms, total_size
         )
 
-        logger.info(f"exit code {exit_code}: {msg}")
-
-        sys.exit(exit_code.value)
+        rt.finish(exit_code, msg)
 
 
 def parse_buddy_info_lines(
@@ -616,64 +478,21 @@ def check_buddyinfo(
 ) -> None:
     """Query the `/proc` special file system for system state, such as memory fragmentation"""
 
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-
-    logger.info(
-        f"check-processor check-buddyinfo: cluster: {cluster}, node: {node}, type: {type} buddyinfo_path: {buddyinfo_path}."
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     if obj is None:
         obj = ProcessorCheckImpl(cluster, type, log_level, log_folder)
 
-    exit_code = ExitCode.UNKNOWN
-    msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.CHECK_BUDDYINFO.value,
-                node=node,
-                get_exit_code_msg=lambda: (exit_code, msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type,
-                HealthCheckName.CHECK_BUDDYINFO,
-                lambda: (exit_code, msg),
-                verbose_out,
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_check_buddyinfo():
-            exit_code = ExitCode.OK
-            msg = f"{HealthCheckName.CHECK_BUDDYINFO.value} is disabled by killswitch."
-            logger.info(msg)
-            sys.exit(exit_code.value)
-
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.CHECK_BUDDYINFO,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_check_buddyinfo(),
+    ) as rt:
         try:
             buddy_info_lines = obj.get_buddyinfo_lines(buddyinfo_path)
             exit_code, msg = process_buddy_info(buddy_info_lines)
@@ -681,9 +500,7 @@ def check_buddyinfo(
             exit_code = ExitCode.WARN
             msg = f"check-buddyinfo failed to execute with exception: {e}"
 
-        logger.info(f"exit code {exit_code}: {msg}")
-
-    sys.exit(exit_code.value)
+        rt.finish(exit_code, msg)
 
 
 @check_processor.command()
@@ -723,94 +540,45 @@ def check_clocksource(
     Check if clocksource device is configured as expected
     """
 
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-
-    logger.info(
-        f"check-processor check-clocksource: cluster: {cluster}, node: {node}, type: {type}"
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     if obj is None:
         obj = ProcessorCheckImpl(cluster, type, log_level, log_folder)
 
-    exit_code = ExitCode.UNKNOWN
-    msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.CHECK_CLOCKSOURCE.value,
-                node=node,
-                get_exit_code_msg=lambda: (exit_code, msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type,
-                HealthCheckName.CHECK_CLOCKSOURCE,
-                lambda: (exit_code, msg),
-                verbose_out,
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_check_clocksource():
-            exit_code = ExitCode.OK
-            msg = (
-                f"{HealthCheckName.CHECK_CLOCKSOURCE.value} is disabled by killswitch."
-            )
-            logger.info(msg)
-            sys.exit(exit_code.value)
-
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.CHECK_CLOCKSOURCE,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_check_clocksource(),
+    ) as rt:
         try:
             output = obj.get_clocksource(
                 timeout_secs=timeout,
                 sys_clocksource_file=sys_clocksource_file,
-                logger=logger,
+                logger=rt.logger,
             )
             if output.returncode > 0:
                 exit_code = ExitCode.WARN
-                msg = f"Exit Code {exit_code}: Failed to run command."
-                logger.info(msg)
-                sys.exit(exit_code.value)
+                msg = "Failed to run command."
+                rt.finish(exit_code, msg)
 
-            logger.info(f"Output:\n{output.stdout}")
+            rt.logger.info(f"Output:\n{output.stdout}")
 
             found_source = output.stdout.strip()
             if found_source != expected_source:
                 exit_code = ExitCode.CRITICAL
-                msg = f"Exit Code {exit_code}: Node {node} reports {found_source} source, but expected {expected_source}"
-                logger.info(msg)
-                sys.exit(exit_code.value)
+                msg = f"Node {rt.node} reports {found_source} source, but expected {expected_source}"
+                rt.finish(exit_code, msg)
 
-            if exit_code == ExitCode.UNKNOWN:
-                exit_code = ExitCode.OK
+            exit_code = ExitCode.OK
+            msg = ""
 
         except Exception as e:
             exit_code = ExitCode.WARN
             msg = f"check-clocksource failed to execute with exception: {e}"
 
-        logger.info(f"exit code {exit_code}: {msg}")
-
-    sys.exit(exit_code.value)
+        rt.finish(exit_code, msg)

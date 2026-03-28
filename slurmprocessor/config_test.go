@@ -1,6 +1,6 @@
 // Copyright (c) Meta Platforms, Inc. and affiliates.
 // All rights reserved.
-package main
+package slurmprocessor
 
 import (
 	"path"

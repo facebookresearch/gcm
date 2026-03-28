@@ -1,0 +1,18 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# Multi-stage Dockerfile combining Node Problem Detector (NPD) with GCM
+# health checks. NPD runs as the entrypoint and invokes GCM health check
+# binaries as custom plugin monitors.
+
+ARG GCM_IMAGE=gcm:dcgm4
+
+FROM registry.k8s.io/node-problem-detector/node-problem-detector:v0.8.19 AS npd
+
+FROM ${GCM_IMAGE}
+
+LABEL org.opencontainers.image.source=https://github.com/facebookresearch/gcm
+
+COPY --from=npd /node-problem-detector /usr/local/bin/node-problem-detector
+
+ENTRYPOINT ["/usr/local/bin/node-problem-detector"]

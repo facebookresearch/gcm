@@ -202,37 +202,60 @@ func GetHostList(jobMetadata string) string {
 	return ""
 }
 
-// HostnameInList takes a hostname and a slurm hostlist and returns true if the hostname is in the hostlist
-func HostnameInList(hostname string, hostlist string) bool {
-	// hostlist follows the slurm naming convention where
-	// numeric ranges can be contained with ranges, e.g. node[1-5,7-9]
-	// see https://github.com/SchedMD/slurm/blob/main/src/common/hostlist.h#L106-L145
-
-	// if the hostlist is not a list, then we can just compare the hostnames
-	if !strings.Contains(hostlist, "[") {
-		if hostname == "" {
-			return false
+// splitHostlistGroups splits a Slurm hostlist into individual host groups,
+// handling commas inside bracket ranges. For example:
+//
+//	"cw-h100-192-[021,023],cw-h100-193-[009,011]"
+//
+// becomes ["cw-h100-192-[021,023]", "cw-h100-193-[009,011]"]
+func splitHostlistGroups(hostlist string) []string {
+	var groups []string
+	depth := 0
+	start := 0
+	for i, c := range hostlist {
+		switch c {
+		case '[':
+			depth++
+		case ']':
+			depth--
+		case ',':
+			if depth == 0 {
+				groups = append(groups, hostlist[start:i])
+				start = i + 1
+			}
 		}
-		return hostlist == hostname
+	}
+	groups = append(groups, hostlist[start:])
+	return groups
+}
+
+// hostnameMatchesGroup checks if hostname matches a single hostlist group.
+// A group is either a plain hostname ("cw-h100-214-045") or a bracketed
+// range ("cw-h100-192-[021,023,025-029]").
+func hostnameMatchesGroup(hostname string, group string) bool {
+	bracketIdx := strings.Index(group, "[")
+	if bracketIdx == -1 {
+		// Plain hostname, exact match
+		return hostname == group
 	}
 
-	re := regexp.MustCompile(`^([a-zA-Z-]+)\[(.+)\]$`)
-	matches := re.FindStringSubmatch(hostlist)
-	if len(matches) != 3 {
-		return false
-	}
-	prefix := matches[1]
-	rangesStr := matches[2]
-
-	// check for non-numeric part of the hostname
+	// Extract prefix (everything before '[') and the range contents
+	prefix := group[:bracketIdx]
 	if !strings.HasPrefix(hostname, prefix) {
 		return false
 	}
 
+	// The suffix after ']' should be empty for standard Slurm hostlists
+	closeBracket := strings.LastIndex(group, "]")
+	if closeBracket == -1 {
+		return false
+	}
+	rangesStr := group[bracketIdx+1 : closeBracket]
+
 	hostNumStr := hostname[len(prefix):]
 	hostNum, err := strconv.Atoi(hostNumStr)
 	if err != nil {
-		log.Printf("HostnameInList error: parsing hostname: %s, %s\n", hostname, err)
+		log.Printf("hostnameMatchesGroup error: parsing hostname suffix %q from %q: %s\n", hostNumStr, hostname, err)
 		return false
 	}
 
@@ -242,12 +265,12 @@ func HostnameInList(hostname string, hostlist string) bool {
 			bounds := strings.Split(r, "-")
 			start, err := strconv.Atoi(bounds[0])
 			if err != nil {
-				log.Printf("HostnameInList error: parsing hostlist range start: %s, %s\n", r, err)
+				log.Printf("hostnameMatchesGroup error: parsing range start %q: %s\n", r, err)
 				return false
 			}
 			end, err := strconv.Atoi(bounds[1])
 			if err != nil {
-				log.Printf("HostnameInList error: parsing hostlist range end: %s, %s\n", r, err)
+				log.Printf("hostnameMatchesGroup error: parsing range end %q: %s\n", r, err)
 				return false
 			}
 			if hostNum >= start && hostNum <= end {
@@ -256,7 +279,7 @@ func HostnameInList(hostname string, hostlist string) bool {
 		} else {
 			index, err := strconv.Atoi(r)
 			if err != nil {
-				log.Printf("HostnameInList error: parsing hostlist number: %s, %s\n", r, err)
+				log.Printf("hostnameMatchesGroup error: parsing index %q: %s\n", r, err)
 				return false
 			}
 			if hostNum == index {
@@ -264,6 +287,24 @@ func HostnameInList(hostname string, hostlist string) bool {
 			}
 		}
 	}
-	// if no match was found
+	return false
+}
+
+// HostnameInList takes a hostname and a slurm hostlist and returns true if the hostname is in the hostlist
+func HostnameInList(hostname string, hostlist string) bool {
+	// hostlist follows the slurm naming convention where
+	// numeric ranges can be contained with ranges, e.g. node[1-5,7-9]
+	// Multiple groups are comma-separated: node[1-5],other[1-3]
+	// see https://github.com/SchedMD/slurm/blob/main/src/common/hostlist.h#L106-L145
+
+	if hostname == "" || hostlist == "" {
+		return false
+	}
+
+	for _, group := range splitHostlistGroups(hostlist) {
+		if hostnameMatchesGroup(hostname, group) {
+			return true
+		}
+	}
 	return false
 }

@@ -10,6 +10,7 @@ if invoked twice on the same underlying `sacct` data, this script will write the
 twice. Downstream data processing should account for this
 fact and decide what to do with duplicate data.
 """
+
 import csv
 import logging
 import os

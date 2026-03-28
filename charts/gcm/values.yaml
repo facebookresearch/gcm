@@ -1,0 +1,137 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# Default values for gcm Helm chart.
+
+# Usage:
+#   helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
+#     -f <PATH/TO>/custom-values.yaml \
+#     --namespace <namespace>
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+# -- Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# -- Monitoring collector (DaemonSet) configuration
+# Runs `gcm nvml_monitor` on every GPU node to collect per-device GPU
+# metrics (utilization, memory, temperature, power, ECC) and per-GPU
+# Slurm job association. Requires root and hostPID to read job info
+# from /proc/<pid>/environ of GPU processes.
+monitoring:
+  enabled: true
+  # Container image for the monitoring DaemonSet
+  image:
+    repository: ghcr.io/facebookresearch/gcm
+    tag: ""  # defaults to appVersion (dcgm4); use dcgm3 for older drivers
+    pullPolicy: IfNotPresent
+  # Sink for collected metrics (e.g. "otel://localhost:4317")
+  sink: ""
+  # Sink options passed as -o to gcm nvml_monitor (OmegaConf dot-list syntax).
+  # Example:
+  #   sinkOpts:
+  #     - "otel_endpoint=http://localhost:4318"
+  #     - "metric_resource_attributes={'environment': 'production'}"
+  sinkOpts: []
+  # Cluster name reported in metrics
+  cluster: ""
+  # Collection interval in seconds
+  interval: 60
+  # Additional CLI arguments passed to `gcm nvml_monitor`
+  extraArgs: []
+  # Additional environment variables for the monitoring container
+  # Example:
+  #   extraEnv:
+  #     - name: OTEL_EXPORTER_OTLP_ENDPOINT
+  #       value: "http://otel-collector:4318"
+  extraEnv: []
+
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+  # Node scheduling
+  nodeSelector: {}
+  tolerations:
+    - key: "nvidia.com/gpu"
+      operator: Exists
+  affinity: {}
+
+# -- Health checks (NPD-GCM DaemonSet) configuration
+healthChecks:
+  enabled: true
+  # NPD-GCM combined image
+  image:
+    repository: ghcr.io/facebookresearch/gcm-npd
+    tag: ""  # defaults to appVersion
+    pullPolicy: IfNotPresent
+  # Cluster name for health check results
+  cluster: ""
+  # Sink for health check results (e.g. "otel", "stdout")
+  sink: "stdout"
+  # Sink options passed as --sink-opt to health_checks (OmegaConf dot-list syntax).
+  # Example:
+  #   sinkOpts:
+  #     - "otel_endpoint=http://localhost:4318"
+  #     - "log_resource_attributes={environment: production}"
+  sinkOpts: []
+  # Check interval in seconds
+  invokeInterval: 300
+  # NPD timeout in seconds per check (includes retries).
+  # Must be long enough for the check to complete with retries.
+  timeout: 480
+  # Max retries per check before reporting failure
+  maxRetries: 2
+  # Seconds to wait between retries
+  retrySleep: 30
+  # Max concurrent checks
+  concurrency: 3
+  # Expected GPU count per node (for gpu_num check)
+  gpuCount: 8
+  # Additional health checks to run alongside the 6 defaults.
+  # Each entry adds a new NPD condition and check rule.
+  # Run `health_checks --help` to see all available checks, or visit https://facebookresearch.github.io/gcm/docs/GCM_Health_Checks/health_checks/
+  # Example:
+  #   extraChecks:
+  #     - condition: GcmPciProblem
+  #       message: "PCI device check passed"
+  #       args: ["check-pci"]
+  #     - condition: GcmSensorsProblem
+  #       message: "Sensor readings check passed"
+  #       args: ["check-sensors"]
+  #     - condition: GcmRowRemapProblem
+  #       message: "GPU row remap check passed"
+  #       args: ["check-nvidia-smi", "-c", "row_remap"]
+  extraChecks: []
+  # Additional environment variables for the health checks container
+  # Example:
+  #   extraEnv:
+  #     - name: OTEL_EXPORTER_OTLP_ENDPOINT
+  #       value: "http://otel-collector:4318"
+  extraEnv: []
+  # Prometheus metrics
+  prometheus:
+    port: 20257
+  # Node scheduling
+  nodeSelector: {}
+  tolerations:
+    - key: "nvidia.com/gpu"
+      operator: Exists
+  affinity: {}
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+      nvidia.com/gpu: 0
+    requests:
+      cpu: 100m
+      memory: 256Mi

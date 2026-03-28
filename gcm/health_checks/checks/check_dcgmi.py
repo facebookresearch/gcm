@@ -5,7 +5,6 @@ import logging
 import os
 import socket
 import sys
-from contextlib import ExitStack
 from dataclasses import dataclass
 from typing import (
     Collection,
@@ -19,9 +18,9 @@ from typing import (
 )
 
 import click
-
 import gni_lib
 from gcm.health_checks.check_utils.output_context_manager import OutputContext
+from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
 from gcm.health_checks.check_utils.telem import TelemetryContext
 from gcm.health_checks.click import (
     common_arguments,
@@ -37,7 +36,6 @@ from gcm.health_checks.subprocess import (
 )
 from gcm.health_checks.types import CHECK_TYPE, CheckEnv, ExitCode, LOG_LEVEL
 from gcm.monitoring.click import heterogeneous_cluster_v1_option
-
 from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import (
     FeatureValueHealthChecksFeatures,
 )
@@ -196,6 +194,20 @@ class DCGMImpl:
         return piped_shell_command(cmd, timeout_secs)
 
 
+def _get_test_status(test: dict) -> str:
+    """Get the overall status from a test result.
+
+    DCGM 4.x uses test_summary.status for aggregated results.
+    DCGM 3.x uses results[0].status.
+    """
+    if "test_summary" in test and "status" in test["test_summary"]:
+        return test["test_summary"]["status"]
+    # Fallback for DCGM 3.x format
+    if test.get("results") and len(test["results"]) > 0:
+        return test["results"][0].get("status", "")
+    return ""
+
+
 def process_dcgmi_diag_output(
     output: str, error_code: int, exclude_category: List[str]
 ) -> Tuple[ExitCode, str]:
@@ -208,25 +220,33 @@ def process_dcgmi_diag_output(
         return ExitCode.WARN, "dcgmi diag FAILED to execute.\n"
 
     output_dict = json.loads(output)
+    # DCGM 3.x uses "DCGM GPU Diagnostic", DCGM 4.x uses "DCGM Diagnostic"
+    diag_key = None
+    for key in ["DCGM GPU Diagnostic", "DCGM Diagnostic"]:
+        if key in output_dict:
+            diag_key = key
+            break
+
     if (
         len(output_dict) == 0
-        or "DCGM GPU Diagnostic" not in output_dict
-        or "test_categories" not in output_dict["DCGM GPU Diagnostic"]
+        or diag_key is None
+        or "test_categories" not in output_dict[diag_key]
     ):
         return ExitCode.WARN, "dcgmi diag FAILED to execute.\n"
 
     msg: str = ""
     exit_code: ExitCode = ExitCode.OK
 
-    for category in output_dict["DCGM GPU Diagnostic"]["test_categories"]:
+    for category in output_dict[diag_key]["test_categories"]:
         for test in category["tests"]:
             if test["name"] in exclude_category:
                 continue
 
-            if test["results"][0]["status"] == "Fail":
+            status = _get_test_status(test)
+            if status == "Fail":
                 msg += f"{test['name']} failed.\n"
                 exit_code = ExitCode.CRITICAL
-            elif test["results"][0]["status"] == "Warn":
+            elif status == "Warn":
                 msg += f"{test['name']} warning.\n"
                 if exit_code < ExitCode.WARN:
                     exit_code = ExitCode.WARN
@@ -371,63 +391,24 @@ def diag(
 ) -> None:
     """Check the GPUs with the dcgmi diag -r <level> command"""
 
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-
-    logger.info(
-        f"check_dcgmi diag: cluster: {cluster}, node: {node}, type: {type}, exclude_category: {exclude_category}, host: {host}"
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
-    exit_code = ExitCode.UNKNOWN
-    msg = ""
     if obj is None:
         obj = DCGMImpl(cluster, type, log_level, log_folder, host)
 
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.DCGMI_DIAG.value,
-                node=node,
-                get_exit_code_msg=lambda: (exit_code, msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type, HealthCheckName.DCGMI_DIAG, lambda: (exit_code, msg), verbose_out
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_dcgmi_diag():
-            exit_code = ExitCode.OK
-            msg = f"{HealthCheckName.DCGMI_DIAG.value} is disabled by killswitch."
-            logger.info(msg)
-            sys.exit(exit_code.value)
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.DCGMI_DIAG,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_dcgmi_diag(),
+    ) as rt:
         try:
             diag_output: ShellCommandOut = obj.get_diagnostics(
-                diag_level, timeout, logger
+                diag_level, timeout, rt.logger
             )
         except Exception as e:
             diag_output = handle_subprocess_exception(e)
@@ -437,8 +418,7 @@ def diag(
             diag_output.returncode,
             list(exclude_category),
         )
-        logger.info(f"exit code {exit_code}: {msg}")
-        sys.exit(exit_code.value)
+        rt.finish(exit_code, msg)
 
 
 @check_dcgmi.command()

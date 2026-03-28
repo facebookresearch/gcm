@@ -66,7 +66,7 @@ Speeds up runtime considerably.
 
 ### Tests
 Tests live in [tests/](tests/).
-To run the entire test suite in an isolated virtual environment, run `nox -s tests`. To get e2e tests signals you'll need to create a `.env` file with the tokens, similarly to [`.env.example`](.env.example)
+To run the entire test suite in an isolated virtual environment, run `nox -s tests`. To get e2e tests signals you'll need to create a `.env` file with the tokens, similarly to [`.env.example`](../.env.example)
 Alternatively, `pytest` is installed in your development environment, so you can invoke `pytest` directly.
 Additional positional arguments to `nox` are forwarded to `pytest`, e.g. if you want to view `pytest`'s help message, run
 ```shell
@@ -120,8 +120,8 @@ Starting with the bottom of your stack,
 1. If you have no more PRs, then you're done. Otherwise, checkout the next PR in your stack (which should now be a direct child of main), force `push`, and go to (1).
 
 ## Updating dependencies
-All direct dependencies are declared in [`pyproject.toml`](pyproject.toml).
-The transitive closure of these dependencies is locked and hash-checked to [`requirements.txt`](requirements.txt) and [`dev-requirements.txt`](dev-requirements.txt) using `pip-tools` for install and development dependencies, respectively.
+All direct dependencies are declared in [`pyproject.toml`](../pyproject.toml).
+The transitive closure of these dependencies is locked and hash-checked to [`requirements.txt`](../requirements.txt) and [`dev-requirements.txt`](../dev-requirements.txt) using `pip-tools` for install and development dependencies, respectively.
 To update these lockfiles, run `make $lockfile` where `lockfile` is either `requirements.txt` or `dev-requirements.txt`.
 
 
