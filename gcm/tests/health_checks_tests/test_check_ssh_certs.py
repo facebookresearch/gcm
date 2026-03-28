@@ -17,15 +17,12 @@ from gcm.health_checks.checks.check_ssh_certs import (
 )
 from gcm.health_checks.subprocess import ShellCommandOut
 from gcm.health_checks.types import ExitCode
-from gcm.schemas.health_check.health_check_name import HealthCheckName
-
 from gcm.tests.fakes import FakeShellCommandOut
 
 #############
 # CONSTANTS #
 #############
 
-CHK_NAM = HealthCheckName.CHECK_SSH_CERTS.value
 KEY_ONE = "SHA256:Forty-three-character-base64-encoded-string"
 KEY_TWO = "SHA256:A-non-matching-key-that-should-never-happen"
 TIMEOUT_SECS = 300
@@ -143,7 +140,7 @@ def ssh_certs_tester(
             (
                 "ipa-down",
                 ExitCode.UNKNOWN,
-                f"exit code {ExitCode.UNKNOWN.value}: {CHK_NAM} - "
+                f"exit code {ExitCode.UNKNOWN}: "
                 f"Error 1 running `{CMD_IPA} ipa-down`: ",
             ),
         ),
@@ -155,7 +152,7 @@ def ssh_certs_tester(
             (
                 "ipa-timeout",
                 ExitCode.UNKNOWN,
-                f"exit code {ExitCode.UNKNOWN.value}: {CHK_NAM} - "
+                f"exit code {ExitCode.UNKNOWN}: "
                 f"Timeout in {TIMEOUT_SECS} secs running `{CMD_IPA} ipa-timeout`: ",
             ),
         ),
@@ -171,7 +168,7 @@ def ssh_certs_tester(
             (
                 "not-in-ipa",
                 ExitCode.CRITICAL,
-                f"exit code {ExitCode.CRITICAL.value}: {CHK_NAM} - "
+                f"exit code {ExitCode.CRITICAL}: "
                 f"Error 2 running `{CMD_IPA} not-in-ipa`: "
                 "ipa: ERROR: not-in-ipa: host not found",
             ),
@@ -191,7 +188,7 @@ def ssh_certs_tester(
             (
                 "not-in-production",
                 ExitCode.CRITICAL,
-                f"exit code {ExitCode.CRITICAL.value}: {CHK_NAM} - "
+                f"exit code {ExitCode.CRITICAL}: "
                 "No certs for not-in-production found in IPA. "
                 "Is not-in-production in production?",
             ),
@@ -208,7 +205,7 @@ def ssh_certs_tester(
             (
                 "host-down",
                 ExitCode.CRITICAL,
-                f"exit code {ExitCode.CRITICAL.value}: {CHK_NAM} - "
+                f"exit code {ExitCode.CRITICAL}: "
                 f"Timeout in {TIMEOUT_SECS} secs running `{CMD_KEY} host-down`: ",
             ),
         ),
@@ -228,7 +225,7 @@ def ssh_certs_tester(
             (
                 "host-reprovisioned",
                 ExitCode.CRITICAL,
-                f"exit code {ExitCode.CRITICAL.value}: {CHK_NAM} - "
+                f"exit code {ExitCode.CRITICAL}: "
                 "3/3 certs registered in IPA but not found in host-reprovisioned ssh. "
                 "Was host-reprovisioned reprovisioned but not re-registered?",
             ),
@@ -249,7 +246,7 @@ def ssh_certs_tester(
             (
                 "host-up",
                 ExitCode.OK,
-                f"exit code {ExitCode.OK.value}: {CHK_NAM} - "
+                f"exit code {ExitCode.OK}: "
                 f"3 certs registered in IPA and found in host-up ssh.",
             ),
         ),
@@ -262,7 +259,7 @@ def test_check_ssh_certs(
     ssh_certs_tester: FakeSshCertsCheckImpl,
     expected: tuple[str, ExitCode, str],
 ) -> None:
-    """Invoke the check_sensors method."""
+    """Invoke the check_ssh_certs method."""
     runner = CliRunner(mix_stderr=False)
     caplog.at_level(logging.INFO)
 
