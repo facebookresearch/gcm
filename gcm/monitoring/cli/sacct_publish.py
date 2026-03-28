@@ -52,7 +52,6 @@ from gcm.schemas.slurm.sacct import SacctPayload
 from typeguard import typechecked
 from typing_extensions import Literal
 
-
 LOGGER_NAME = "sacct_publish"
 
 logger: logging.Logger = logging.getLogger(

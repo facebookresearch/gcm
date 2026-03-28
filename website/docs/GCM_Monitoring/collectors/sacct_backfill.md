@@ -29,7 +29,7 @@ Single node in the cluster.
 | `--dry-run` | Flag | False | Print to stdout instead of publishing to sink |
 | `--chunk-size` | Integer | Shared default | The maximum size in bytes of each chunk when writing data to sink.  |
 | `--sleep` | Integer | 10 | Seconds to wait between chunks (serial mode only) |
-| `--rendezvous-host` | IP Address | None | Host running rendezvous server. Synchronize backfill processes across multiple clusters (see [sacct_backfill_server](sacct_backfill_server.md) |
+| `--rendezvous-host` | IP Address | None | Host running rendezvous server. Synchronize backfill processes across multiple clusters (see [sacct_backfill_server](sacct_backfill_server.md)) |
 | `--rendezvous-port` | Integer | 50000 | Port of rendezvous server |
 | `--authkey` | UUID | **Required with host** | Authentication key from server |
 | `--rendezvous-timeout` | Integer | 60 | Seconds to wait for synchronization |

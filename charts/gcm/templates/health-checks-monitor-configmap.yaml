@@ -1,0 +1,119 @@
+{{/*
+Copyright (c) Meta Platforms, Inc. and affiliates.
+All rights reserved.
+*/}}
+{{- if .Values.healthChecks.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "gcm.fullname" . }}-health-checks-monitor
+  labels:
+    {{- include "gcm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: health-checks
+data:
+  gcm_monitor.json: |
+    {
+      "plugin": "custom",
+      "pluginConfig": {
+        "invoke_interval": "{{ .Values.healthChecks.invokeInterval }}s",
+        "timeout": "{{ .Values.healthChecks.timeout }}s",
+        "max_output_length": 256,
+        "concurrency": {{ .Values.healthChecks.concurrency }},
+        "enable_message_change_based_condition_update": false
+      },
+      "source": "gcm-health-checks",
+      "metricsReporting": true,
+      "conditions": [
+        {
+          "type": "GcmXidErrorsProblem",
+          "reason": "GcmXidErrorsCheckPassed",
+          "message": "XID errors check passed"
+        },
+        {
+          "type": "GcmSmiEccProblem",
+          "reason": "GcmSmiEccCheckPassed",
+          "message": "nvidia-smi ECC check passed"
+        },
+        {
+          "type": "GcmSmiDisconnectedProblem",
+          "reason": "GcmSmiDisconnectedCheckPassed",
+          "message": "nvidia-smi GPU connectivity check passed"
+        },
+        {
+          "type": "GcmProcZombieProblem",
+          "reason": "GcmProcZombieCheckPassed",
+          "message": "Zombie process check passed"
+        },
+        {
+          "type": "GcmDcgmiNvlinkStatusProblem",
+          "reason": "GcmDcgmiNvlinkStatusCheckPassed",
+          "message": "DCGM NVLink status check passed"
+        },
+        {
+          "type": "GcmDcgmiDiagProblem",
+          "reason": "GcmDcgmiDiagCheckPassed",
+          "message": "DCGM diagnostics check passed"
+        }
+        {{- range .Values.healthChecks.extraChecks }},
+        {
+          "type": {{ .condition | quote }},
+          "reason": {{ printf "%sCheckPassed" .condition | quote }},
+          "message": {{ .message | quote }}
+        }
+        {{- end }}
+      ],
+      "rules": [
+        {
+          "type": "permanent",
+          "condition": "GcmXidErrorsProblem",
+          "reason": "GcmXidErrorsCheckFailed",
+          "path": "/scripts/run_health_check.sh",
+          "args": ["check-syslogs", "xid"]
+        },
+        {
+          "type": "permanent",
+          "condition": "GcmSmiEccProblem",
+          "reason": "GcmSmiEccCheckFailed",
+          "path": "/scripts/run_health_check.sh",
+          "args": ["check-nvidia-smi", "-c", "ecc_uncorrected_volatile_total", "-c", "ecc_corrected_volatile_total", "--ecc_uncorrected_volatile_threshold=0", "--ecc_corrected_volatile_threshold=50000000"]
+        },
+        {
+          "type": "permanent",
+          "condition": "GcmSmiDisconnectedProblem",
+          "reason": "GcmSmiDisconnectedCheckFailed",
+          "path": "/scripts/run_health_check.sh",
+          "args": ["check-nvidia-smi", "-c", "gpu_num", "--gpu_num={{ .Values.healthChecks.gpuCount }}"]
+        },
+        {
+          "type": "permanent",
+          "condition": "GcmProcZombieProblem",
+          "reason": "GcmProcZombieCheckFailed",
+          "path": "/scripts/run_health_check.sh",
+          "args": ["check-process", "check-zombie"]
+        },
+        {
+          "type": "permanent",
+          "condition": "GcmDcgmiNvlinkStatusProblem",
+          "reason": "GcmDcgmiNvlinkStatusCheckFailed",
+          "path": "/scripts/run_health_check.sh",
+          "args": ["check-dcgmi", "nvlink", "-c", "nvlink_status", "--host", "${NODE_IP}"]
+        },
+        {
+          "type": "permanent",
+          "condition": "GcmDcgmiDiagProblem",
+          "reason": "GcmDcgmiDiagCheckFailed",
+          "path": "/scripts/run_health_check.sh",
+          "args": ["check-dcgmi", "diag", "--diag_level=1", "--host", "${NODE_IP}"]
+        }
+        {{- range .Values.healthChecks.extraChecks }},
+        {
+          "type": "permanent",
+          "condition": {{ .condition | quote }},
+          "reason": {{ printf "%sCheckFailed" .condition | quote }},
+          "path": "/scripts/run_health_check.sh",
+          "args": {{ .args | toJson }}
+        }
+        {{- end }}
+      ]
+    }
+{{- end }}

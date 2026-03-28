@@ -33,7 +33,9 @@ from gcm.schemas.slurm.sdiag import Sdiag
 from gcm.schemas.slurm.sinfo import Sinfo
 from gcm.schemas.slurm.sinfo_node import SinfoNode
 from gcm.schemas.slurm.sinfo_row import SinfoRow
+from gcm.schemas.slurm.sprio import SPRIO_FORMAT_SPEC, SPRIO_HEADER
 from gcm.schemas.slurm.squeue import JOB_DATA_SLURM_FIELDS, JobData
+from gcm.schemas.slurm.sshare import SshareRow
 
 if TYPE_CHECKING:
     from _typeshed import DataclassInstance
@@ -122,6 +124,25 @@ class SlurmClient(Protocol):
     def count_runaway_jobs(self) -> int:
         """Return the count of runaway jobs"""
 
+    def sprio(self) -> Iterable[str]:
+        """Get lines of sprio output showing job priority factors.
+        Each line should be pipe separated.
+        The first line defines the fieldnames. The rest are the rows.
+        Lines should not have a trailing newline.
+        If an error occurs during execution, RuntimeError should be raised.
+        """
+
+    def sshare(self) -> Iterable[str]:
+        """Get lines of sshare output showing fair-share data.
+        Each line should be pipe separated.
+        The first line defines the fieldnames. The rest are the rows.
+        Lines should not have a trailing newline.
+        If an error occurs during execution, RuntimeError should be raised.
+        """
+
+    def sshare_structured(self) -> Iterable[SshareRow]:
+        """Get fair-share data as structured SshareRow instances."""
+
 
 class SlurmCliClient(SlurmClient):
     def __init__(
@@ -177,14 +198,38 @@ class SlurmCliClient(SlurmClient):
             sdiag_output = json.loads(
                 subprocess.check_output(["sdiag", "--all", "--json"], text=True)
             )
+            stats = sdiag_output["statistics"]
 
-            return Sdiag(
-                server_thread_count=sdiag_output["statistics"]["server_thread_count"],
-                agent_queue_size=sdiag_output["statistics"]["agent_queue_size"],
-                agent_count=sdiag_output["statistics"]["agent_count"],
-                agent_thread_count=sdiag_output["statistics"]["agent_thread_count"],
-                dbd_agent_queue_size=sdiag_output["statistics"]["dbd_agent_queue_size"],
+            result = Sdiag(
+                server_thread_count=stats.get("server_thread_count"),
+                agent_queue_size=stats.get("agent_queue_size"),
+                agent_count=stats.get("agent_count"),
+                agent_thread_count=stats.get("agent_thread_count"),
+                dbd_agent_queue_size=stats.get("dbd_agent_queue_size"),
+                schedule_cycle_max=stats.get("schedule_cycle_max"),
+                schedule_cycle_mean=stats.get("schedule_cycle_mean"),
+                schedule_cycle_sum=stats.get("schedule_cycle_sum"),
+                schedule_cycle_total=stats.get("schedule_cycle_total"),
+                schedule_cycle_per_minute=stats.get("schedule_cycle_per_minute"),
+                schedule_queue_length=stats.get("schedule_queue_length"),
+                sdiag_jobs_submitted=stats.get("jobs_submitted"),
+                sdiag_jobs_started=stats.get("jobs_started"),
+                sdiag_jobs_completed=stats.get("jobs_completed"),
+                sdiag_jobs_canceled=stats.get("jobs_canceled"),
+                sdiag_jobs_failed=stats.get("jobs_failed"),
+                sdiag_jobs_pending=stats.get("jobs_pending"),
+                sdiag_jobs_running=stats.get("jobs_running"),
+                bf_backfilled_jobs=stats.get("bf_backfilled_jobs"),
+                bf_cycle_mean=stats.get("bf_cycle_mean"),
+                bf_cycle_sum=stats.get("bf_cycle_sum"),
+                bf_cycle_max=stats.get("bf_cycle_max"),
+                bf_queue_len=stats.get("bf_queue_len"),
             )
+
+            # Reset sdiag counters after collection
+            self._reset_sdiag_counters()
+
+            return result
 
         sdiag_output = subprocess.check_output(["sdiag", "--all"], text=True)
         metric_names = {
@@ -194,7 +239,7 @@ class SlurmCliClient(SlurmClient):
             "Agent thread count:": "agent_thread_count",
             "DBD Agent queue size:": "dbd_agent_queue_size",
         }
-        data = {
+        data: dict[str, Optional[int]] = {
             "server_thread_count": 0,
             "agent_queue_size": 0,
             "agent_count": 0,
@@ -206,7 +251,55 @@ class SlurmCliClient(SlurmClient):
             lines = re.search(rf".*{sdiag_name}.*", sdiag_output)
             assert lines is not None, f"Sdiag metric {sdiag_name} not found: {lines}"
             data[name] = int(lines.group().strip(f"{sdiag_name}"))
+
+        optional_metric_names = {
+            "Schedule cycle max:": "schedule_cycle_max",
+            "Schedule cycle mean:": "schedule_cycle_mean",
+            "Schedule cycle sum:": "schedule_cycle_sum",
+            "Schedule cycle total:": "schedule_cycle_total",
+            "Schedule cycle per minute:": "schedule_cycle_per_minute",
+            "Schedule queue length:": "schedule_queue_length",
+            "Jobs submitted:": "sdiag_jobs_submitted",
+            "Jobs started:": "sdiag_jobs_started",
+            "Jobs completed:": "sdiag_jobs_completed",
+            "Jobs canceled:": "sdiag_jobs_canceled",
+            "Jobs failed:": "sdiag_jobs_failed",
+            "Jobs pending:": "sdiag_jobs_pending",
+            "Jobs running:": "sdiag_jobs_running",
+            "Total backfilled jobs \\(since last slurm start\\):": "bf_backfilled_jobs",
+            "Backfill cycle mean:": "bf_cycle_mean",
+            "Backfill cycle sum:": "bf_cycle_sum",
+            "Backfill cycle max:": "bf_cycle_max",
+            "Backfill queue length:": "bf_queue_len",
+        }
+
+        for sdiag_name, name in optional_metric_names.items():
+            match = re.search(rf"{sdiag_name}\s*(\d+)", sdiag_output)
+            if match:
+                data[name] = int(match.group(1))
+            else:
+                data[name] = None
+
+        # Reset sdiag counters after collection
+        self._reset_sdiag_counters()
+
         return Sdiag(**data)
+
+    def _reset_sdiag_counters(self) -> None:
+        """Reset sdiag counters after collection.
+
+        This requires appropriate permissions (typically root or SlurmUser).
+        If the reset fails due to permission issues, a warning is logged.
+        """
+        try:
+            subprocess.run(
+                ["sdiag", "--reset"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as e:
+            logger.warning(f"Failed to reset sdiag counters: {e.stderr.strip()}")
 
     def sinfo_structured(self) -> Sinfo:
         fieldnames = [f.name for f in fields(SinfoRow)]
@@ -318,3 +411,19 @@ class SlurmCliClient(SlurmClient):
         for st in lines:
             return int(st)
         raise Exception(f"Could not count sacctmgr show runaway lines: {lines}")
+
+    def sprio(self) -> Iterable[str]:
+        # Sort by partition (r) and priority descending (-y) for consistent ordering
+        yield SPRIO_HEADER
+        yield from _gen_lines(
+            self.__popen(["sprio", "-h", "--sort=r,-y", "-o", SPRIO_FORMAT_SPEC])
+        )
+
+    def sshare(self) -> Iterable[str]:
+        return _gen_lines(self.__popen(["sshare", "-a", "-P"]))
+
+    def sshare_structured(self) -> Iterable[SshareRow]:
+        raise NotImplementedError(
+            "sshare_structured is not yet implemented for SlurmCliClient; "
+            "use SlurmRestClient"
+        )

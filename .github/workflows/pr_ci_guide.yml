@@ -1,0 +1,46 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+name: PR CI Guide
+
+on:
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  post-ci-guide:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post CI commands guide
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = `## CI Commands
+
+            The following CI workflows run **automatically** on every push and pull request:
+
+            | Workflow | What it runs |
+            |---|---|
+            | **GPU Cluster Monitoring Python CI** | lint, tests, typecheck, format, deb build, pyoxidizer builds |
+            | **Go packages CI** | shelper tests, format, lint |
+
+            ---
+
+            The following commands can be used by **maintainers** to trigger additional tests that require access to secrets:
+
+            | Command | Description | Requires approval? |
+            |---|---|---|
+            | \`/metaci tests\` | Runs Meta internal integration tests (pytest) | Yes — a maintainer must trigger the command **and** approve the [deployment request](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/workflows/meta_internal.yml) |
+            | \`/metaci integration tests\` | Same as above (alias) | Yes |
+
+            > **Note:** Only repository maintainers (\`OWNER\` association) can trigger \`/metaci\` commands. After commenting the command, a maintainer must also navigate to the [Actions tab](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/workflows/meta_internal.yml) and approve the deployment to the \`graph-api-access\` environment before the jobs will run. See the [approval guidelines](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/.github/workflows/meta_internal.yml#L17-L25) for what to approve or reject.
+            `;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });

@@ -11,6 +11,9 @@ Each GCM component has its own CONTRIBUTING guide:
 - [slurmprocessor](slurmprocessor/CONTRIBUTING.md)
 - [shelper](shelper/CONTRIBUTING.md)
 
+## RFCs
+For major architectural changes or design decisions, please open an RFC before submitting a pull request. Use the [RFC issue template](https://github.com/facebookresearch/gcm/issues/new?template=rfc.yml) to start a discussion. You can also browse [previous RFCs](https://github.com/facebookresearch/gcm/issues?q=label%3ARFC+sort%3Aupdated-desc) for reference.
+
 ## Pull Requests
 We actively welcome your pull requests.
 

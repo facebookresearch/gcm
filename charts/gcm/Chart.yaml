@@ -1,0 +1,11 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+
+apiVersion: v2
+name: gcm
+description: GPU Cluster Monitoring for HPC clusters
+type: application
+version: 0.0.0
+appVersion: "dcgm4"
+annotations:
+  org.opencontainers.image.source: https://github.com/facebookresearch/gcm

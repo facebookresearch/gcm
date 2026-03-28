@@ -1,10 +1,11 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
+import json
 import logging
 import subprocess
 from functools import partial
 from importlib import resources
-from unittest.mock import create_autospec, MagicMock
+from unittest.mock import create_autospec, MagicMock, patch
 
 import pytest
 from gcm.monitoring.clock import time_to_time_aware
@@ -12,6 +13,7 @@ from gcm.monitoring.slurm.client import SlurmCliClient
 
 from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
 
+from gcm.schemas.slurm.sdiag import Sdiag
 from gcm.schemas.slurm.sinfo import Sinfo
 from gcm.schemas.slurm.sinfo_node import SinfoNode
 from gcm.schemas.slurm.squeue import JobData
@@ -81,7 +83,7 @@ class TestSlurmCliClient:
                     JOBID_RAW="42953598",
                     NAME="run1",
                     TIME_LIMIT="3-00:00:00",
-                    MIN_MEMORY=60000,
+                    MIN_MEMORY=60_000_000_000,
                     COMMAND="/test/run.sh",
                     PRIORITY=0.00017546257008,
                     STATE="RUNNING",
@@ -125,7 +127,7 @@ class TestSlurmCliClient:
                     JOBID_RAW="42956774",
                     NAME="run3",
                     TIME_LIMIT="3-00:00:00",
-                    MIN_MEMORY=60000,
+                    MIN_MEMORY=60_000_000_000,
                     COMMAND="/test/run.sh",
                     PRIORITY=0.00000595580787,
                     STATE="RUNNING",
@@ -206,7 +208,7 @@ class TestSlurmCliClient:
                     JOBID_RAW="22783212",
                     NAME="run4",
                     TIME_LIMIT="1:00:00",
-                    MIN_MEMORY=10500,
+                    MIN_MEMORY=10_500_000_000,
                     COMMAND="/test/run.sh",
                     PRIORITY=0.00018553552222,
                     STATE="PENDING",
@@ -254,7 +256,7 @@ class TestSlurmCliClient:
                     JOBID_RAW="42271120",
                     NAME="run5",
                     TIME_LIMIT="3-00:00:00",
-                    MIN_MEMORY=1000000,
+                    MIN_MEMORY=1_000_000_000_000,
                     COMMAND="/test/run.sh",
                     PRIORITY=0.00012484216134,
                     STATE="PENDING",
@@ -464,3 +466,108 @@ class TestSlurmCliClient:
             actual = c.sinfo_structured()
 
         assert actual == expected
+
+    @staticmethod
+    @patch.object(SlurmCliClient, "_reset_sdiag_counters")
+    @patch("clusterscope.slurm_version")
+    @patch("subprocess.check_output")
+    def test_parse_sdiag_json(
+        mock_check_output: MagicMock,
+        mock_slurm_version: MagicMock,
+        mock_reset: MagicMock,
+    ) -> None:
+        mock_slurm_version.return_value = (23, 2)
+
+        with resources.open_text(data, "sample-sdiag-output.json") as f:
+            mock_check_output.return_value = f.read()
+
+        c = SlurmCliClient()
+        result = c.sdiag_structured()
+
+        expected = Sdiag(
+            server_thread_count=4,
+            agent_queue_size=5,
+            agent_count=3,
+            agent_thread_count=8,
+            dbd_agent_queue_size=2,
+            schedule_cycle_max=2788800,
+            schedule_cycle_mean=1737702,
+            schedule_cycle_sum=582130236,
+            schedule_cycle_total=335,
+            schedule_cycle_per_minute=12,
+            schedule_queue_length=407,
+            sdiag_jobs_submitted=504,
+            sdiag_jobs_started=579,
+            sdiag_jobs_completed=524,
+            sdiag_jobs_canceled=20,
+            sdiag_jobs_failed=0,
+            sdiag_jobs_pending=20725,
+            sdiag_jobs_running=3273,
+            bf_backfilled_jobs=287,
+            bf_cycle_mean=37143463,
+            bf_cycle_sum=371434634,
+            bf_cycle_max=47125449,
+            bf_queue_len=411,
+        )
+
+        assert result == expected
+        mock_check_output.assert_called_once_with(
+            ["sdiag", "--all", "--json"], text=True
+        )
+        mock_reset.assert_called_once()
+
+    @staticmethod
+    @patch.object(SlurmCliClient, "_reset_sdiag_counters")
+    @patch("clusterscope.slurm_version")
+    @patch("subprocess.check_output")
+    def test_parse_sdiag_json_with_missing_fields(
+        mock_check_output: MagicMock,
+        mock_slurm_version: MagicMock,
+        mock_reset: MagicMock,
+    ) -> None:
+        mock_slurm_version.return_value = (23, 2)
+
+        minimal_json = json.dumps(
+            {
+                "statistics": {
+                    "server_thread_count": 10,
+                    "agent_queue_size": 5,
+                    "agent_count": 3,
+                    "agent_thread_count": 8,
+                    "dbd_agent_queue_size": 2,
+                }
+            }
+        )
+        mock_check_output.return_value = minimal_json
+
+        c = SlurmCliClient()
+        result = c.sdiag_structured()
+
+        expected = Sdiag(
+            server_thread_count=10,
+            agent_queue_size=5,
+            agent_count=3,
+            agent_thread_count=8,
+            dbd_agent_queue_size=2,
+            schedule_cycle_max=None,
+            schedule_cycle_mean=None,
+            schedule_cycle_sum=None,
+            schedule_cycle_total=None,
+            schedule_cycle_per_minute=None,
+            schedule_queue_length=None,
+            sdiag_jobs_submitted=None,
+            sdiag_jobs_started=None,
+            sdiag_jobs_completed=None,
+            sdiag_jobs_canceled=None,
+            sdiag_jobs_failed=None,
+            sdiag_jobs_pending=None,
+            sdiag_jobs_running=None,
+            bf_backfilled_jobs=None,
+            bf_cycle_mean=None,
+            bf_cycle_sum=None,
+            bf_cycle_max=None,
+            bf_queue_len=None,
+        )
+
+        assert result == expected
+        mock_reset.assert_called_once()

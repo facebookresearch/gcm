@@ -4,7 +4,7 @@ All rights reserved.
 -->
 # GPU Cluster Monitoring
 
-This is the core Python CLI toolset for GPU Cluster Monitoring (GCM), providing comprehensive monitoring and health checking capabilities for High-Performance Computing (HPC) clusters. GCM powers FAIR (Fundamental AI Research) AI workloads across tens of thousands of GPUs at Meta.
+This is the core Python CLI toolset for GPU Cluster Monitoring (GCM), providing comprehensive monitoring and health checking capabilities for High-Performance Computing (HPC) clusters. GCM powers FAIR (Fundamental AI Research) AI workloads across over hundreds of thousands of GPUs at Meta.
 
 ## Overview
 
@@ -120,15 +120,14 @@ health_checks --config=cluster_config.toml check-dcgmi diag
 # Using feature flags
 health_checks --features-config=features.toml --config=cluster_config.toml check-nvidia-smi
 ```
-Example configuration files are available in [`/health_checks/config_example/`](./health_checks/config_example/).
+Example configuration files are available in [`/health_checks/config/`](./health_checks/config/).
 
 ## Documentation
 
-- **[Monitoring Onboarding](docs/monitoring_onboarding.md)**
+- **[Adding a New Collector](docs/adding_new_collector.md)**
 - **[Health Checks Onboarding](docs/health_checks_onboarding.md)**
-- **[Monitoring Something New](docs/monitoring_onboarding.md#monitoring-something-new-with-gcm)**
-- **[Adding a New Exporter/Sink](docs/monitoring_onboarding.md#adding-a-new-exporter-to-gcm)**
-- **[Adding a New Health Check](docs/health_checks_onboarding.md#how-to-write-a-new-health-check?)**
+- **[Adding a New Exporter/Sink](docs/adding_new_exporter.md)**
+- **[Adding a New Health Check](docs/health_checks_onboarding.md#how-to-write-a-new-health-check)**
 - **[Contributing Guide](CONTRIBUTING.md)** - Development setup and contribution guidelines
 - **[Release Process](docs/release.md)** - How releases are managed
 

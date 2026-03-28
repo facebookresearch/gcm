@@ -1,30 +1,20 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 import json
-import logging
 import os
-import socket
-import sys
-from contextlib import ExitStack
 from dataclasses import dataclass
 from typing import Any, Collection, Dict, List, Optional, Protocol
 
 import click
-
-import gni_lib
-from gcm.health_checks.check_utils.output_context_manager import OutputContext
 from gcm.health_checks.check_utils.output_utils import CheckOutput
-from gcm.health_checks.check_utils.telem import TelemetryContext
+from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
 from gcm.health_checks.click import common_arguments, telemetry_argument
 from gcm.health_checks.subprocess import shell_command
 from gcm.health_checks.types import CHECK_TYPE, CheckEnv, ExitCode, LOG_LEVEL
 from gcm.monitoring.click import heterogeneous_cluster_v1_option
-
 from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import (
     FeatureValueHealthChecksFeatures,
 )
-from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
-from gcm.monitoring.utils.monitor import init_logger
 from gcm.schemas.health_check.health_check_name import HealthCheckName
 from pydantic import BaseModel
 from typeguard import typechecked
@@ -309,75 +299,28 @@ def check_ethlink(
     manifest_file: str,
 ) -> None:
     """Check eth links against the manifest file"""
-
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-
-    logger.info(
-        f"check_ethlink: cluster: {cluster}, node: {node}, type: {type} manifest file: {manifest_file}"
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     if obj is None:
         obj = EthLinkCheckImpl(cluster, type, log_level, log_folder)
 
-    exit_code = ExitCode.UNKNOWN
-    msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.CHECK_ETHLINK.value,
-                node=node,
-                get_exit_code_msg=lambda: (exit_code, msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type,
-                HealthCheckName.CHECK_ETHLINK,
-                lambda: (exit_code, msg),
-                verbose_out,
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_check_ethlink():
-            exit_code = ExitCode.OK
-            msg = f"{HealthCheckName.CHECK_ETHLINK.value} is disabled by killswitch."
-            logger.info(msg)
-            sys.exit(exit_code.value)
-
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.CHECK_ETHLINK,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_check_ethlink(),
+    ) as rt:
         node_manifest: Dict[str, Any] = {}
         try:
             node_manifest = obj.read_manifest(manifest_file)
-
             check = process_ethlink(obj, node_manifest)
             exit_code, msg = check.check_status, str(check)
         except Exception as e:
             exit_code = ExitCode.WARN
             msg = f"Exception occured: {e}"
 
-        logger.info(f"exit code {exit_code}: {msg}")
-
-    sys.exit(exit_code.value)
+        rt.finish(exit_code, msg)

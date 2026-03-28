@@ -11,4 +11,4 @@ To release a new version:
 1. Merge the PR to the main branch.
 1. A new Github Release should be created from a Github CI job ([release.yml](../../.github/workflows/release.yml))
 
-To build GCM from source, check out [Building the Debian package](./CONTRIBUTING.md#building-the-debian-package).
+To build GCM from source, check out [Building the Debian package](../CONTRIBUTING.md#building-the-debian-package).

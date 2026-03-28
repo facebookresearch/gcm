@@ -92,7 +92,7 @@ Published with `DataType.METRIC`:
 | `--push-interval` | Integer | 60 seconds | Frequency to publish aggregated metrics |
 | `--interval` | Integer | 90 seconds | Frequency to restart collection cycle |
 | `--cluster` | String | Auto-detected | Cluster name for metadata enrichment |
-| `--sink` | String | **Required** | Sink destination, see [Exporters](../exporters) |
+| `--sink` | String | **Required** | Sink destination, see [Exporters](../exporters/README.md) |
 | `--sink-opts` | Multiple | - | Sink-specific options |
 | `--log-level` | Choice | INFO | DEBUG, INFO, WARNING, ERROR, CRITICAL |
 | `--log-folder` | String | `/var/log/fb-monitoring` | Log directory |

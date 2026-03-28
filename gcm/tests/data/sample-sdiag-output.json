@@ -1,0 +1,606 @@
+
+{
+  "statistics": {
+    "parts_packed": 1,
+    "req_time": {
+      "set": true,
+      "infinite": false,
+      "number": 1769652127
+    },
+    "req_time_start": {
+      "set": true,
+      "infinite": false,
+      "number": 1769650551
+    },
+    "server_thread_count": 4,
+    "agent_queue_size": 5,
+    "agent_count": 3,
+    "agent_thread_count": 8,
+    "dbd_agent_queue_size": 2,
+    "gettimeofday_latency": 26,
+    "schedule_cycle_max": 2788800,
+    "schedule_cycle_last": 2258381,
+    "schedule_cycle_sum": 582130236,
+    "schedule_cycle_total": 335,
+    "schedule_cycle_mean": 1737702,
+    "schedule_cycle_mean_depth": 28,
+    "schedule_cycle_per_minute": 12,
+    "schedule_cycle_depth": 9466,
+    "schedule_exit": {
+      "end_job_queue": 54,
+      "default_queue_depth": 0,
+      "max_job_start": 0,
+      "max_rpc_cnt": 0,
+      "max_sched_time": 281,
+      "licenses": 0
+    },
+    "schedule_queue_length": 407,
+    "jobs_submitted": 504,
+    "jobs_started": 579,
+    "jobs_completed": 524,
+    "jobs_canceled": 20,
+    "jobs_failed": 0,
+    "jobs_pending": 20725,
+    "jobs_running": 3273,
+    "job_states_ts": {
+      "set": true,
+      "infinite": false,
+      "number": 1769652102
+    },
+    "bf_backfilled_jobs": 287,
+    "bf_last_backfilled_jobs": 287,
+    "bf_backfilled_het_jobs": 0,
+    "bf_cycle_counter": 10,
+    "bf_cycle_mean": 37143463,
+    "bf_depth_mean": 448,
+    "bf_depth_mean_try": 230,
+    "bf_cycle_sum": 371434634,
+    "bf_cycle_last": 46552416,
+    "bf_cycle_max": 47125449,
+    "bf_exit": {
+      "end_job_queue": 10,
+      "bf_max_job_start": 0,
+      "bf_max_job_test": 0,
+      "bf_max_time": 0,
+      "bf_node_space_size": 0,
+      "state_changed": 0
+    },
+    "bf_last_depth": 353,
+    "bf_last_depth_try": 165,
+    "bf_depth_sum": 4480,
+    "bf_depth_try_sum": 2301,
+    "bf_queue_len": 411,
+    "bf_queue_len_mean": 453,
+    "bf_queue_len_sum": 4537,
+    "bf_table_size": 12,
+    "bf_table_size_sum": 104,
+    "bf_table_size_mean": 453,
+    "bf_when_last_cycle": {
+      "set": true,
+      "infinite": false,
+      "number": 1769652085
+    },
+    "bf_active": true,
+    "rpcs_by_message_type": [
+      {
+        "type_id": 2049,
+        "message_type": "REQUEST_FED_INFO",
+        "count": 5510,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 466841,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 84
+        }
+      },
+      {
+        "type_id": 3001,
+        "message_type": "REQUEST_UPDATE_JOB",
+        "count": 198,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 57498589,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 290396
+        }
+      },
+      {
+        "type_id": 2009,
+        "message_type": "REQUEST_PARTITION_INFO",
+        "count": 4165,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 423385,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 101
+        }
+      },
+      {
+        "type_id": 2001,
+        "message_type": "REQUEST_BUILD_INFO",
+        "count": 119,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 46071705,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 387157
+        }
+      },
+      {
+        "type_id": 5005,
+        "message_type": "REQUEST_CANCEL_JOB_STEP",
+        "count": 33,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 10129846,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 306965
+        }
+      },
+      {
+        "type_id": 1008,
+        "message_type": "REQUEST_PING",
+        "count": 614,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 48074,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 78
+        }
+      },
+      {
+        "type_id": 2021,
+        "message_type": "REQUEST_JOB_INFO_SINGLE",
+        "count": 3049,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 1229351085,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 403198
+        }
+      },
+      {
+        "type_id": 6500,
+        "message_type": "REQUEST_PERSIST_INIT",
+        "count": 31,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 3718,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 119
+        }
+      },
+      {
+        "type_id": 2040,
+        "message_type": "REQUEST_NODE_INFO_SINGLE",
+        "count": 4683,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 571743838,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 122089
+        }
+      },
+      {
+        "type_id": 2039,
+        "message_type": "REQUEST_JOB_USER_INFO",
+        "count": 2453,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 408696689,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 166610
+        }
+      },
+      {
+        "type_id": 5018,
+        "message_type": "REQUEST_COMPLETE_BATCH_SCRIPT",
+        "count": 524,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 204218460,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 389729
+        }
+      },
+      {
+        "type_id": 5016,
+        "message_type": "REQUEST_STEP_COMPLETE",
+        "count": 767,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 149281139,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 194629
+        }
+      },
+      {
+        "type_id": 5023,
+        "message_type": "REQUEST_JOB_REQUEUE",
+        "count": 24,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 1044426,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 43517
+        }
+      },
+      {
+        "type_id": 6012,
+        "message_type": "MESSAGE_EPILOG_COMPLETE",
+        "count": 589,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 74296558,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 126140
+        }
+      },
+      {
+        "type_id": 2007,
+        "message_type": "REQUEST_NODE_INFO",
+        "count": 2985,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 638923002,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 214044
+        }
+      },
+      {
+        "type_id": 1002,
+        "message_type": "MESSAGE_NODE_REGISTRATION_STATUS",
+        "count": 5872,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 340069073,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 57913
+        }
+      },
+      {
+        "type_id": 6018,
+        "message_type": "REQUEST_COMPLETE_PROLOG",
+        "count": 644,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 72557843,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 112667
+        }
+      },
+      {
+        "type_id": 2003,
+        "message_type": "REQUEST_JOB_INFO",
+        "count": 535,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 205329065,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 383792
+        }
+      },
+      {
+        "type_id": 2035,
+        "message_type": "REQUEST_STATS_INFO",
+        "count": 246,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 23673,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 96
+        }
+      },
+      {
+        "type_id": 4027,
+        "message_type": "REQUEST_HET_JOB_ALLOC_INFO",
+        "count": 236,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 90707386,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 384353
+        }
+      },
+      {
+        "type_id": 5001,
+        "message_type": "REQUEST_JOB_STEP_CREATE",
+        "count": 255,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 113836418,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 446417
+        }
+      },
+      {
+        "type_id": 5017,
+        "message_type": "REQUEST_COMPLETE_JOB_ALLOCATION",
+        "count": 14,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 5658245,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 404160
+        }
+      },
+      {
+        "type_id": 3002,
+        "message_type": "REQUEST_UPDATE_NODE",
+        "count": 5,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 3476,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 695
+        }
+      },
+      {
+        "type_id": 5032,
+        "message_type": "REQUEST_KILL_JOB",
+        "count": 20,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 13528813,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 676440
+        }
+      },
+      {
+        "type_id": 4001,
+        "message_type": "REQUEST_RESOURCE_ALLOCATION",
+        "count": 7,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 8476485,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 1210926
+        }
+      },
+      {
+        "type_id": 4012,
+        "message_type": "REQUEST_JOB_WILL_RUN",
+        "count": 5,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 6832810,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 1366562
+        }
+      },
+      {
+        "type_id": 4019,
+        "message_type": "REQUEST_JOB_READY",
+        "count": 28,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 13036751,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 465598
+        }
+      },
+      {
+        "type_id": 4003,
+        "message_type": "REQUEST_SUBMIT_BATCH_JOB",
+        "count": 40,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 24094071,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 602351
+        }
+      },
+      {
+        "type_id": 10001,
+        "message_type": "ACCOUNTING_UPDATE_MSG",
+        "count": 94,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 2286,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 24
+        }
+      },
+      {
+        "type_id": 3014,
+        "message_type": "REQUEST_DELETE_NODE",
+        "count": 35,
+        "queued": 0,
+        "dropped": 0,
+        "cycle_last": 0,
+        "cycle_max": 0,
+        "total_time": 31360369,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 896010
+        }
+      }
+    ],
+    "rpcs_by_user": [
+      {
+        "user_id": 0,
+        "user": "a",
+        "count": 22507,
+        "total_time": 2364143744,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 105040
+        }
+      },
+      {
+        "user_id": 1,
+        "user": "b",
+        "count": 1248,
+        "total_time": 263479187,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 211121
+        }
+      },
+      {
+        "user_id": 2,
+        "user": "c",
+        "count": 2,
+        "total_time": 1090227,
+        "average_time": {
+          "set": true,
+          "infinite": false,
+          "number": 545113
+        }
+      }
+    ],
+    "pending_rpcs": [
+    ],
+    "pending_rpcs_by_hostlist": [
+    ]
+  },
+  "meta": {
+    "plugin": {
+      "type": "",
+      "name": "",
+      "data_parser": "data_parser\/v0.0.42",
+      "accounting_storage": "accounting_storage\/slurmdbd"
+    },
+    "client": {
+      "source": "\/dev\/pts\/0",
+      "user": "x",
+      "group": "x"
+    },
+    "command": [
+      "sdiag",
+      "--all"
+    ],
+    "slurm": {
+      "version": {
+        "major": "24",
+        "micro": "5",
+        "minor": "11"
+      },
+      "release": "24.11.5",
+      "cluster": "test-cluster"
+    }
+  },
+  "errors": [
+  ],
+  "warnings": [
+  ]
+}
