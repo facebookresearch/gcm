@@ -29,16 +29,20 @@ The recommended way to deploy on Kubernetes is via the [GCM Helm chart](https://
 
 ```shell
 helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
-  --set monitoring.sink=otel \
-  --set monitoring.cluster=my-cluster
+  -f <PATH/TO>/custom-values.yaml \
+  --namespace <namespace> \
+  --set monitoring.enabled=true \
+  --set healthChecks.enabled=false
 ```
 
 Or from source:
 
 ```shell
 helm install gcm charts/gcm \
-  --set monitoring.sink=otel \
-  --set monitoring.cluster=my-cluster
+  -f <PATH/TO>/custom-values.yaml \
+  --namespace <namespace> \
+  --set monitoring.enabled=true \
+  --set healthChecks.enabled=false
 ```
 
 See the [Helm chart README](https://github.com/facebookresearch/gcm/tree/main/charts/gcm/README.md) for full configuration options.
@@ -57,7 +61,11 @@ See the [Helm chart README](https://github.com/facebookresearch/gcm/tree/main/ch
 ### Sending Metrics to OpenTelemetry
 
 ```shell
-helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
+helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \ \
+  -f <PATH/TO>/custom-values.yaml \
+  --namespace <namespace> \
+  --set monitoring.enabled=true \
+  --set healthChecks.enabled=false \
   --set monitoring.sink=otel \
   --set monitoring.cluster=my-cluster \
   --set monitoring.extraEnv[0].name=OTEL_EXPORTER_OTLP_ENDPOINT \
@@ -67,7 +75,11 @@ helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
 Sink-specific options can also be passed via `monitoring.sinkOpts`:
 
 ```shell
-helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
+helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \ \
+  -f <PATH/TO>/custom-values.yaml \
+  --namespace <namespace>
+  --set monitoring.enabled=true \
+  --set healthChecks.enabled=false \
   --set monitoring.sink=otel \
   --set monitoring.cluster=my-cluster \
   --set monitoring.sinkOpts[0]=otel_endpoint=http://otel-collector:4318 \

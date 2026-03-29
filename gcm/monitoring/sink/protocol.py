@@ -20,6 +20,8 @@ class DataIdentifier(Enum):
     STATVFS = auto()
     PURE = auto()
     GENERIC = auto()
+    K8S_POD = auto()
+    K8S_NODE = auto()
 
 
 @dataclass

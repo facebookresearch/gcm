@@ -399,28 +399,96 @@ func TestParseGRES(t *testing.T) {
 
 func TestHostnameInList(t *testing.T) {
 	tests := []struct {
+		name     string
 		hostname string
 		hostlist string
 		expected bool
 	}{
-		{"node1", "node1", true},
-		{"node1", "node[0-2]", true},
-		{"node1", "node[1-2]", true},
-		{"node3", "node[0-1,3-4]", true},
-		{"node3", "node[0-1,3,5-6]", true},
-		{"node6", "node[0-1,3,5-6]", true},
-		{"node1", "node[2-10]", false},
-		{"node2", "node[0-1,3-4]", false},
-		{"node4", "node[0-1,3,5-6]", false},
-		{"node7", "node[0-1,3,5-6]", false},
-		{"", "", false},
+		// Simple hostnames (letter-only prefix)
+		{"simple exact match", "node1", "node1", true},
+		{"simple bracket range", "node1", "node[0-2]", true},
+		{"simple bracket range start", "node1", "node[1-2]", true},
+		{"simple bracket mixed", "node3", "node[0-1,3-4]", true},
+		{"simple bracket individual and range", "node3", "node[0-1,3,5-6]", true},
+		{"simple bracket range end", "node6", "node[0-1,3,5-6]", true},
+		{"simple not in range", "node1", "node[2-10]", false},
+		{"simple gap in range", "node2", "node[0-1,3-4]", false},
+		{"simple not in individual or range", "node4", "node[0-1,3,5-6]", false},
+		{"simple above range", "node7", "node[0-1,3,5-6]", false},
+
+		// Empty inputs
+		{"both empty", "", "", false},
+		{"empty hostname", "", "node1", false},
+		{"empty hostlist", "node1", "", false},
+
+		// CoreWeave hostnames (digits in prefix)
+		{"cw single node exact", "cw-h100-214-045", "cw-h100-214-045", true},
+		{"cw single node mismatch", "cw-h100-214-046", "cw-h100-214-045", false},
+		{"cw comma-separated match first", "cw-h100-214-045", "cw-h100-214-045,cw-h100-220-049", true},
+		{"cw comma-separated match second", "cw-h100-220-049", "cw-h100-214-045,cw-h100-220-049", true},
+		{"cw comma-separated no match", "cw-h100-211-001", "cw-h100-214-045,cw-h100-220-049", false},
+		{"cw bracket range match", "cw-h100-192-021", "cw-h100-192-[021,023,025,029]", true},
+		{"cw bracket range no match", "cw-h100-192-022", "cw-h100-192-[021,023,025,029]", false},
+		{"cw bracket range hyphen match", "cw-h100-192-023", "cw-h100-192-[021-025]", true},
+		{"cw bracket range hyphen no match", "cw-h100-192-026", "cw-h100-192-[021-025]", false},
+		{"cw multi-group match first", "cw-h100-192-023", "cw-h100-192-[021,023],cw-h100-193-[009,011]", true},
+		{"cw multi-group match second", "cw-h100-193-009", "cw-h100-192-[021,023],cw-h100-193-[009,011]", true},
+		{"cw multi-group no match", "cw-h100-194-001", "cw-h100-192-[021,023],cw-h100-193-[009,011]", false},
+		{"cw multi-group wrong prefix", "cw-h100-192-009", "cw-h100-192-[021,023],cw-h100-193-[009,011]", false},
+
+		// AWS hostnames (h200-test-NNN-NNN pattern)
+		{"aws single node exact", "h200-test-003-019", "h200-test-003-019", true},
+		{"aws single node mismatch", "h200-test-003-020", "h200-test-003-019", false},
+		{"aws comma-separated match first", "h200-test-003-019", "h200-test-003-019,h200-test-007-084", true},
+		{"aws comma-separated match second", "h200-test-007-084", "h200-test-003-019,h200-test-007-084", true},
+		{"aws comma-separated no match", "h200-test-011-041", "h200-test-003-019,h200-test-007-084", false},
+		{"aws bracket range match", "h200-test-003-019", "h200-test-003-[019,020]", true},
+		{"aws bracket range no match", "h200-test-003-021", "h200-test-003-[019,020]", false},
+		{"aws multi-group match", "h200-test-007-085", "h200-test-003-[019,020],h200-test-007-[084,085]", true},
+		{"aws multi-group no match", "h200-test-011-041", "h200-test-003-[019,020],h200-test-007-[084,085]", false},
+		{"aws hyphen range match", "h200-test-100-015", "h200-test-100-[010-020]", true},
+		{"aws hyphen range no match", "h200-test-100-025", "h200-test-100-[010-020]", false},
+		{"aws short name bracket", "h200-251-071", "h200-251-[071,072]", true},
+
+		// Three-node comma-separated (no brackets)
+		{"three nodes match middle", "node2", "node1,node2,node3", true},
+		{"three nodes no match", "node4", "node1,node2,node3", false},
+
+		// Mixed comma and bracket groups
+		{"mixed plain and bracket match plain", "cw-h100-214-045", "cw-h100-214-045,cw-h100-192-[021,023]", true},
+		{"mixed plain and bracket match bracket", "cw-h100-192-021", "cw-h100-214-045,cw-h100-192-[021,023]", true},
+		{"mixed plain and bracket no match", "cw-h100-192-022", "cw-h100-214-045,cw-h100-192-[021,023]", false},
 	}
 
 	for _, test := range tests {
-		assert := assert.New(t)
+		t.Run(test.name, func(t *testing.T) {
+			result := HostnameInList(test.hostname, test.hostlist)
+			assert.Equal(t, test.expected, result,
+				"HostnameInList(%q, %q) = %v, want %v", test.hostname, test.hostlist, result, test.expected)
+		})
+	}
+}
 
-		result := HostnameInList(test.hostname, test.hostlist)
-		assert.Equal(test.expected, result)
+func TestSplitHostlistGroups(t *testing.T) {
+	tests := []struct {
+		name     string
+		hostlist string
+		expected []string
+	}{
+		{"single plain host", "node1", []string{"node1"}},
+		{"two plain hosts", "node1,node2", []string{"node1", "node2"}},
+		{"single bracket group", "node[1-3]", []string{"node[1-3]"}},
+		{"bracket with commas inside", "cw-h100-192-[021,023,025]", []string{"cw-h100-192-[021,023,025]"}},
+		{"two bracket groups", "cw-h100-192-[021,023],cw-h100-193-[009,011]", []string{"cw-h100-192-[021,023]", "cw-h100-193-[009,011]"}},
+		{"plain and bracket mixed", "cw-h100-214-045,cw-h100-192-[021,023]", []string{"cw-h100-214-045", "cw-h100-192-[021,023]"}},
+		{"three groups", "a-[1,2],b-003,c-[4-6]", []string{"a-[1,2]", "b-003", "c-[4-6]"}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result := splitHostlistGroups(test.hostlist)
+			assert.Equal(t, test.expected, result)
+		})
 	}
 }
 

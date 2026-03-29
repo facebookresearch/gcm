@@ -1,19 +1,12 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 import logging
-import os
-import socket
-import sys
-from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Collection, List, Optional, Protocol, Tuple
 
 import click
-
-import gni_lib
-from gcm.health_checks.check_utils.output_context_manager import OutputContext
-from gcm.health_checks.check_utils.telem import TelemetryContext
+from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
 from gcm.health_checks.click import (
     common_arguments,
     telemetry_argument,
@@ -28,12 +21,9 @@ from gcm.health_checks.subprocess import (
 )
 from gcm.health_checks.types import CHECK_TYPE, CheckEnv, ExitCode, LOG_LEVEL
 from gcm.monitoring.click import heterogeneous_cluster_v1_option
-
 from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import (
     FeatureValueHealthChecksFeatures,
 )
-from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
-from gcm.monitoring.utils.monitor import init_logger
 from gcm.schemas.health_check.health_check_name import HealthCheckName
 from typeguard import typechecked
 
@@ -230,71 +220,31 @@ def disk_usage(
 ) -> None:
     """Check the free space on the specified volumes"""
 
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-    logger.info(
-        f"check-storage disk-usage: cluster: {cluster}, node: {node}, type: {type}, volumes: {volume}, critical threshold: {usage_critical_threshold}, warning threshold: {usage_warning_threshold}, inode-check: {inode_check}."
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     if obj is None:
         obj = StorageCheckImpl(cluster, type, log_level, log_folder)
 
-    overall_exit_code = ExitCode.UNKNOWN
-    overall_msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.DISK_USAGE.value,
-                node=node,
-                get_exit_code_msg=lambda: (overall_exit_code, overall_msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type,
-                HealthCheckName.DISK_USAGE,
-                lambda: (overall_exit_code, overall_msg),
-                verbose_out,
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_disk_usage():
-            overall_exit_code = ExitCode.OK
-            overall_msg = (
-                f"{HealthCheckName.DISK_USAGE.value} is disabled by killswitch."
-            )
-            logger.info(overall_msg)
-            sys.exit(overall_exit_code.value)
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.DISK_USAGE,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_disk_usage(),
+    ) as rt:
+        overall_exit_code = ExitCode.UNKNOWN
+        overall_msg = ""
+
         for vol in volume:
             try:
-                disk_out: ShellCommandOut = obj.get_disk_usage(timeout, vol, logger)
+                disk_out: ShellCommandOut = obj.get_disk_usage(timeout, vol, rt.logger)
             except Exception as e:
                 disk_out = handle_subprocess_exception(e)
 
-            logger.info(disk_out.stdout)
+            rt.logger.info(disk_out.stdout)
             exit_code, msg = process_disk_usage(
                 disk_out.stdout,
                 disk_out.returncode,
@@ -306,9 +256,7 @@ def disk_usage(
             if exit_code > overall_exit_code:
                 overall_exit_code = exit_code
 
-        logger.info(f"exit code {overall_exit_code}: {overall_msg}")
-
-        sys.exit(overall_exit_code.value)
+        rt.finish(overall_exit_code, overall_msg)
 
 
 @check_storage.command()
@@ -341,68 +289,28 @@ def mounted_directory(
 ) -> None:
     """Check if the specified directories are mounted"""
 
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-    logger.info(
-        f"check-storage mounted-directory: cluster: {cluster}, node: {node}, type: {type}, directory: {directory}."
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     if obj is None:
         obj = StorageCheckImpl(cluster, type, log_level, log_folder)
 
-    overall_exit_code = ExitCode.UNKNOWN
-    overall_msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.MOUNTED_DIR.value,
-                node=node,
-                get_exit_code_msg=lambda: (overall_exit_code, overall_msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type,
-                HealthCheckName.MOUNTED_DIR,
-                lambda: (overall_exit_code, overall_msg),
-                verbose_out,
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_mounted_dir():
-            overall_exit_code = ExitCode.OK
-            overall_msg = (
-                f"{HealthCheckName.MOUNTED_DIR.value} is disabled by killswitch."
-            )
-            logger.info(overall_msg)
-            sys.exit(overall_exit_code.value)
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.MOUNTED_DIR,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_mounted_dir(),
+    ) as rt:
+        overall_exit_code = ExitCode.UNKNOWN
+        overall_msg = ""
+
         for dir in directory:
             try:
                 mount_out: PipedShellCommandOut = obj.get_mount_status(
-                    timeout, dir, logger
+                    timeout, dir, rt.logger
                 )
             except Exception as e:
                 exc_out = handle_subprocess_exception(e)
@@ -416,9 +324,7 @@ def mounted_directory(
             if exit_code > overall_exit_code:
                 overall_exit_code = exit_code
 
-        logger.info(f"exit code {overall_exit_code}: {overall_msg}")
-
-        sys.exit(overall_exit_code.value)
+        rt.finish(overall_exit_code, overall_msg)
 
 
 @check_storage.command()
@@ -458,67 +364,27 @@ def file_exists(
 ) -> None:
     """Check if the specified files exist"""
 
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-    logger.info(
-        f"check-storage file-exists: cluster: {cluster}, node: {node}, type: {type}, files: {file}."
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     if obj is None:
         obj = StorageCheckImpl(cluster, type, log_level, log_folder)
 
-    overall_exit_code = ExitCode.UNKNOWN
-    overall_msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.FILE_EXISTS.value,
-                node=node,
-                get_exit_code_msg=lambda: (overall_exit_code, overall_msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type,
-                HealthCheckName.FILE_EXISTS,
-                lambda: (overall_exit_code, overall_msg),
-                verbose_out,
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_file_exists():
-            overall_exit_code = ExitCode.OK
-            overall_msg = (
-                f"{HealthCheckName.FILE_EXISTS.value} is disabled by killswitch."
-            )
-            logger.info(overall_msg)
-            sys.exit(overall_exit_code.value)
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.FILE_EXISTS,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_file_exists(),
+    ) as rt:
+        overall_exit_code = ExitCode.UNKNOWN
+        overall_msg = ""
+
         for f in file:
             try:
-                file_check_out: bool = obj.check_file_exists(f, logger)
+                file_check_out: bool = obj.check_file_exists(f, rt.logger)
             except Exception as e:
                 file_check_out = False
                 overall_msg += f"Checking file {f}. Exception {e} was raised.\n"
@@ -539,9 +405,7 @@ def file_exists(
             else:
                 overall_msg = "All files are present."
 
-        logger.info(f"exit code {overall_exit_code}: {overall_msg}")
-
-        sys.exit(overall_exit_code.value)
+        rt.finish(overall_exit_code, overall_msg)
 
 
 @check_storage.command()
@@ -572,67 +436,27 @@ def directory_exists(
 ) -> None:
     """Check if the specified directories exist"""
 
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-    logger.info(
-        f"check-storage directory-exists: cluster: {cluster}, node: {node}, type: {type}, directories: {directory}."
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     if obj is None:
         obj = StorageCheckImpl(cluster, type, log_level, log_folder)
 
-    overall_exit_code = ExitCode.UNKNOWN
-    overall_msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.DIR_EXISTS.value,
-                node=node,
-                get_exit_code_msg=lambda: (overall_exit_code, overall_msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type,
-                HealthCheckName.DIR_EXISTS,
-                lambda: (overall_exit_code, overall_msg),
-                verbose_out,
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_dir_exists():
-            overall_exit_code = ExitCode.OK
-            overall_msg = (
-                f"{HealthCheckName.DIR_EXISTS.value} is disabled by killswitch."
-            )
-            logger.info(overall_msg)
-            sys.exit(overall_exit_code.value)
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.DIR_EXISTS,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_dir_exists(),
+    ) as rt:
+        overall_exit_code = ExitCode.UNKNOWN
+        overall_msg = ""
+
         for d in directory:
             try:
-                dir_check_out: bool = obj.check_directory_exists(d, logger)
+                dir_check_out: bool = obj.check_directory_exists(d, rt.logger)
             except Exception as e:
                 dir_check_out = False
                 overall_msg += f"Checking directory {d}. Exception {e} was raised.\n"
@@ -649,9 +473,7 @@ def directory_exists(
         if overall_exit_code == ExitCode.OK:
             overall_msg = "All directories are present."
 
-        logger.info(f"exit code {overall_exit_code}: {overall_msg}")
-
-        sys.exit(overall_exit_code.value)
+        rt.finish(overall_exit_code, overall_msg)
 
 
 def process_check_mountpoint(
@@ -703,69 +525,28 @@ def check_mountpoint(
 ) -> None:
     """Check if the specified mountpoint has the same entries in fstab and mounts"""
 
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-    logger.info(
-        f"check-storage check-mountpoint: cluster: {cluster}, node: {node}, type: {type}, mountpoint: {mountpoint}."
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     if obj is None:
         obj = StorageCheckImpl(cluster, type, log_level, log_folder)
 
-    overall_exit_code = ExitCode.UNKNOWN
-    overall_msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.CHECK_MOUNTPOINT.value,
-                node=node,
-                get_exit_code_msg=lambda: (overall_exit_code, overall_msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type,
-                HealthCheckName.CHECK_MOUNTPOINT,
-                lambda: (overall_exit_code, overall_msg),
-                verbose_out,
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_check_mountpoint():
-            overall_exit_code = ExitCode.OK
-            overall_msg = (
-                f"{HealthCheckName.CHECK_MOUNTPOINT.value} is disabled by killswitch."
-            )
-            logger.info(overall_msg)
-            sys.exit(overall_exit_code.value)
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.CHECK_MOUNTPOINT,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_check_mountpoint(),
+    ) as rt:
+        overall_exit_code = ExitCode.UNKNOWN
+        overall_msg = ""
 
         for m in mountpoint:
             try:
                 mount_out: Tuple[ShellCommandOut, ShellCommandOut] = (
-                    obj.get_fstab_mount_info(timeout, m, logger)
+                    obj.get_fstab_mount_info(timeout, m, rt.logger)
                 )
             except Exception as e:
                 exc_out = handle_subprocess_exception(e)
@@ -777,9 +558,7 @@ def check_mountpoint(
             if exit_code > overall_exit_code:
                 overall_exit_code = exit_code
 
-        logger.info(f"exit code {overall_exit_code}: {overall_msg}")
-
-        sys.exit(overall_exit_code.value)
+        rt.finish(overall_exit_code, overall_msg)
 
 
 def process_disk_size(
@@ -879,72 +658,28 @@ def disk_size(
     Check the size of the given disk
     """
 
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-    logger.info(
-        f"check-storage disk-size: cluster: {cluster}, node: {node}, type: {type}, volumes: {volume}, size_unit: {size_unit}, operator: {operator}, value: {value}"
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     if obj is None:
         obj = StorageCheckImpl(cluster, type, log_level, log_folder)
 
-    overall_exit_code = ExitCode.UNKNOWN
-    overall_msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.DISK_SIZE.value,
-                node=node,
-                get_exit_code_msg=lambda: (overall_exit_code, overall_msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type,
-                HealthCheckName.DISK_SIZE,
-                lambda: (overall_exit_code, overall_msg),
-                verbose_out,
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_disk_size():
-            overall_exit_code = ExitCode.OK
-            overall_msg = (
-                f"{HealthCheckName.DISK_SIZE.value} is disabled by killswitch."
-            )
-            logger.info(overall_msg)
-            sys.exit(overall_exit_code.value)
-
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.DISK_SIZE,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_disk_size(),
+    ) as rt:
         try:
-            disk_out = obj.get_disk_size(timeout, volume, size_unit, logger)
+            disk_out = obj.get_disk_size(timeout, volume, size_unit, rt.logger)
         except Exception as e:
             exc_out = handle_subprocess_exception(e)
             disk_out = PipedShellCommandOut([exc_out.returncode], exc_out.stdout)
 
-        logger.info(disk_out.stdout)
+        rt.logger.info(disk_out.stdout)
         exit_code, msg = process_disk_size(
             disk_out.stdout,
             disk_out.returncode,
@@ -952,10 +687,7 @@ def disk_size(
             expected_value=value,
         )
 
-        overall_msg += f"Volume {volume}: {msg}"
-        if exit_code > overall_exit_code:
-            overall_exit_code = exit_code
+        overall_msg = f"Volume {volume}: {msg}"
+        overall_exit_code = exit_code
 
-        logger.info(f"exit code {overall_exit_code}: {overall_msg}")
-
-        sys.exit(overall_exit_code.value)
+        rt.finish(overall_exit_code, overall_msg)

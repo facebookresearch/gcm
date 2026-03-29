@@ -8,8 +8,7 @@ readme = "README.md"
 description = "GPU Cluster Monitoring (GCM): Large-Scale AI Research Cluster Monitoring"
 requires-python = ">=3.10"
 dependencies = [
-  # TODO (T198128870): Unpin the requests version
-  "requests==2.27.1",
+  "requests>=2.33.0",
   "pynvml==11.4.*",
   "typing_extensions",
   "click==8.0.4",
@@ -35,6 +34,7 @@ license = { text = "MIT" }
 Homepage = "https://github.com/facebookresearch/gcm"
 
 [project.optional-dependencies]
+kubernetes = ["kubernetes>=28.1.0"]
 dev = [
   "parameterized",
   "virtualenv>=20.28.1",

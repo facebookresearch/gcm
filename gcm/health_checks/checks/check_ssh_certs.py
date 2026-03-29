@@ -2,24 +2,14 @@
 # All rights reserved.
 """Check IPA registered certs against ones received directly from the server."""
 
-import logging
 import re
 import subprocess
-import sys
 from collections.abc import Collection
-from contextlib import ExitStack
 from dataclasses import dataclass
-from pathlib import Path
-from socket import gethostname
 from typing import Optional, Protocol
 
 import click
-
-import gni_lib
-
-from gcm.health_checks.check_utils.output_context_manager import OutputContext
-from gcm.health_checks.check_utils.output_utils import CheckOutput
-from gcm.health_checks.check_utils.telem import TelemetryContext
+from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
 from gcm.health_checks.click import (
     common_arguments,
     telemetry_argument,
@@ -31,8 +21,6 @@ from gcm.monitoring.click import heterogeneous_cluster_v1_option
 from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import (
     FeatureValueHealthChecksFeatures,
 )
-from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
-from gcm.monitoring.utils.monitor import init_logger
 from gcm.schemas.health_check.health_check_name import HealthCheckName
 from typeguard import typechecked
 
@@ -126,58 +114,21 @@ def check_ssh_certs(
     host: str,
 ) -> None:
     """Check hostkeys against ipa certs."""
-    node: str = gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=str(Path(log_folder) / f"{type}_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-    logger.info(
-        f"check-ssh-certs: cluster: {cluster}, node: {node}, type: {type}, host: {host}"
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
     if not obj:
         obj = SshCertsCheckImpl(cluster, type, log_level, log_folder)
-    check_status = ExitCode.OK
-    short_out = ""
-    derived_cluster = get_derived_cluster(
+
+    with HealthCheckRuntime(
         cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
         heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.CHECK_SSH_CERTS.value,
-                node=node,
-                get_exit_code_msg=lambda: (check_status, short_out),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type,
-                HealthCheckName.CHECK_SSH_CERTS,
-                lambda: (check_status, short_out),
-                verbose_out,
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_check_ssh_certs():
-            check_status = ExitCode.OK
-            short_out = "disabled by killswitch"
-            log_exit(logger, check_status, short_out)
+        health_check_name=HealthCheckName.CHECK_SSH_CERTS,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_check_ssh_certs(),
+    ) as rt:
         try:
             ipa_out = obj.get_ipa_certs(host, timeout)
             if ipa_out.returncode:
@@ -187,11 +138,11 @@ def check_ssh_certs(
                 else:
                     check_status = ExitCode.UNKNOWN
                     short_out = msg_error(ipa_out, ": Is IPA down?")
-                log_exit(logger, check_status, short_out)
+                rt.finish(check_status, short_out)
         except subprocess.TimeoutExpired as e:
             check_status = ExitCode.UNKNOWN
             short_out = msg_timeout(e, ": Is IPA down?")
-            log_exit(logger, check_status, short_out)
+            rt.finish(check_status, short_out)
         ipa_certs = set(
             re.findall(
                 r"(?:\bsshpubkeyfp: )(\S+)(?: [(])",
@@ -202,17 +153,17 @@ def check_ssh_certs(
         if not ipa_certs:
             check_status = ExitCode.CRITICAL
             short_out = f"No certs for {host} found in IPA. Is {host} in production?"
-            log_exit(logger, check_status, short_out)
+            rt.finish(check_status, short_out)
         try:
             ssh_out = obj.get_ssh_certs(host, timeout)
             if ssh_out.returncode:
                 check_status = ExitCode.CRITICAL
                 short_out = msg_error(ssh_out, f"Is {host} down?")
-                log_exit(logger, check_status, short_out)
+                rt.finish(check_status, short_out)
         except subprocess.TimeoutExpired as e:
             check_status = ExitCode.CRITICAL
             short_out = msg_timeout(e)
-            log_exit(logger, check_status, short_out)
+            rt.finish(check_status, short_out)
         ssh_certs = set(
             re.findall(
                 r"(?:\b[0-9]+ )(\S+)" f"(?: {host} [(])",
@@ -227,20 +178,9 @@ def check_ssh_certs(
                 f"{len(missing_certs)}/{len(ipa_certs)} certs registered in IPA but not "
                 f"found in {host} ssh. Was {host} reprovisioned but not re-registered?"
             )
-            log_exit(logger, check_status, short_out)
+            rt.finish(check_status, short_out)
         short_out = f"{len(ipa_certs)} certs registered in IPA and found in {host} ssh."
-        log_exit(logger, check_status, short_out)
-
-
-def log_exit(logger: logging.Logger, check_status: ExitCode, short_out: str) -> None:
-    """Log output and exit."""
-    check = CheckOutput(
-        HealthCheckName.CHECK_SSH_CERTS.value,
-        check_status=check_status,
-        short_out=short_out,
-    )
-    logger.info(f"exit code {check_status.value}: {check}")
-    sys.exit(check_status.value)
+        rt.finish(ExitCode.OK, short_out)
 
 
 def msg_error(p: ShellCommandOut, extra: Optional[str] = None) -> str:

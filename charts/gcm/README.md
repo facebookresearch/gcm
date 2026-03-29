@@ -23,22 +23,18 @@ The chart is published to GHCR as an OCI artifact and versioned alongside GCM re
 
 ```shell
 helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
-  --set healthChecks.cluster=my-cluster \
-  --set healthChecks.sink=otel \
-  --set monitoring.sink=otel \
-  --set monitoring.cluster=my-cluster
+  -f <PATH/TO>/custom-values.yaml \
+  --namespace <namespace>
 ```
 
 **DCGM 3** (for older NVIDIA drivers R535/R525):
 
 ```shell
 helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
+  -f <PATH/TO>/custom-values.yaml \
+  --namespace <namespace> \
   --set monitoring.image.tag=dcgm3 \
   --set healthChecks.image.tag=dcgm3 \
-  --set healthChecks.cluster=my-cluster \
-  --set healthChecks.sink=otel \
-  --set monitoring.sink=otel \
-  --set monitoring.cluster=my-cluster
 ```
 
 To pin a specific chart version, add `--version X.Y.Z`.
@@ -48,11 +44,15 @@ Health checks and monitoring are independent — you can deploy either or both:
 ```shell
 # Health checks only
 helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
+  -f <PATH/TO>/custom-values.yaml \
+  --namespace <namespace> \
   --set monitoring.enabled=false \
   --set healthChecks.cluster=my-cluster
 
 # Monitoring only
 helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
+  -f <PATH/TO>/custom-values.yaml \
+  --namespace <namespace> \
   --set healthChecks.enabled=false \
   --set monitoring.sink=otel \
   --set monitoring.cluster=my-cluster
@@ -186,6 +186,8 @@ Sink-specific options can be passed via `sinkOpts` (OmegaConf dot-list syntax). 
 ```shell
 # Monitoring: send GPU metrics to an OpenTelemetry collector
 helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
+  -f <PATH/TO>/custom-values.yaml \
+  --namespace <namespace> \
   --set monitoring.sink=otel \
   --set monitoring.cluster=my-cluster \
   --set monitoring.sinkOpts[0]=otel_endpoint=http://otel-collector:4318 \
@@ -193,6 +195,8 @@ helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
 
 # Health checks: send results to an OpenTelemetry collector
 helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
+  -f <PATH/TO>/custom-values.yaml \
+  --namespace <namespace> \
   --set healthChecks.sink=otel \
   --set healthChecks.cluster=my-cluster \
   --set healthChecks.sinkOpts[0]=otel_endpoint=http://otel-collector:4318 \
@@ -207,6 +211,8 @@ For clusters that use **labels** instead of taints to identify GPU nodes, use `n
 
 ```shell
 helm install gcm oci://ghcr.io/facebookresearch/charts/gcm \
+  -f <PATH/TO>/custom-values.yaml \
+  --namespace <namespace> \
   --set monitoring.nodeSelector."nvidia\.com/gpu\.present"=true \
   --set healthChecks.nodeSelector."nvidia\.com/gpu\.present"=true
 ```
