@@ -9,6 +9,7 @@ import click
 
 from gcm._version import __version__
 from gcm.monitoring.cli import (
+    kubernetes_monitor,
     nvml_monitor,
     sacct_backfill,
     sacct_publish,
@@ -46,6 +47,7 @@ def main(detach: bool, backend: str) -> None:
     ctx.obj["accelerator_backend"] = backend
 
 
+main.add_command(kubernetes_monitor.main, name="kubernetes_monitor")
 main.add_command(nvml_monitor.main, name="nvml_monitor")
 main.add_command(sacct_running.main, name="sacct_running")
 main.add_command(sacct_publish.main, name="sacct_publish")
