@@ -5,6 +5,7 @@ from gcm.health_checks.checks.check_authentication import check_authentication
 from gcm.health_checks.checks.check_blockdev import check_blockdev
 from gcm.health_checks.checks.check_dcgmi import check_dcgmi
 from gcm.health_checks.checks.check_ethlink import check_ethlink
+from gcm.health_checks.checks.check_ib_counters import check_ib_counters
 from gcm.health_checks.checks.check_hca import check_hca
 from gcm.health_checks.checks.check_ibstat import check_ib
 from gcm.health_checks.checks.check_ipmitool import check_ipmitool
@@ -44,4 +45,5 @@ __all__ = [
     "check_blockdev",
     "check_ethlink",
     "check_sensors",
+    "check_ib_counters",
 ]

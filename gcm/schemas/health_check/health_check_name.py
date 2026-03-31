@@ -66,3 +66,4 @@ class HealthCheckName(Enum):
     CHECK_ETHLINK = "check ethlink"
     CHECK_CLOCKSOURCE = "check clocksource"
     CHECK_SENSORS = "check sensors"
+    CHECK_IB_COUNTERS = "check ib counters"
