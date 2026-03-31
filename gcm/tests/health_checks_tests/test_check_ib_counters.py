@@ -247,15 +247,21 @@ class TestProcessIBCounters:
 
     def test_multi_port_mixed_errors(self) -> None:
         clean_port = PortCounters(
-            device="mlx5_0", port="1",
-            errors={"SymbolErrorCounter": 0}, throughput={},
+            device="mlx5_0",
+            port="1",
+            errors={"SymbolErrorCounter": 0},
+            throughput={},
         )
         bad_port = PortCounters(
-            device="mlx5_1", port="1",
-            errors={"SymbolErrorCounter": 10}, throughput={},
+            device="mlx5_1",
+            port="1",
+            errors={"SymbolErrorCounter": 10},
+            throughput={},
         )
         result = process_ib_counters(
-            [clean_port, bad_port], warn_threshold=0, crit_threshold=100,
+            [clean_port, bad_port],
+            warn_threshold=0,
+            crit_threshold=100,
         )
         assert result.check_status == ExitCode.WARN
         assert "2 ports checked" in result.short_out

@@ -133,7 +133,9 @@ class IBCountersCheckImpl:
             with open(path, "r") as f:
                 return int(f.read().strip())
         except (OSError, ValueError):
-            logger.debug("Failed to read counter %s for %s/%s", counter_name, device, port)
+            logger.debug(
+                "Failed to read counter %s for %s/%s", counter_name, device, port
+            )
             return None
 
 
@@ -195,9 +197,7 @@ def process_ib_counters(
 
         if port_error_total > 0:
             ports_with_errors += 1
-            nonzero = [
-                f"{name}={val}" for name, val in pc.errors.items() if val > 0
-            ]
+            nonzero = [f"{name}={val}" for name, val in pc.errors.items() if val > 0]
             port_details.append(f"{port_label}: {'; '.join(nonzero)}")
 
         # Emit metrics for each error counter.
