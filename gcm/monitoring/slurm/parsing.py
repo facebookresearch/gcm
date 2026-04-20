@@ -278,3 +278,50 @@ def parse_scontrol_maxnodes(v: str) -> int:
 def parse_job_ids(s: str) -> list[str]:
     """Given a comma separated string of job ids, return a list of job ids."""
     return s.split(",") if s else []
+
+
+def parse_gres_gpu_indices(v: str) -> str | None:
+    """Parse gres_detail to extract GPU indices for single-node jobs.
+
+    The input is a comma-joined string of gres_detail entries from the SLURM REST
+    API (joined by _map_job_fields). Each entry looks like "gpu:ampere:1(IDX:7)"
+    or "gpu:ampere:4(IDX:0-3)".
+
+    Returns a comma-separated string of GPU indices (e.g., "7" or "0,1,2,3") for
+    single-node jobs. Returns None for multi-node jobs (multiple IDX entries) or
+    parse failures.
+
+    Examples:
+
+    >>> parse_gres_gpu_indices("gpu:ampere:1(IDX:7)")
+    '7'
+    >>> parse_gres_gpu_indices("gpu:ampere:3(IDX:0,3,5)")
+    '0,3,5'
+    >>> parse_gres_gpu_indices("gpu:ampere:4(IDX:0-3)")
+    '0,1,2,3'
+    >>> parse_gres_gpu_indices("gpu:ampere:8(IDX:0-7)")
+    '0,1,2,3,4,5,6,7'
+    >>> parse_gres_gpu_indices("gpu:ampere:8(IDX:0-7),gpu:ampere:8(IDX:0-7)")
+    >>> parse_gres_gpu_indices("")
+    >>> parse_gres_gpu_indices("(null)")
+    """
+    if not v or v in {"N/A", "(null)", "[]"}:
+        return None
+
+    idx_matches = re.findall(r"IDX:([0-9,\-]+)", v)
+    if len(idx_matches) != 1:
+        # Multi-node (multiple IDX entries) or no IDX found
+        return None
+
+    indices: list[int] = []
+    for part in idx_matches[0].split(","):
+        if "-" in part:
+            start_s, end_s = part.split("-", 1)
+            indices.extend(range(int(start_s), int(end_s) + 1))
+        else:
+            indices.append(int(part))
+
+    if not indices:
+        return None
+
+    return ",".join(str(i) for i in sorted(indices))
