@@ -1,12 +1,13 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, field, fields
 
 from gcm.monitoring.clock import time_to_time_aware
 from gcm.monitoring.coerce import maybe_float, maybe_int
 from gcm.monitoring.slurm.nodelist_parsers import nodelist
 from gcm.monitoring.slurm.parsing import (
     maybe_parse_memory_to_bytes,
+    parse_gres_gpu_indices,
     parse_gres_or_tres,
     parse_value_from_tres,
 )
@@ -75,6 +76,14 @@ class JobData(DerivedCluster):
     FEATURE: str = parsed_field(parser=str)
     RESTARTCNT: int = parsed_field(parser=int)
     SCHEDNODES: list[str] | None = parsed_field(parser=lambda s: nodelist()(s)[0])
+    GRES_GPU_INDICES: str | None = field(
+        default=None,
+        metadata={
+            "parser": parse_gres_gpu_indices,
+            "field_name": "GRES_DETAIL",
+            "slurm_field": False,
+        },
+    )
 
 
 JOB_DATA_SLURM_FIELDS = list(
@@ -125,4 +134,5 @@ REST_TO_SQUEUE_FIELD_MAP: dict[str, str] = {
     "features": "FEATURE",
     "restart_cnt": "RESTARTCNT",
     "scheduled_nodes": "SCHEDNODES",
+    "gres_detail": "GRES_DETAIL",
 }
