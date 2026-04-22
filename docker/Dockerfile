@@ -67,6 +67,8 @@ FROM python:3.10-slim
 
 LABEL org.opencontainers.image.source=https://github.com/facebookresearch/gcm
 
+ARG TARGETARCH
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PATH="/usr/local/slurm/bin:${PATH}"
@@ -77,6 +79,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # updates their signing key.
 # DCGM 3.x and 4.x packages are sourced from the ubuntu2204 repo;
 # ubuntu2004 is only used for DCGM < 3 (which is very old).
+# NVIDIA's repo uses "x86_64" for amd64 and "sbsa" (Server Base System
+# Architecture) for arm64.
 ARG DCGM_VERSION=4.4.2-1
 RUN DCGM_MAJOR="${DCGM_VERSION%%.*}" && \
     if [ "$DCGM_MAJOR" -ge 4 ]; then \
@@ -92,9 +96,14 @@ RUN DCGM_MAJOR="${DCGM_VERSION%%.*}" && \
         DCGM_REPO="ubuntu2004"; \
         DCGM_APT_VER="1:${DCGM_VERSION%%-*}"; \
     fi && \
+    case "$TARGETARCH" in \
+        amd64) NVIDIA_ARCH="x86_64" ;; \
+        arm64) NVIDIA_ARCH="sbsa" ;; \
+        *) echo "Unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
+    esac && \
     apt-get update && \
     apt-get install -y --no-install-recommends curl && \
-    echo "deb [trusted=yes] https://developer.download.nvidia.com/compute/cuda/repos/${DCGM_REPO}/x86_64/ /" \
+    echo "deb [trusted=yes] https://developer.download.nvidia.com/compute/cuda/repos/${DCGM_REPO}/${NVIDIA_ARCH}/ /" \
         > /etc/apt/sources.list.d/cuda.list && \
     apt-get -o Acquire::Retries=5 update && \
     apt-get install -y --no-install-recommends "${DCGM_PKG}=${DCGM_APT_VER}" && \
@@ -114,8 +123,13 @@ RUN apt-get update && \
 # Create unversioned libnvidia-ml.so symlink for gni_lib (GPU Node ID).
 # The NVIDIA container runtime injects libnvidia-ml.so.1 but not the
 # unversioned .so, which cffi/dlopen-based libraries need.
-RUN ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 \
-           /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
+RUN case "$TARGETARCH" in \
+        amd64) MULTIARCH="x86_64-linux-gnu" ;; \
+        arm64) MULTIARCH="aarch64-linux-gnu" ;; \
+        *) echo "Unsupported TARGETARCH: $TARGETARCH" >&2; exit 1 ;; \
+    esac && \
+    ln -sf /usr/lib/${MULTIARCH}/libnvidia-ml.so.1 \
+           /usr/lib/${MULTIARCH}/libnvidia-ml.so
 
 # Copy installed Python packages from builder
 COPY --from=builder /install /usr/local
