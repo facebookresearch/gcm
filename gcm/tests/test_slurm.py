@@ -71,6 +71,7 @@ class TestSlurmCliClient:
                     TRES_MEM_ALLOCATED=0,
                     TRES_NODE_ALLOCATED=1,
                     TRES_BILLING_ALLOCATED=112,
+                    LAST_SCHED_EVAL=time_to_time_aware("2025-04-10T13:45:10"),
                 ),
                 JobData(
                     collection_unixtime=123,
@@ -115,6 +116,7 @@ class TestSlurmCliClient:
                     TRES_MEM_ALLOCATED=0,
                     TRES_NODE_ALLOCATED=1,
                     TRES_BILLING_ALLOCATED=34,
+                    LAST_SCHED_EVAL=time_to_time_aware("2025-03-06T21:01:30"),
                 ),
                 JobData(
                     collection_unixtime=123,
@@ -196,6 +198,7 @@ class TestSlurmCliClient:
                     TRES_MEM_ALLOCATED=0,
                     TRES_NODE_ALLOCATED=32,
                     TRES_BILLING_ALLOCATED=0,
+                    LAST_SCHED_EVAL=time_to_time_aware("2025-03-07T04:16:33"),
                 ),
                 JobData(
                     collection_unixtime=123,
@@ -244,6 +247,7 @@ class TestSlurmCliClient:
                     TRES_MEM_ALLOCATED=10000,
                     TRES_NODE_ALLOCATED=1,
                     TRES_BILLING_ALLOCATED=2,
+                    LAST_SCHED_EVAL="N/A",
                 ),
                 JobData(
                     collection_unixtime=123,
@@ -292,6 +296,7 @@ class TestSlurmCliClient:
                     TRES_MEM_ALLOCATED=1280500,
                     TRES_NODE_ALLOCATED=20,
                     TRES_BILLING_ALLOCATED=3040,
+                    LAST_SCHED_EVAL="N/A",
                 ),
             ]
         ],

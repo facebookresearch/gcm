@@ -76,6 +76,9 @@ class JobData(DerivedCluster):
     FEATURE: str = parsed_field(parser=str)
     RESTARTCNT: int = parsed_field(parser=int)
     SCHEDNODES: list[str] | None = parsed_field(parser=lambda s: nodelist()(s)[0])
+    LAST_SCHED_EVAL: str = parsed_field(
+        parser=time_to_time_aware, field_name="LASTSCHEDEVAL"
+    )
     GRES_GPU_INDICES: str | None = field(
         default=None,
         metadata={
@@ -134,5 +137,6 @@ REST_TO_SQUEUE_FIELD_MAP: dict[str, str] = {
     "features": "FEATURE",
     "restart_cnt": "RESTARTCNT",
     "scheduled_nodes": "SCHEDNODES",
+    "last_sched_evaluation": "LASTSCHEDEVAL",
     "gres_detail": "GRES_DETAIL",
 }
