@@ -199,6 +199,8 @@ class SlurmCliClient(SlurmClient):
                 subprocess.check_output(["sdiag", "--all", "--json"], text=True)
             )
             stats = sdiag_output["statistics"]
+            schedule_exit = stats.get("schedule_exit") or {}
+            bf_exit = stats.get("bf_exit") or {}
 
             result = Sdiag(
                 server_thread_count=stats.get("server_thread_count"),
@@ -224,6 +226,20 @@ class SlurmCliClient(SlurmClient):
                 bf_cycle_sum=stats.get("bf_cycle_sum"),
                 bf_cycle_max=stats.get("bf_cycle_max"),
                 bf_queue_len=stats.get("bf_queue_len"),
+                schedule_exit_end_job_queue=schedule_exit.get("end_job_queue"),
+                schedule_exit_default_queue_depth=schedule_exit.get(
+                    "default_queue_depth"
+                ),
+                schedule_exit_max_job_start=schedule_exit.get("max_job_start"),
+                schedule_exit_max_rpc_cnt=schedule_exit.get("max_rpc_cnt"),
+                schedule_exit_max_sched_time=schedule_exit.get("max_sched_time"),
+                schedule_exit_licenses=schedule_exit.get("licenses"),
+                bf_exit_end_job_queue=bf_exit.get("end_job_queue"),
+                bf_exit_max_job_start=bf_exit.get("bf_max_job_start"),
+                bf_exit_max_job_test=bf_exit.get("bf_max_job_test"),
+                bf_exit_max_time=bf_exit.get("bf_max_time"),
+                bf_exit_node_space_size=bf_exit.get("bf_node_space_size"),
+                bf_exit_state_changed=bf_exit.get("state_changed"),
             )
 
             # Reset sdiag counters after collection
