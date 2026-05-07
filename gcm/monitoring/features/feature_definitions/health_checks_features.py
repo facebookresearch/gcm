@@ -65,3 +65,8 @@ class HealthChecksFeatures:
     disable_airstore_credential_count: bool
     disable_check_sensors: bool
     disable_check_aws_events: bool
+    disable_ib_port_counters: bool
+    disable_ib_cable_ddm: bool
+    disable_ib_sm_status: bool
+    disable_ib_port_errors: bool
+    disable_ib_ufm_health: bool

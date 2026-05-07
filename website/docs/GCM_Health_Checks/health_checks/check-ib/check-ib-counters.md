@@ -1,45 +1,36 @@
 # check-ib-counters
 
 ## Overview
-Monitors InfiniBand port error and throughput counters via sysfs, detecting runtime fabric degradation that silently hurts distributed training throughput (NCCL AllReduce, FSDP, etc.). This is the runtime complement to `check-iblink`: where `check-iblink` validates link *presence*, `check-ib-counters` detects performance-degrading conditions on active links.
+
+Reads InfiniBand port error counters directly from sysfs (`/sys/class/infiniband/`) on the local node. Detects degraded fabric performance by monitoring hardware error counters that indicate cable issues, signal integrity problems, or link instability -- conditions where the link is physically up but silently dropping packets or corrupting data.
+
+## What It Monitors
+
+The following per-port error counters are read from sysfs:
+
+| Counter | What It Indicates |
+|---------|-------------------|
+| `symbol_error` | Physical layer symbol errors (signal integrity) |
+| `link_error_recovery` | Link retrained after errors (cable/connector issues) |
+| `link_downed` | Link went down unexpectedly (**critical**) |
+| `port_rcv_errors` | Malformed packets received |
+| `port_rcv_constraint_errors` | Packets dropped due to partition/QoS violations |
+| `port_xmit_discards` | Packets dropped on transmit (congestion or errors) |
+| `excessive_buffer_overrun_errors` | Buffer overflow (flow control failure) |
+| `local_link_integrity_errors` | Local link error threshold exceeded |
 
 ## Requirements
 
-- **InfiniBand Drivers**: Mellanox/NVIDIA OFED or inbox kernel drivers
-- **Sysfs**: Kernel sysfs mounted at `/sys` with counters at `/sys/class/infiniband/{device}/ports/{port}/counters/`
+- **InfiniBand Drivers**: Mellanox/NVIDIA OFED or inbox drivers
+- **sysfs**: `/sys/class/infiniband/` must be populated (standard on any node with IB)
 
-## Monitored Counters
-
-### Error Counters
-| Counter | Description |
-|---------|-------------|
-| `symbol_error` | Physical layer symbol errors |
-| `link_error_recovery` | Link error recovery events |
-| `link_downed` | Link down transitions |
-| `port_rcv_errors` | Malformed packets received |
-| `port_rcv_remote_physical_errors` | Remote physical receive errors |
-| `port_rcv_switch_relay_errors` | Switch relay errors on receive path |
-| `port_xmit_discards` | Outbound packets discarded |
-| `port_xmit_constraint_errors` | Transmit constraint violations |
-| `port_rcv_constraint_errors` | Receive constraint violations |
-| `local_link_integrity_errors` | Local link integrity failures |
-| `excessive_buffer_overrun_errors` | Buffer overrun events |
-| `VL15_dropped` | Dropped VL15 (management) packets |
-
-### Throughput Counters (informational)
-| Counter | Description |
-|---------|-------------|
-| `port_xmit_data` | Total data transmitted |
-| `port_rcv_data` | Total data received |
-| `port_xmit_packets` | Total packets transmitted |
-| `port_rcv_packets` | Total packets received |
+No external tools or sudo required -- reads directly from sysfs.
 
 ## Command-Line Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--warn-threshold` | Integer | 0 | Total error count above which the check returns WARNING |
-| `--crit-threshold` | Integer | 100 | Total error count above which the check returns CRITICAL |
+| `--error-threshold` | Integer | 0 | Counter value threshold. Values strictly above this trigger an alert. Set to 0 to alert on any errors. |
 | `--sink` | String | do_nothing | Telemetry sink destination |
 | `--sink-opts` | Multiple | - | Sink-specific configuration |
 | `--verbose-out` | Flag | False | Display detailed output |
@@ -52,35 +43,43 @@ Monitors InfiniBand port error and throughput counters via sysfs, detecting runt
 | Exit Code | Condition |
 |-----------|-----------|
 | **OK (0)** | Feature flag disabled (killswitch active) |
-| **OK (0)** | All error counters within thresholds |
-| **WARN (1)** | No IB ports discovered |
-| **WARN (1)** | Total errors exceed `--warn-threshold` |
-| **CRITICAL (2)** | Total errors exceed `--crit-threshold` |
+| **OK (0)** | All counters at or below threshold |
+| **WARN (1)** | No IB devices or counters found |
+| **WARN (1)** | Error counters above threshold (non-critical counters) |
+| **CRITICAL (2)** | `link_downed` above threshold |
 
 ## Usage Examples
 
-### Basic Check
-```shell
-health_checks check-ib check-ib-counters [CLUSTER] app
-```
-
-### With Custom Thresholds
+### Basic check (alert on any non-zero errors)
 ```shell
 health_checks check-ib check-ib-counters \
-  --warn-threshold 10 \
-  --crit-threshold 500 \
-  --sink otel \
-  --sink-opts "log_resource_attributes={'attr_1': 'value1'}" \
+  --sink stdout \
   [CLUSTER] \
-  app
+  prolog
 ```
 
-### Debug Mode
+### With threshold (tolerate low error counts)
 ```shell
 health_checks check-ib check-ib-counters \
-  --log-level DEBUG \
+  --error-threshold 10 \
+  --sink otel \
+  [CLUSTER] \
+  prolog
+```
+
+### Nagios mode with verbose output
+```shell
+health_checks check-ib check-ib-counters \
   --verbose-out \
   --sink stdout \
   [CLUSTER] \
-  app
+  nagios
+```
+
+## Killswitch
+
+Disable via TOML config:
+```toml
+[HealthChecksFeatures]
+disable_ib_port_counters = true
 ```

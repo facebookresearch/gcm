@@ -79,6 +79,11 @@ def _write_to_file(path: Path, data: str) -> Path:
         "check-node check-dnf-repos",
         "check-sensors",
         "check-aws-events",
+        "check-ib check-ib-counters",
+        "check-ib check-mlxcables",
+        "check-ib check-sm-status",
+        "check-ib check-ib-port-errors",
+        "check-ib check-ufm-health",
     ],
 )
 @typechecked
@@ -138,6 +143,11 @@ def test_killswitches(
         disable_check_dnf_repos = true
         disable_check_sensors = true
         disable_check_aws_events = true
+        disable_ib_port_counters = true
+        disable_ib_cable_ddm = true
+        disable_ib_sm_status = true
+        disable_ib_port_errors = true
+        disable_ib_ufm_health = true
         """,
     )
 
