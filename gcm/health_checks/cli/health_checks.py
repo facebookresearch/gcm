@@ -53,7 +53,6 @@ list_of_checks: List[click.core.Command] = [
     checks.check_blockdev,
     checks.check_ethlink,
     checks.check_sensors,
-    checks.check_ib_counters,
 ]
 
 for check in list_of_checks:

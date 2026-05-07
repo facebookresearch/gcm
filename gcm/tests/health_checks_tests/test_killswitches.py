@@ -71,6 +71,7 @@ def _write_to_file(path: Path, data: str) -> Path:
         "check-dcgmi nvlink -c nvlink_errors",
         "check-dcgmi nvlink -c nvlink_status",
         "check-ib check-ibstat",
+        "check-ib check-ib-counters",
         "check-ib check-ib-interfaces",
         "check-authentication password-status",
         "check-node uptime",
@@ -127,6 +128,7 @@ def test_killswitches(
         disable_dcgmi_nvlink_error = true
         disable_dcgmi_nvlink_status = true
         disable_check_ibstat = true
+        disable_check_ib_counters = true
         disable_check_ib_interfaces = true
         disable_pass_status = true
         disable_user_access_path_check = true

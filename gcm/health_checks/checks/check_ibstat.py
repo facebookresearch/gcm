@@ -7,6 +7,7 @@ from typing import Collection, List, Optional, Protocol, Tuple
 
 import click
 from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
+from gcm.health_checks.checks.check_ib_counters import check_ib_counters
 from gcm.health_checks.checks.check_iblink import check_iblink
 from gcm.health_checks.click import (
     common_arguments,
@@ -35,6 +36,7 @@ def check_ib() -> None:
     """ib status checks. i.e. ib_stat"""
 
 
+check_ib.add_command(check_ib_counters)
 check_ib.add_command(check_iblink)
 
 
