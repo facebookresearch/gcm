@@ -48,6 +48,7 @@ list_of_checks: List[click.core.Command] = [
     checks.check_service,
     checks.check_ib,
     checks.check_authentication,
+    checks.check_aws_events,
     checks.check_node,
     checks.check_pci,
     checks.check_blockdev,
