@@ -2,6 +2,7 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 """Utility functions for the various monitors."""
+
 from __future__ import annotations
 
 import inspect
@@ -11,8 +12,11 @@ import os
 import sys
 from logging.handlers import RotatingFileHandler
 from typing import (
+    Any,
     Callable,
+    cast,
     Collection,
+    Dict,
     Iterable,
     Literal,
     Mapping,
@@ -112,7 +116,7 @@ def run_data_collection_loop(
         raise click.UsageError(
             f"Sink '{sink}' could not be found. Here are the sinks that are registered:\n\t{list(registry.keys())}"
         )
-    sink_kwargs = oc.from_dotlist(list(sink_opts))
+    sink_kwargs = cast(Dict[str, Any], oc.from_dotlist(list(sink_opts)))
     try:
         sink_impl = sink_factory(**sink_kwargs)
     except TypeError as e:

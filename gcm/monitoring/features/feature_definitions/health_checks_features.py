@@ -16,6 +16,8 @@ class HealthChecksFeatures:
     disable_hca_count: bool
     disable_disk_usage: bool
     disable_disk_size: bool
+    disable_mce_errors: bool
+    disable_pcie_aer_errors: bool
     disable_mounted_dir: bool
     disable_file_exists: bool
     disable_dir_exists: bool
@@ -28,6 +30,7 @@ class HealthChecksFeatures:
     disable_package_version: bool
     disable_nccl_tests: bool
     disable_nvidia_smi: bool
+    disable_nvidia_smi_clock_policy: bool
     disable_nvidia_smi_gpu_num: bool
     disable_nvidia_smi_clock_freq: bool
     disable_nvidia_smi_running_procs: bool

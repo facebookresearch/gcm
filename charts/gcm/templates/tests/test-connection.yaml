@@ -1,0 +1,33 @@
+{{/*
+Copyright (c) Meta Platforms, Inc. and affiliates.
+All rights reserved.
+*/}}
+{{- if or .Values.monitoring.enabled .Values.healthChecks.enabled }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "gcm.fullname" . }}-test"
+  labels:
+    {{- include "gcm.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+spec:
+  {{- with .Values.imagePullSecrets }}
+  imagePullSecrets:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  containers:
+    {{- if .Values.monitoring.enabled }}
+    - name: gcm-test
+      image: {{ include "gcm.image" . }}
+      imagePullPolicy: {{ .Values.monitoring.image.pullPolicy }}
+      command: ["gcm", "--help"]
+    {{- end }}
+    {{- if .Values.healthChecks.enabled }}
+    - name: health-checks-test
+      image: {{ include "gcm.healthChecksImage" . }}
+      imagePullPolicy: {{ .Values.healthChecks.image.pullPolicy }}
+      command: ["health_checks", "--help"]
+    {{- end }}
+  restartPolicy: Never
+{{- end }}

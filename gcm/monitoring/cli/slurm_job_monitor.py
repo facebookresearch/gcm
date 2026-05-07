@@ -2,6 +2,7 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 """Read SLURM node information and publish the data to a sink"""
+
 from __future__ import annotations
 
 import logging

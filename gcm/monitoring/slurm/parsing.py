@@ -1,5 +1,6 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
+import logging
 import re
 import string
 from datetime import timedelta
@@ -15,6 +16,8 @@ from gcm.monitoring.utils.parsing.combinators import (
     discard_result,
     first_of,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def parse_cpus_alloc(v: str) -> int:
@@ -75,6 +78,48 @@ def parse_gres_or_tres(v: str) -> int:
         return parse_tres(v)
 
 
+def mb_to_bytes(value: int) -> int:
+    """Convert megabytes to bytes."""
+    return value * 1_000_000
+
+
+def parse_memory_to_bytes(value: str) -> int:
+    """Parse a memory value to bytes.
+
+    Handles plain integers (assumed MB, Slurm default) and suffixed
+    strings (M, G, T, P). This is the single robust entry point for
+    all memory parsing.
+    """
+    if not value or value == "0":
+        return 0
+
+    suffix = value[-1]
+    if suffix.isdigit():
+        # Plain integer = MB (Slurm default unit)
+        return int(value) * 1_000_000
+
+    multipliers = {
+        "M": 1_000_000,
+        "G": 1_000_000_000,
+        "T": 1_000_000_000_000,
+        "P": 1_000_000_000_000_000,
+    }
+    if suffix not in multipliers:
+        raise ValueError(f"Unrecognized suffix in {value}")
+    return int(float(value[:-1]) * multipliers[suffix])
+
+
+def maybe_parse_memory_to_bytes(v: str) -> int | None:
+    """Parse memory to bytes, returning None for non-parseable values (N/A, empty, etc)."""
+    if not v or v in {"N/A", "(null)"}:
+        return None
+    try:
+        return parse_memory_to_bytes(v)
+    except (ValueError, TypeError):
+        logger.error(f"Failed to parse memory value: {v!r}")
+        return None
+
+
 def convert_memory_to_mb(value: str) -> int:
     """Helper function to convert memory values with units to MB.
 
@@ -89,7 +134,8 @@ def convert_memory_to_mb(value: str) -> int:
 
     suffix = value[-1]
     if suffix.isdigit():
-        return int(int(value) * 1e-6)
+        # Plain integer = MB (Slurm default unit)
+        return int(value)
 
     if suffix == "P":
         multiplier = 1_000_000_000
@@ -232,3 +278,50 @@ def parse_scontrol_maxnodes(v: str) -> int:
 def parse_job_ids(s: str) -> list[str]:
     """Given a comma separated string of job ids, return a list of job ids."""
     return s.split(",") if s else []
+
+
+def parse_gres_gpu_indices(v: str) -> str | None:
+    """Parse gres_detail to extract GPU indices for single-node jobs.
+
+    The input is a comma-joined string of gres_detail entries from the SLURM REST
+    API (joined by _map_job_fields). Each entry looks like "gpu:ampere:1(IDX:7)"
+    or "gpu:ampere:4(IDX:0-3)".
+
+    Returns a comma-separated string of GPU indices (e.g., "7" or "0,1,2,3") for
+    single-node jobs. Returns None for multi-node jobs (multiple IDX entries) or
+    parse failures.
+
+    Examples:
+
+    >>> parse_gres_gpu_indices("gpu:ampere:1(IDX:7)")
+    '7'
+    >>> parse_gres_gpu_indices("gpu:ampere:3(IDX:0,3,5)")
+    '0,3,5'
+    >>> parse_gres_gpu_indices("gpu:ampere:4(IDX:0-3)")
+    '0,1,2,3'
+    >>> parse_gres_gpu_indices("gpu:ampere:8(IDX:0-7)")
+    '0,1,2,3,4,5,6,7'
+    >>> parse_gres_gpu_indices("gpu:ampere:8(IDX:0-7),gpu:ampere:8(IDX:0-7)")
+    >>> parse_gres_gpu_indices("")
+    >>> parse_gres_gpu_indices("(null)")
+    """
+    if not v or v in {"N/A", "(null)", "[]"}:
+        return None
+
+    idx_matches = re.findall(r"IDX:([0-9,\-]+)", v)
+    if len(idx_matches) != 1:
+        # Multi-node (multiple IDX entries) or no IDX found
+        return None
+
+    indices: list[int] = []
+    for part in idx_matches[0].split(","):
+        if "-" in part:
+            start_s, end_s = part.split("-", 1)
+            indices.extend(range(int(start_s), int(end_s) + 1))
+        else:
+            indices.append(int(part))
+
+    if not indices:
+        return None
+
+    return ",".join(str(i) for i in sorted(indices))

@@ -1,12 +1,12 @@
 // Copyright (c) Meta Platforms, Inc. and affiliates.
 // All rights reserved.
-package main
+package slurmprocessor
 
 import (
 	"context"
 	"log"
 
-	shelper "github.com/fairinternal/fair-cluster-monitoring/shelper"
+	shelper "github.com/facebookresearch/gcm/shelper"
 	"go.opentelemetry.io/collector/component"
 	"go.opentelemetry.io/collector/consumer"
 	"go.opentelemetry.io/collector/pdata/pmetric"

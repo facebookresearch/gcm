@@ -21,7 +21,7 @@ Published with `DataType.LOG`:
     "cluster": str,               # Cluster identifier
     "derived_cluster": str,       # Sub-cluster (same as cluster if not `--heterogeneous-cluster-v1`)
     "sprio": {                    # Dictionary of job priority attributes
-        "JOBID": float,           # Job ID
+        "JOBID_RAW": str,         # Job ID as string (supports array notation, e.g. "12345_[0-5]")
         "PARTITION": str,         # Partition name
         "USER": str,              # Username
         "ACCOUNT": str,           # Account name
@@ -42,6 +42,7 @@ Published with `DataType.LOG`:
 **Important Notes:**
 1. Each pending job creates a separate record
 2. Numeric priority factors are floats; identifiers are strings
+3. `JOBID` (float) column removed; replaced by `JOBID_RAW` (string). Follows the `fair_job_data` (squeue) naming convention. The old Scuba column will receive nulls until manually dropped.
 
 ### Data Collection Commands
 The collector executes:
@@ -59,7 +60,7 @@ The custom format string avoids duplicate column names that appear in `sprio -l`
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--cluster` | String | Auto-detected | Cluster name for metadata enrichment |
-| `--sink` | String | **Required** | Sink destination, see [Exporters](../exporters) |
+| `--sink` | String | **Required** | Sink destination, see [Exporters](../exporters/README.md) |
 | `--sink-opts` | Multiple | - | Sink-specific options |
 | `--log-level` | Choice | INFO | DEBUG, INFO, WARNING, ERROR, CRITICAL |
 | `--log-folder` | String | `/var/log/fb-monitoring` | Log directory |

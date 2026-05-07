@@ -1,19 +1,12 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 import logging
-import os
-import socket
-import sys
 import textwrap
-from contextlib import ExitStack
 from typing import Callable, Collection, Optional, Tuple
 
 import click
-
-import gni_lib
 from gcm.exporters import registry
-from gcm.health_checks.check_utils.output_context_manager import OutputContext
-from gcm.health_checks.check_utils.telem import TelemetryContext
+from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
 from gcm.health_checks.click import (
     common_arguments,
     telemetry_argument,
@@ -34,8 +27,6 @@ from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import 
     FeatureValueHealthChecksFeatures,
 )
 from gcm.monitoring.sink.utils import format_factory_docstrings, get_factory_metadata
-from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
-from gcm.monitoring.utils.monitor import init_logger
 from gcm.schemas.health_check.health_check_name import HealthCheckName
 from typeguard import typechecked
 
@@ -120,74 +111,28 @@ def check_zombie(
     elapsed: int,
 ) -> None:
     """Check to make sure no zombie processes are running on the system."""
-    node: str = socket.gethostname()
-
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-    logger.info(
-        f"check-process check-zombie: cluster: {cluster}, node: {node}, type: {type}"
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     get_zombie_procs: FnGetZombies = default_get_zombie_procs if obj is None else obj
 
-    exit_code = ExitCode.UNKNOWN
-    msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.CHECK_ZOMBIE.value,
-                node=node,
-                get_exit_code_msg=lambda: (exit_code, msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type,
-                HealthCheckName.CHECK_ZOMBIE,
-                lambda: (exit_code, msg),
-                verbose_out,
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_check_zombie():
-            exit_code = ExitCode.OK
-            msg = f"{HealthCheckName.CHECK_ZOMBIE.value} is disabled by killswitch."
-            logger.info(msg)
-            sys.exit(exit_code.value)
-
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.CHECK_ZOMBIE,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_check_zombie(),
+    ) as rt:
         try:
-            ps_zombie_out = get_zombie_procs(timeout, logger)
+            ps_zombie_out = get_zombie_procs(timeout, rt.logger)
         except Exception as e:
             ps_zombie_exception = handle_subprocess_exception(e)
-            msg = ps_zombie_exception.stdout
-            logger.error(msg)
-            exit_code = ExitCode.WARN
-            sys.exit(exit_code.value)
+            rt.logger.error(ps_zombie_exception.stdout)
+            rt.finish(ExitCode.WARN, ps_zombie_exception.stdout)
 
         exit_code, msg = process_zombie_procs(
             ps_zombie_out.stdout, ps_zombie_out.returncode[0], elapsed
         )
-        logger.info(f"exit code {exit_code}: {msg}")
-        sys.exit(exit_code.value)
+        rt.finish(exit_code, msg)

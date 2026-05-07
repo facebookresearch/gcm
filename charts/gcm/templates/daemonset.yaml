@@ -1,0 +1,92 @@
+{{/*
+Copyright (c) Meta Platforms, Inc. and affiliates.
+All rights reserved.
+*/}}
+{{- if .Values.monitoring.enabled -}}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "gcm.fullname" . }}-monitoring
+  labels:
+    {{- include "gcm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: monitoring
+spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      {{- include "gcm.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: monitoring
+  template:
+    metadata:
+      labels:
+        {{- include "gcm.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: monitoring
+    spec:
+      serviceAccountName: {{ include "gcm.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      priorityClassName: system-node-critical
+      terminationGracePeriodSeconds: 30
+      hostPID: true
+      containers:
+        - name: gcm
+          image: {{ include "gcm.image" . }}
+          imagePullPolicy: {{ .Values.monitoring.image.pullPolicy }}
+          securityContext:
+            runAsUser: 0
+          command:
+            - gcm
+          args:
+            - nvml_monitor
+            {{- if .Values.monitoring.sink }}
+            - --sink
+            - {{ .Values.monitoring.sink | quote }}
+            {{- end }}
+            {{- if .Values.monitoring.cluster }}
+            - --cluster
+            - {{ .Values.monitoring.cluster | quote }}
+            {{- end }}
+            {{- if .Values.monitoring.interval }}
+            - --interval
+            - {{ .Values.monitoring.interval | quote }}
+            {{- end }}
+            {{- range .Values.monitoring.sinkOpts }}
+            - -o
+            - {{ . | quote }}
+            {{- end }}
+            {{- range .Values.monitoring.extraArgs }}
+            - {{ . | quote }}
+            {{- end }}
+          env:
+            - name: NVIDIA_VISIBLE_DEVICES
+              value: "all"
+            {{- with .Values.monitoring.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.monitoring.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+      {{- with .Values.monitoring.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.monitoring.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      tolerations:
+        {{- with .Values.monitoring.tolerations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+{{- end }}

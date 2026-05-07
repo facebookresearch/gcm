@@ -1,18 +1,11 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 import logging
-import os
-import socket
-import sys
-from contextlib import ExitStack
 from dataclasses import dataclass
 from typing import Collection, Optional, Protocol, Tuple
 
 import click
-
-import gni_lib
-from gcm.health_checks.check_utils.output_context_manager import OutputContext
-from gcm.health_checks.check_utils.telem import TelemetryContext
+from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
 from gcm.health_checks.click import (
     common_arguments,
     telemetry_argument,
@@ -27,12 +20,9 @@ from gcm.health_checks.subprocess import (
 )
 from gcm.health_checks.types import CHECK_TYPE, CheckEnv, ExitCode, LOG_LEVEL
 from gcm.monitoring.click import heterogeneous_cluster_v1_option
-
 from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import (
     FeatureValueHealthChecksFeatures,
 )
-from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
-from gcm.monitoring.utils.monitor import init_logger
 from gcm.schemas.health_check.health_check_name import HealthCheckName
 from typeguard import typechecked
 
@@ -132,63 +122,23 @@ def uptime(
 ) -> None:
     """Check if the node recently booted"""
 
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-    logger.info(
-        f"check-node uptime: cluster: {cluster}, node: {node}, type: {type}, uptime-threshold: {uptime_threshold}."
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
     if obj is None:
         obj = NodeCheckImpl(cluster, type, log_level, log_folder)
 
-    derived_cluster = get_derived_cluster(
+    with HealthCheckRuntime(
         cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
         heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
-    exit_code = ExitCode.UNKNOWN
-    msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.CHECK_UPTIME.value,
-                node=node,
-                get_exit_code_msg=lambda: (exit_code, msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type,
-                HealthCheckName.CHECK_UPTIME,
-                lambda: (exit_code, msg),
-                verbose_out,
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_check_uptime():
-            exit_code = ExitCode.OK
-            msg = f"{HealthCheckName.CHECK_UPTIME.value} is disabled by killswitch."
-            logger.info(msg)
-            sys.exit(exit_code.value)
+        health_check_name=HealthCheckName.CHECK_UPTIME,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_check_uptime(),
+    ) as rt:
         try:
-            uptime_out: PipedShellCommandOut = obj.get_uptime(timeout, logger)
+            uptime_out: PipedShellCommandOut = obj.get_uptime(timeout, rt.logger)
         except Exception as e:
             exc_out = handle_subprocess_exception(e)
             uptime_out = PipedShellCommandOut([exc_out.returncode], exc_out.stdout)
@@ -197,9 +147,7 @@ def uptime(
             uptime_out.stdout, uptime_out.returncode[0], uptime_threshold
         )
 
-        logger.info(f"exit code {exit_code}: {msg}")
-
-        sys.exit(exit_code.value)
+        rt.finish(exit_code, msg)
 
 
 def process_module(
@@ -266,28 +214,6 @@ def check_module(
 ) -> None:
     """Check if the node recently booted"""
 
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-    logger.info(
-        f"check-node check-module: cluster: {cluster}, node: {node}, type: {type}, module: {module}, mod_count: {mod_count}."
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     if len(mod_count) != len(module):
         raise ValueError("Number of modules and mod_counts must be equal.")
 
@@ -296,40 +222,22 @@ def check_module(
 
     overall_exit_code = ExitCode.UNKNOWN
     overall_msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.CHECK_MODULE.value,
-                node=node,
-                get_exit_code_msg=lambda: (overall_exit_code, overall_msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type,
-                HealthCheckName.CHECK_MODULE,
-                lambda: (overall_exit_code, overall_msg),
-                verbose_out,
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_check_uptime():
-            overall_exit_code = ExitCode.OK
-            overall_msg = (
-                f"{HealthCheckName.CHECK_MODULE.value} is disabled by killswitch."
-            )
-            logger.info(overall_msg)
-            sys.exit(overall_exit_code.value)
+
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.CHECK_MODULE,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_check_uptime(),
+    ) as rt:
         for m, m_count in zip(module, mod_count):
             try:
-                module_out: PipedShellCommandOut = obj.get_module(timeout, m, logger)
+                module_out: PipedShellCommandOut = obj.get_module(timeout, m, rt.logger)
             except Exception as e:
                 exc_out = handle_subprocess_exception(e)
                 module_out = PipedShellCommandOut([exc_out.returncode], exc_out.stdout)
@@ -342,9 +250,7 @@ def check_module(
             if exit_code > overall_exit_code:
                 overall_exit_code = exit_code
 
-        logger.info(f"exit code {overall_exit_code}: {overall_msg}")
-
-        sys.exit(overall_exit_code.value)
+        rt.finish(overall_exit_code, overall_msg)
 
 
 def process_dnf_repos(
@@ -384,64 +290,23 @@ def check_dnf_repos(
 ) -> None:
     """Check that the dnf repos are reachable"""
 
-    node: str = socket.gethostname()
-    logger, _ = init_logger(
-        logger_name=type,
-        log_dir=os.path.join(log_folder, type + "_logs"),
-        log_name=node + ".log",
-        log_level=getattr(logging, log_level),
-    )
-    logger.info(
-        f"check-node dnf-repos: cluster: {cluster}, node: {node}, type: {type}."
-    )
-    try:
-        gpu_node_id = gni_lib.get_gpu_node_id()
-    except Exception as e:
-        gpu_node_id = None
-        logger.warning(f"Could not get gpu_node_id, likely not a GPU host: {e}")
-
-    derived_cluster = get_derived_cluster(
-        cluster=cluster,
-        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        data={"Node": node},
-    )
-
     if obj is None:
         obj = NodeCheckImpl(cluster, type, log_level, log_folder)
 
-    exit_code = ExitCode.UNKNOWN
-    msg = ""
-    with ExitStack() as s:
-        s.enter_context(
-            TelemetryContext(
-                sink=sink,
-                sink_opts=sink_opts,
-                logger=logger,
-                cluster=cluster,
-                derived_cluster=derived_cluster,
-                type=type,
-                name=HealthCheckName.CHECK_DNF_REPOS.value,
-                node=node,
-                get_exit_code_msg=lambda: (exit_code, msg),
-                gpu_node_id=gpu_node_id,
-            )
-        )
-        s.enter_context(
-            OutputContext(
-                type,
-                HealthCheckName.CHECK_DNF_REPOS,
-                lambda: (exit_code, msg),
-                verbose_out,
-            )
-        )
-        ff = FeatureValueHealthChecksFeatures()
-        if ff.get_healthchecksfeatures_disable_check_dnf_repos():
-            exit_code = ExitCode.OK
-            msg = f"{HealthCheckName.CHECK_DNF_REPOS.value} is disabled by killswitch."
-            logger.info(msg)
-            sys.exit(exit_code.value)
+    with HealthCheckRuntime(
+        cluster=cluster,
+        check_type=type,
+        log_level=log_level,
+        log_folder=log_folder,
+        sink=sink,
+        sink_opts=sink_opts,
+        verbose_out=verbose_out,
+        heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+        health_check_name=HealthCheckName.CHECK_DNF_REPOS,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_check_dnf_repos(),
+    ) as rt:
         try:
-            dnf_repos_out: ShellCommandOut = obj.get_dnf_repos(timeout, logger)
+            dnf_repos_out: ShellCommandOut = obj.get_dnf_repos(timeout, rt.logger)
         except Exception as e:
             dnf_repos_out = handle_subprocess_exception(e)
 
@@ -449,6 +314,4 @@ def check_dnf_repos(
             dnf_repos_out.stdout, dnf_repos_out.returncode
         )
 
-        logger.info(f"exit code {exit_code}: {msg}")
-
-        sys.exit(exit_code.value)
+        rt.finish(exit_code, msg)

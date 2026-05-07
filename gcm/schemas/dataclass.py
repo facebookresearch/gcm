@@ -3,7 +3,6 @@
 from dataclasses import field
 from typing import Callable, cast, Optional, TypeVar
 
-
 T = TypeVar("T")
 
 

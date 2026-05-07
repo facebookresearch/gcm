@@ -1,0 +1,59 @@
+{{/*
+Copyright (c) Meta Platforms, Inc. and affiliates.
+All rights reserved.
+*/}}
+{{- if .Values.healthChecks.enabled -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "gcm.fullname" . }}-health-checks-script
+  labels:
+    {{- include "gcm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: health-checks
+data:
+  run_health_check.sh: |
+    #!/usr/bin/env bash
+    # Wrapper script invoked by NPD for each health check.
+    # Runs the specified health_checks subcommand with retries and passes
+    # the cluster name and sink from Helm values.
+    # NPD uses the exit code (0=OK, non-zero=problem) and the last line
+    # of stdout as the condition message.
+    set -uo pipefail
+
+    MAX_RETRIES={{ .Values.healthChecks.maxRetries }}
+    RETRY_SLEEP={{ .Values.healthChecks.retrySleep }}
+
+    CLUSTER={{ .Values.healthChecks.cluster | default "unknown" | quote }}
+    SINK={{ .Values.healthChecks.sink | default "stdout" | quote }}
+    SINK_OPTS="{{ range .Values.healthChecks.sinkOpts }} --sink-opt=\"{{ . }}\"{{ end }}"
+    TYPE="app"
+
+    # Use a string command (not array) so shell expands env vars like ${NODE_IP}
+    # in check args passed from NPD monitor config.
+    # Note: --timeout is NOT passed here because not all checks accept it
+    # (e.g., check-nvidia-smi). The NPD-level timeout in the monitor config
+    # handles the outer execution boundary.
+    CMD="health_checks $@ ${CLUSTER} ${TYPE} --sink=${SINK} --log-level=CRITICAL${SINK_OPTS} --verbose-out"
+
+    RC=0
+    OUTPUT=""
+    for attempt in $(seq 0 "${MAX_RETRIES}"); do
+      if [ "${attempt}" -gt 0 ]; then
+        sleep "${RETRY_SLEEP}"
+      fi
+      OUTPUT=$(eval "${CMD}" 2>&1)
+      RC=$?
+      if [ "${RC}" -eq 0 ]; then
+        break
+      fi
+    done
+
+    # Normalize exit code: NPD only distinguishes 0 (healthy) vs 1 (problem).
+    if [ "${RC}" -gt 1 ]; then
+      RC=1
+    fi
+
+    # NPD reads the last line of stdout as the condition message.
+    echo "${OUTPUT}" | tail -1
+    exit "${RC}"
+{{- end }}

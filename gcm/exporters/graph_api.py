@@ -18,7 +18,6 @@ from requests.exceptions import RequestException
 
 from typing_extensions import Never
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -119,6 +118,9 @@ class GraphAPI:
                 f"Graph API writes requires data_type to be specified: {additional_params}"
             )
             return
+
+    def shutdown(self) -> None:
+        pass
 
     def _write_metric(self, data: Log, heterogeneous_cluster_v1: bool) -> None:
         """Receives a list of device and host metrics, convert it to ODSData and sends to ODS as a single request.

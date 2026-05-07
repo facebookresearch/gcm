@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Getting Started
 
-GCM Monitoring is a Python CLI with a series of [collectors](./getting_started#gcm-collectors) (Slurm and GPU (NVML)) data in a loop and publishes it to a given [exporter](./exporters/).
+GCM Monitoring is a Python CLI with a series of [collectors](#gcm-collectors) that collect Slurm and GPU (NVML) data in a loop and publish it to a given [exporter](./exporters/README.md).
 
 For a cluster-level view of GCM Monitoring:
 
@@ -73,7 +73,7 @@ Commands:
 
 ### GCM Collectors
 
-Check out [GCM Collectors documentation](./collectors/nvml_monitor) for a list of supported collectors.
+Check out [GCM Collectors documentation](./collectors/README.md) for a list of supported collectors.
 
 Each collector can be invoked via the CLI:
 ```shell

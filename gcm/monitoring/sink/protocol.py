@@ -6,7 +6,6 @@ from typing import Optional, Protocol, runtime_checkable, TypeVar
 
 from gcm.schemas.log import Log
 
-
 TIn_contra = TypeVar("TIn_contra", contravariant=True)
 
 
@@ -21,6 +20,8 @@ class DataIdentifier(Enum):
     STATVFS = auto()
     PURE = auto()
     GENERIC = auto()
+    K8S_POD = auto()
+    K8S_NODE = auto()
 
 
 @dataclass
@@ -53,3 +54,6 @@ class SinkImpl(Protocol):
         additional_params: SinkAdditionalParams,
     ) -> None:
         """Writes data to the specified sink, see available sinks in /exporters."""
+
+    def shutdown(self) -> None:
+        """Flush and release any resources held by the sink."""

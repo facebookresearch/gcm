@@ -6,7 +6,9 @@ import time
 import types
 from dataclasses import dataclass, field
 from typing import (
+    Any,
     Callable,
+    cast,
     Collection,
     ContextManager,
     Dict,
@@ -110,7 +112,7 @@ class TelemetryContext(ContextManager["TelemetryContext"]):
         )
         # Get writer from telemetry
         sink_impl = self.telem_registry[self.sink](
-            **oc.from_dotlist(list(self.sink_opts))
+            **cast(Dict[str, Any], oc.from_dotlist(list(self.sink_opts)))
         )
         clock = ClockImpl()
         log_time = clock.unixtime()
@@ -122,6 +124,7 @@ class TelemetryContext(ContextManager["TelemetryContext"]):
                 ),
                 additional_params=SinkAdditionalParams(data_type=DataType.LOG),
             )
+            sink_impl.shutdown()
         except Exception:
             self.logger.exception("Telemetry failed with exception.")
         return False
