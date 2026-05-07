@@ -2,6 +2,7 @@
 # All rights reserved.
 from gcm.health_checks.checks.check_airstore import check_airstore
 from gcm.health_checks.checks.check_authentication import check_authentication
+from gcm.health_checks.checks.check_aws_events import check_aws_events
 from gcm.health_checks.checks.check_blockdev import check_blockdev
 from gcm.health_checks.checks.check_dcgmi import check_dcgmi
 from gcm.health_checks.checks.check_ethlink import check_ethlink
@@ -39,6 +40,7 @@ __all__ = [
     "check_service",
     "check_ib",
     "check_authentication",
+    "check_aws_events",
     "check_node",
     "check_pci",
     "check_blockdev",

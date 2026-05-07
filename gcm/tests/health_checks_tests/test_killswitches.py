@@ -77,6 +77,7 @@ def _write_to_file(path: Path, data: str) -> Path:
         "check-node check-module -m sth",
         "check-node check-dnf-repos",
         "check-sensors",
+        "check-aws-events",
     ],
 )
 @typechecked
@@ -134,6 +135,7 @@ def test_killswitches(
         disable_check_module = true
         disable_check_dnf_repos = true
         disable_check_sensors = true
+        disable_check_aws_events = true
         """,
     )
 

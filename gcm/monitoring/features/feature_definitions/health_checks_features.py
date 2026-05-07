@@ -63,3 +63,4 @@ class HealthChecksFeatures:
     disable_check_clocksource: bool
     disable_airstore_credential_count: bool
     disable_check_sensors: bool
+    disable_check_aws_events: bool
