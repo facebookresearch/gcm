@@ -513,6 +513,18 @@ class TestSlurmCliClient:
             bf_cycle_sum=371434634,
             bf_cycle_max=47125449,
             bf_queue_len=411,
+            schedule_exit_end_job_queue=54,
+            schedule_exit_default_queue_depth=0,
+            schedule_exit_max_job_start=0,
+            schedule_exit_max_rpc_cnt=0,
+            schedule_exit_max_sched_time=281,
+            schedule_exit_licenses=0,
+            bf_exit_end_job_queue=10,
+            bf_exit_max_job_start=0,
+            bf_exit_max_job_test=0,
+            bf_exit_max_time=0,
+            bf_exit_node_space_size=0,
+            bf_exit_state_changed=0,
         )
 
         assert result == expected
@@ -572,6 +584,18 @@ class TestSlurmCliClient:
             bf_cycle_sum=None,
             bf_cycle_max=None,
             bf_queue_len=None,
+            schedule_exit_end_job_queue=None,
+            schedule_exit_default_queue_depth=None,
+            schedule_exit_max_job_start=None,
+            schedule_exit_max_rpc_cnt=None,
+            schedule_exit_max_sched_time=None,
+            schedule_exit_licenses=None,
+            bf_exit_end_job_queue=None,
+            bf_exit_max_job_start=None,
+            bf_exit_max_job_test=None,
+            bf_exit_max_time=None,
+            bf_exit_node_space_size=None,
+            bf_exit_state_changed=None,
         )
 
         assert result == expected
