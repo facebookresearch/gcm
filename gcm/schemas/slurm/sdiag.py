@@ -35,3 +35,19 @@ class Sdiag:
     bf_cycle_sum: Optional[int] = None
     bf_cycle_max: Optional[int] = None
     bf_queue_len: Optional[int] = None
+
+    # Schedule exit statistics
+    schedule_exit_end_job_queue: Optional[int] = None
+    schedule_exit_default_queue_depth: Optional[int] = None
+    schedule_exit_max_job_start: Optional[int] = None
+    schedule_exit_max_rpc_cnt: Optional[int] = None
+    schedule_exit_max_sched_time: Optional[int] = None
+    schedule_exit_licenses: Optional[int] = None
+
+    # Backfill exit statistics
+    bf_exit_end_job_queue: Optional[int] = None
+    bf_exit_max_job_start: Optional[int] = None
+    bf_exit_max_job_test: Optional[int] = None
+    bf_exit_max_time: Optional[int] = None
+    bf_exit_node_space_size: Optional[int] = None
+    bf_exit_state_changed: Optional[int] = None
