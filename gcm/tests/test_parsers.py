@@ -17,6 +17,7 @@ from gcm.monitoring.slurm.parsing import (
     maybe_parse_memory_to_bytes,
     mb_to_bytes,
     parse_gres,
+    parse_gres_gpu_indices,
     parse_memory_to_bytes,
     parse_tres,
     parse_value_from_tres,
@@ -547,6 +548,54 @@ def test_parse_gpu_from_tres(s: str, expected: int) -> None:
 def test_parse_gpu_from_tres_bad(s: str, exc: Type[Exception]) -> None:
     with pytest.raises(exc):
         parse_value_from_tres(s, "gres/gpu")
+
+
+@pytest.mark.parametrize(
+    "s, expected",
+    [
+        # Single GPU (1-GPU job)
+        ("gpu:ampere:1(IDX:7)", "7"),
+        # Multiple specific GPUs
+        ("gpu:ampere:3(IDX:0,3,5)", "0,3,5"),
+        # Range notation
+        ("gpu:ampere:4(IDX:0-3)", "0,1,2,3"),
+        # Mixed range and specific
+        ("gpu:ampere:5(IDX:0-2,5,7)", "0,1,2,5,7"),
+        # Full node (8 GPUs) — still returns indices (caller decides whether to filter)
+        ("gpu:ampere:8(IDX:0-7)", "0,1,2,3,4,5,6,7"),
+        # Multi-node (multiple IDX entries) — returns None, unsupported
+        (
+            "gpu:ampere:8(IDX:0-7),gpu:ampere:8(IDX:0-7)",
+            None,
+        ),
+        # Multi-node partial GPUs — returns None, unsupported
+        (
+            "gpu:ampere:3(IDX:0,3,5),gpu:ampere:3(IDX:1,4,7)",
+            None,
+        ),
+        # Empty string
+        ("", None),
+        # SLURM null values
+        ("(null)", None),
+        ("N/A", None),
+        # Empty array representation
+        ("[]", None),
+        # No IDX in the string
+        ("gpu:ampere:8", None),
+        # 16-GPU node — partial allocation (works for nodes with >8 GPUs)
+        ("gpu:ampere:10(IDX:0-9)", "0,1,2,3,4,5,6,7,8,9"),
+        # 16-GPU node — full allocation
+        ("gpu:ampere:16(IDX:0-15)", "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15"),
+        # Comma-join ambiguity: IDX commas inside () are safely delimited by )
+        (
+            "gpu:ampere:3(IDX:0,3,5),gpu:ampere:3(IDX:1,4,7)",
+            None,
+        ),
+    ],
+)
+@typechecked
+def test_parse_gres_gpu_indices(s: str, expected: str | None) -> None:
+    assert parse_gres_gpu_indices(s) == expected
 
 
 @pytest.mark.parametrize(

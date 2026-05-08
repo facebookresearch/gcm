@@ -51,6 +51,7 @@ class HealthChecksFeatures:
     disable_check_ibstat: bool
     disable_check_ib_interfaces: bool
     disable_check_iblink: bool
+    disable_check_ib_counters: bool
     disable_pass_status: bool
     disable_user_access_path_check: bool
     disable_check_uptime: bool
@@ -63,4 +64,4 @@ class HealthChecksFeatures:
     disable_check_clocksource: bool
     disable_airstore_credential_count: bool
     disable_check_sensors: bool
-    disable_check_ib_counters: bool
+    disable_check_aws_events: bool

@@ -384,6 +384,7 @@ class TestSlurmRestClient:
                         "features": "",
                         "restart_cnt": 0,
                         "scheduled_nodes": "",
+                        "last_sched_evaluation": "2024-01-15T10:00:00",
                     },
                 ]
             }

@@ -297,6 +297,7 @@ def test_cli(tmp_path: Path) -> None:
             "REASON": "None",
             "PENDING_RESOURCES": "False",
             "NODELIST": ["node1321"],
+            "LAST_SCHED_EVAL": time_to_time_aware("2025-04-10T13:45:10"),
         },
         {
             "cluster": TEST_CLUSTER,
@@ -342,6 +343,7 @@ def test_cli(tmp_path: Path) -> None:
             "REASON": "None",
             "PENDING_RESOURCES": "False",
             "NODELIST": ["node1303"],
+            "LAST_SCHED_EVAL": time_to_time_aware("2025-03-06T21:01:30"),
         },
         {
             "cluster": TEST_CLUSTER,
@@ -422,6 +424,7 @@ def test_cli(tmp_path: Path) -> None:
                 "node1383",
                 "node1384",
             ],
+            "LAST_SCHED_EVAL": time_to_time_aware("2025-03-07T04:16:33"),
         },
         {
             "cluster": TEST_CLUSTER,
@@ -468,6 +471,7 @@ def test_cli(tmp_path: Path) -> None:
             "REASON": "DependencyNeverSatisfied",
             "PENDING_RESOURCES": "False",
             "START_TIME": "N/A",
+            "LAST_SCHED_EVAL": "N/A",
         },
         {
             "cluster": TEST_CLUSTER,
@@ -514,6 +518,7 @@ def test_cli(tmp_path: Path) -> None:
             ],
             "START_TIME": "N/A",
             "PENDING_RESOURCES": "False",
+            "LAST_SCHED_EVAL": "N/A",
         },
     ]
 
