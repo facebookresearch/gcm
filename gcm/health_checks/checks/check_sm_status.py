@@ -113,8 +113,8 @@ def check_sm_status(
         sink_opts=sink_opts,
         verbose_out=verbose_out,
         heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        health_check_name=HealthCheckName.IB_SM_STATUS,
-        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_ib_sm_status(),
+        health_check_name=HealthCheckName.CHECK_IB_SM_STATUS,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_check_ib_sm_status(),
     ) as rt:
         try:
             sm_out = obj.get_sm_info(timeout, rt.logger)

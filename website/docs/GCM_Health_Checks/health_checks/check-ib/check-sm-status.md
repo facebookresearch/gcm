@@ -85,5 +85,5 @@ health_checks check-ib check-sm-status \
 Disable via TOML config:
 ```toml
 [HealthChecksFeatures]
-disable_ib_sm_status = true
+disable_check_ib_sm_status = true
 ```

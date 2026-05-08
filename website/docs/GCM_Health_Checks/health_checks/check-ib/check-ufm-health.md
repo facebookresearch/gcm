@@ -73,7 +73,7 @@ health_checks check-ib check-ufm-health \
 
 ```toml
 [HealthChecksFeatures]
-disable_ib_ufm_health = true
+disable_check_ib_ufm_health = true
 ```
 
 ## Deployment

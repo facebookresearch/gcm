@@ -141,11 +141,11 @@ def test_killswitches(
         disable_check_dnf_repos = true
         disable_check_sensors = true
         disable_check_aws_events = true
-        disable_ib_port_counters = true
-        disable_ib_cable_ddm = true
-        disable_ib_sm_status = true
-        disable_ib_port_errors = true
-        disable_ib_ufm_health = true
+        disable_check_ib_counters = true
+        disable_check_ib_cable_ddm = true
+        disable_check_ib_sm_status = true
+        disable_check_ib_port_errors = true
+        disable_check_ib_ufm_health = true
         """,
     )
 

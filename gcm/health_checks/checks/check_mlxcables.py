@@ -137,8 +137,8 @@ def check_mlxcables(
         sink_opts=sink_opts,
         verbose_out=verbose_out,
         heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        health_check_name=HealthCheckName.IB_CABLE_DDM,
-        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_ib_cable_ddm(),
+        health_check_name=HealthCheckName.CHECK_IB_CABLE_DDM,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_check_ib_cable_ddm(),
     ) as rt:
         devices = obj.list_cable_devices(rt.logger)
         if not devices:

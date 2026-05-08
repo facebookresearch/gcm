@@ -101,5 +101,5 @@ health_checks check-ib check-ib-port-errors \
 
 ```toml
 [HealthChecksFeatures]
-disable_ib_port_errors = true
+disable_check_ib_port_errors = true
 ```

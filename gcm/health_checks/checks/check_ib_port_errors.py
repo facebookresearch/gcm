@@ -241,8 +241,8 @@ def check_ib_port_errors(
         sink_opts=sink_opts,
         verbose_out=verbose_out,
         heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        health_check_name=HealthCheckName.IB_PORT_ERRORS,
-        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_ib_port_errors(),
+        health_check_name=HealthCheckName.CHECK_IB_PORT_ERRORS,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_check_ib_port_errors(),
     ) as rt:
         try:
             pm_content = obj.read_pm_file(rt.logger)

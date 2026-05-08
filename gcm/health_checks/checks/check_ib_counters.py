@@ -311,8 +311,8 @@ def check_ib_counters(
         sink_opts=sink_opts,
         verbose_out=verbose_out,
         heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        health_check_name=HealthCheckName.IB_PORT_COUNTERS,
-        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_ib_port_counters(),
+        health_check_name=HealthCheckName.CHECK_IB_COUNTERS,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_check_ib_counters(),
     ) as rt:
         try:
             port_counters = collect_port_counters(obj, rt.logger)

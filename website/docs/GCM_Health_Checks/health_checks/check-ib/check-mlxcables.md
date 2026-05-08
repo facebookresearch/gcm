@@ -91,7 +91,7 @@ health_checks check-ib check-mlxcables \
 Disable via TOML config:
 ```toml
 [HealthChecksFeatures]
-disable_ib_cable_ddm = true
+disable_check_ib_cable_ddm = true
 ```
 
 ## Troubleshooting

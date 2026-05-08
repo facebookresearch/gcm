@@ -150,8 +150,8 @@ def check_ufm_health(
         sink_opts=sink_opts,
         verbose_out=verbose_out,
         heterogeneous_cluster_v1=heterogeneous_cluster_v1,
-        health_check_name=HealthCheckName.IB_UFM_HEALTH,
-        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_ib_ufm_health(),
+        health_check_name=HealthCheckName.CHECK_IB_UFM_HEALTH,
+        killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_check_ib_ufm_health(),
     ) as rt:
         content = obj.read_unhealthy_ports(rt.logger)
         exit_code, msg = process_unhealthy_ports(content)
