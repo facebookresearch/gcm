@@ -1,0 +1,381 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+"""Test the check_ib_counters health-check."""
+
+import logging
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Optional
+
+import pytest
+from click.testing import CliRunner
+from gcm.health_checks.checks.check_ib_counters import (
+    check_ib_counters,
+    PortCounters,
+    process_ib_counters,
+)
+from gcm.health_checks.types import ExitCode
+
+
+# ---------------------------------------------------------------------------
+# Fake implementation — injected via click's obj parameter
+# ---------------------------------------------------------------------------
+@dataclass
+class FakeIBCountersCheckImpl:
+    """Return pre-configured IB counter data instead of reading sysfs."""
+
+    ports: list[tuple[str, str]] = field(default_factory=list)
+    counters: dict[str, dict[str, int]] = field(default_factory=dict)
+
+    cluster = "test cluster"
+    type = "prolog"
+    log_level = "INFO"
+    log_folder = "/tmp"
+
+    def discover_ports(
+        self,
+        _logger: logging.Logger,
+    ) -> list[tuple[str, str]]:
+        """Return pre-configured port list."""
+        return self.ports
+
+    def read_counter(
+        self,
+        device: str,
+        port: str,
+        counter_name: str,
+        _logger: logging.Logger,
+    ) -> Optional[int]:
+        """Return pre-configured counter value."""
+        key = f"{device}/{port}"
+        return self.counters.get(key, {}).get(counter_name)
+
+
+# ---------------------------------------------------------------------------
+# Test data
+# ---------------------------------------------------------------------------
+NO_PORTS = FakeIBCountersCheckImpl(ports=[], counters={})
+
+CLEAN_SINGLE_PORT = FakeIBCountersCheckImpl(
+    ports=[("mlx5_0", "1")],
+    counters={
+        "mlx5_0/1": {
+            "symbol_error": 0,
+            "link_error_recovery": 0,
+            "link_downed": 0,
+            "port_rcv_errors": 0,
+            "port_rcv_remote_physical_errors": 0,
+            "port_rcv_switch_relay_errors": 0,
+            "port_xmit_discards": 0,
+            "port_xmit_constraint_errors": 0,
+            "port_rcv_constraint_errors": 0,
+            "local_link_integrity_errors": 0,
+            "excessive_buffer_overrun_errors": 0,
+            "VL15_dropped": 0,
+            "port_xmit_data": 123456789,
+            "port_rcv_data": 987654321,
+            "port_xmit_packets": 1000000,
+            "port_rcv_packets": 2000000,
+        },
+    },
+)
+
+WARN_SINGLE_PORT = FakeIBCountersCheckImpl(
+    ports=[("mlx5_0", "1")],
+    counters={
+        "mlx5_0/1": {
+            "symbol_error": 5,
+            "link_error_recovery": 0,
+            "link_downed": 0,
+            "port_rcv_errors": 2,
+            "port_rcv_remote_physical_errors": 0,
+            "port_rcv_switch_relay_errors": 0,
+            "port_xmit_discards": 0,
+            "port_xmit_constraint_errors": 0,
+            "port_rcv_constraint_errors": 0,
+            "local_link_integrity_errors": 0,
+            "excessive_buffer_overrun_errors": 0,
+            "VL15_dropped": 0,
+            "port_xmit_data": 100,
+            "port_rcv_data": 200,
+            "port_xmit_packets": 50,
+            "port_rcv_packets": 60,
+        },
+    },
+)
+
+CRITICAL_MULTI_PORT = FakeIBCountersCheckImpl(
+    ports=[("mlx5_0", "1"), ("mlx5_1", "1")],
+    counters={
+        "mlx5_0/1": {
+            "symbol_error": 50,
+            "link_error_recovery": 10,
+            "link_downed": 5,
+            "port_rcv_errors": 30,
+            "port_rcv_remote_physical_errors": 0,
+            "port_rcv_switch_relay_errors": 0,
+            "port_xmit_discards": 10,
+            "port_xmit_constraint_errors": 0,
+            "port_rcv_constraint_errors": 0,
+            "local_link_integrity_errors": 0,
+            "excessive_buffer_overrun_errors": 0,
+            "VL15_dropped": 0,
+            "port_xmit_data": 100,
+            "port_rcv_data": 200,
+            "port_xmit_packets": 50,
+            "port_rcv_packets": 60,
+        },
+        "mlx5_1/1": {
+            "symbol_error": 0,
+            "link_error_recovery": 0,
+            "link_downed": 0,
+            "port_rcv_errors": 0,
+            "port_rcv_remote_physical_errors": 0,
+            "port_rcv_switch_relay_errors": 0,
+            "port_xmit_discards": 0,
+            "port_xmit_constraint_errors": 0,
+            "port_rcv_constraint_errors": 0,
+            "local_link_integrity_errors": 0,
+            "excessive_buffer_overrun_errors": 0,
+            "VL15_dropped": 0,
+            "port_xmit_data": 300,
+            "port_rcv_data": 400,
+            "port_xmit_packets": 70,
+            "port_rcv_packets": 80,
+        },
+    },
+)
+
+CLEAN_MULTI_PORT = FakeIBCountersCheckImpl(
+    ports=[("mlx5_0", "1"), ("mlx5_1", "1"), ("mlx5_2", "1"), ("mlx5_3", "1")],
+    counters={
+        f"mlx5_{i}/1": {
+            "symbol_error": 0,
+            "link_error_recovery": 0,
+            "link_downed": 0,
+            "port_rcv_errors": 0,
+            "port_rcv_remote_physical_errors": 0,
+            "port_rcv_switch_relay_errors": 0,
+            "port_xmit_discards": 0,
+            "port_xmit_constraint_errors": 0,
+            "port_rcv_constraint_errors": 0,
+            "local_link_integrity_errors": 0,
+            "excessive_buffer_overrun_errors": 0,
+            "VL15_dropped": 0,
+            "port_xmit_data": 1000 * (i + 1),
+            "port_rcv_data": 2000 * (i + 1),
+            "port_xmit_packets": 100 * (i + 1),
+            "port_rcv_packets": 200 * (i + 1),
+        }
+        for i in range(4)
+    },
+)
+
+
+# ---------------------------------------------------------------------------
+# Fixture
+# ---------------------------------------------------------------------------
+@pytest.fixture
+def ib_counters_tester(
+    request: pytest.FixtureRequest,
+) -> FakeIBCountersCheckImpl:
+    """Create FakeIBCountersCheckImpl object."""
+    return request.param
+
+
+# ---------------------------------------------------------------------------
+# Unit tests for the pure process_ib_counters function
+# ---------------------------------------------------------------------------
+class TestProcessIBCounters:
+    """Test the pure processing logic directly without Click."""
+
+    def test_no_ports_returns_warn(self) -> None:
+        result = process_ib_counters([], warn_threshold=0, crit_threshold=100)
+        assert result.check_status == ExitCode.WARN
+        assert "No IB ports discovered" in result.short_out
+
+    def test_clean_port_returns_ok(self) -> None:
+        pc = PortCounters(
+            device="mlx5_0",
+            port="1",
+            errors={"symbol_error": 0, "port_rcv_errors": 0},
+            throughput={"port_xmit_data": 12345},
+        )
+        result = process_ib_counters([pc], warn_threshold=0, crit_threshold=100)
+        assert result.check_status == ExitCode.OK
+        assert "0 with errors" in result.short_out
+
+    def test_errors_above_warn_threshold(self) -> None:
+        pc = PortCounters(
+            device="mlx5_0",
+            port="1",
+            errors={"symbol_error": 5, "port_rcv_errors": 3},
+            throughput={},
+        )
+        result = process_ib_counters([pc], warn_threshold=0, crit_threshold=100)
+        assert result.check_status == ExitCode.WARN
+        assert "1 with errors" in result.short_out
+        assert "total_errors=8" in result.short_out
+
+    def test_errors_above_crit_threshold(self) -> None:
+        pc = PortCounters(
+            device="mlx5_0",
+            port="1",
+            errors={"symbol_error": 80, "port_rcv_errors": 30},
+            throughput={},
+        )
+        result = process_ib_counters([pc], warn_threshold=0, crit_threshold=100)
+        assert result.check_status == ExitCode.CRITICAL
+        assert "total_errors=110" in result.short_out
+
+    def test_long_out_lists_nonzero_counters(self) -> None:
+        pc = PortCounters(
+            device="mlx5_0",
+            port="1",
+            errors={
+                "symbol_error": 5,
+                "port_rcv_errors": 0,
+                "link_downed": 2,
+            },
+            throughput={},
+        )
+        result = process_ib_counters([pc], warn_threshold=0, crit_threshold=100)
+        assert len(result.long_out) == 1
+        assert "symbol_error=5" in result.long_out[0]
+        assert "link_downed=2" in result.long_out[0]
+        assert "port_rcv_errors" not in result.long_out[0]
+
+    def test_multi_port_mixed_errors(self) -> None:
+        clean_port = PortCounters(
+            device="mlx5_0",
+            port="1",
+            errors={"symbol_error": 0},
+            throughput={},
+        )
+        bad_port = PortCounters(
+            device="mlx5_1",
+            port="1",
+            errors={"symbol_error": 10},
+            throughput={},
+        )
+        result = process_ib_counters(
+            [clean_port, bad_port],
+            warn_threshold=0,
+            crit_threshold=100,
+        )
+        assert result.check_status == ExitCode.WARN
+        assert "2 ports checked" in result.short_out
+        assert "1 with errors" in result.short_out
+        assert len(result.long_out) == 1
+        assert "mlx5_1/1" in result.long_out[0]
+
+    def test_summary_metrics_in_short(self) -> None:
+        pc = PortCounters(
+            device="mlx5_0",
+            port="1",
+            errors={"symbol_error": 0, "port_rcv_errors": 0},
+            throughput={"port_xmit_data": 999},
+        )
+        result = process_ib_counters([pc], warn_threshold=0, crit_threshold=100)
+        short_names = [m.name for m in result.short_metrics]
+        assert "total_errors" in short_names
+        assert "ports_with_errors" in short_names
+        assert "ports_checked" in short_names
+
+    def test_per_counter_metrics_in_long(self) -> None:
+        pc = PortCounters(
+            device="mlx5_0",
+            port="1",
+            errors={"symbol_error": 0, "port_rcv_errors": 0},
+            throughput={"port_xmit_data": 999},
+        )
+        result = process_ib_counters([pc], warn_threshold=0, crit_threshold=100)
+        long_names = [m.name for metrics in result.long_metrics for m in metrics]
+        assert "mlx5_0/1.symbol_error" in long_names
+        assert "mlx5_0/1.port_rcv_errors" in long_names
+        assert "mlx5_0/1.port_xmit_data" in long_names
+
+
+# ---------------------------------------------------------------------------
+# Integration tests via Click runner
+# ---------------------------------------------------------------------------
+@pytest.mark.parametrize(
+    ("ib_counters_tester", "expected"),
+    [
+        (
+            NO_PORTS,
+            (ExitCode.WARN, "No IB ports discovered"),
+        ),
+        (
+            CLEAN_SINGLE_PORT,
+            (ExitCode.OK, "1 ports checked, 0 with errors"),
+        ),
+        (
+            WARN_SINGLE_PORT,
+            (ExitCode.WARN, "1 ports checked, 1 with errors"),
+        ),
+        (
+            CRITICAL_MULTI_PORT,
+            (ExitCode.CRITICAL, "2 ports checked, 1 with errors"),
+        ),
+        (
+            CLEAN_MULTI_PORT,
+            (ExitCode.OK, "4 ports checked, 0 with errors"),
+        ),
+    ],
+    indirect=["ib_counters_tester"],
+)
+def test_check_ib_counters(
+    caplog: pytest.LogCaptureFixture,
+    tmp_path: Path,
+    ib_counters_tester: FakeIBCountersCheckImpl,
+    expected: tuple[ExitCode, str],
+) -> None:
+    """Invoke check_ib_counters via Click and verify exit code and output."""
+    runner = CliRunner(mix_stderr=False)
+    caplog.at_level(logging.INFO)
+
+    result = runner.invoke(
+        check_ib_counters,
+        f"fair_cluster prolog --log-folder={tmp_path} --sink=do_nothing",
+        obj=ib_counters_tester,
+    )
+
+    assert result.exit_code == expected[0].value
+    assert expected[1] in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("ib_counters_tester", "threshold_args", "expected_exit"),
+    [
+        (
+            WARN_SINGLE_PORT,
+            "--warn-threshold=10 --crit-threshold=100",
+            ExitCode.OK,
+        ),
+        (
+            WARN_SINGLE_PORT,
+            "--warn-threshold=0 --crit-threshold=5",
+            ExitCode.CRITICAL,
+        ),
+    ],
+    indirect=["ib_counters_tester"],
+)
+def test_check_ib_counters_custom_thresholds(
+    caplog: pytest.LogCaptureFixture,
+    tmp_path: Path,
+    ib_counters_tester: FakeIBCountersCheckImpl,
+    threshold_args: str,
+    expected_exit: ExitCode,
+) -> None:
+    """Verify that --warn-threshold and --crit-threshold are respected."""
+    runner = CliRunner(mix_stderr=False)
+    caplog.at_level(logging.INFO)
+
+    result = runner.invoke(
+        check_ib_counters,
+        f"fair_cluster prolog --log-folder={tmp_path} --sink=do_nothing {threshold_args}",
+        obj=ib_counters_tester,
+    )
+
+    assert result.exit_code == expected_exit.value
