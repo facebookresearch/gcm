@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
-
 from gcm.health_checks.checks.check_ufm_health import (
     check_ufm_health,
     process_unhealthy_ports,

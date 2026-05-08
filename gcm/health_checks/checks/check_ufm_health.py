@@ -14,10 +14,7 @@ from typing import Optional, Protocol, Tuple
 
 import click
 from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
-from gcm.health_checks.click import (
-    common_arguments,
-    telemetry_argument,
-)
+from gcm.health_checks.click import common_arguments, telemetry_argument
 from gcm.health_checks.types import CHECK_TYPE, CheckEnv, ExitCode, LOG_LEVEL
 from gcm.monitoring.click import heterogeneous_cluster_v1_option
 from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import (

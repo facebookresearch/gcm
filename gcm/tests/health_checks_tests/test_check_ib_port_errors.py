@@ -8,7 +8,6 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
-
 from gcm.health_checks.checks.check_ib_port_errors import (
     build_hexid_to_hostname,
     check_ib_port_errors,

@@ -9,11 +9,7 @@ from typing import List
 
 import pytest
 from click.testing import CliRunner
-
-from gcm.health_checks.checks.check_mlxcables import (
-    check_mlxcables,
-    process_cable_ddm,
-)
+from gcm.health_checks.checks.check_mlxcables import check_mlxcables, process_cable_ddm
 from gcm.health_checks.subprocess import ShellCommandOut
 from gcm.health_checks.types import ExitCode
 from gcm.tests.fakes import FakeShellCommandOut

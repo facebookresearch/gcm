@@ -8,7 +8,6 @@ from click.testing import CliRunner
 from gcm.health_checks.checks.check_nvidia_smi import NvidiaSmiCli
 from gcm.health_checks.cli.health_checks import health_checks as hc_main
 from gcm.health_checks.types import ExitCode
-
 from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import (
     FeatureValueHealthChecksFeatures,
 )

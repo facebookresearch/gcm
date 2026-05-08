@@ -8,11 +8,7 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
-
-from gcm.health_checks.checks.check_sm_status import (
-    check_sm_status,
-    process_sm_info,
-)
+from gcm.health_checks.checks.check_sm_status import check_sm_status, process_sm_info
 from gcm.health_checks.subprocess import ShellCommandOut
 from gcm.health_checks.types import ExitCode
 from gcm.tests.fakes import FakeShellCommandOut
