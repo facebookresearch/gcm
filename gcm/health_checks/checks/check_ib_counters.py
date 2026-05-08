@@ -34,26 +34,26 @@ from typeguard import typechecked
 # Error counters that indicate fabric health problems.
 # Any non-zero value is suspicious; rapid increase is critical.
 ERROR_COUNTERS: list[str] = [
-    "SymbolErrorCounter",
-    "LinkErrorRecoveryCounter",
-    "LinkDownedCounter",
-    "PortRcvErrors",
-    "PortRcvRemotePhysicalErrors",
-    "PortRcvSwitchRelayErrors",
-    "PortXmitDiscards",
-    "PortXmitConstraintErrors",
-    "PortRcvConstraintErrors",
-    "LocalLinkIntegrityErrors",
-    "ExcessiveBufferOverrunErrors",
-    "VL15Dropped",
+    "symbol_error",
+    "link_error_recovery",
+    "link_downed",
+    "port_rcv_errors",
+    "port_rcv_remote_physical_errors",
+    "port_rcv_switch_relay_errors",
+    "port_xmit_discards",
+    "port_xmit_constraint_errors",
+    "port_rcv_constraint_errors",
+    "local_link_integrity_errors",
+    "excessive_buffer_overrun_errors",
+    "VL15_dropped",
 ]
 
 # Throughput counters (informational, included in metrics output).
 THROUGHPUT_COUNTERS: list[str] = [
-    "PortXmitData",
-    "PortRcvData",
-    "PortXmitPkts",
-    "PortRcvPkts",
+    "port_xmit_data",
+    "port_rcv_data",
+    "port_xmit_packets",
+    "port_rcv_packets",
 ]
 
 # Default threshold: total error count above which we alert.

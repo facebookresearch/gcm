@@ -60,22 +60,22 @@ CLEAN_SINGLE_PORT = FakeIBCountersCheckImpl(
     ports=[("mlx5_0", "1")],
     counters={
         "mlx5_0/1": {
-            "SymbolErrorCounter": 0,
-            "LinkErrorRecoveryCounter": 0,
-            "LinkDownedCounter": 0,
-            "PortRcvErrors": 0,
-            "PortRcvRemotePhysicalErrors": 0,
-            "PortRcvSwitchRelayErrors": 0,
-            "PortXmitDiscards": 0,
-            "PortXmitConstraintErrors": 0,
-            "PortRcvConstraintErrors": 0,
-            "LocalLinkIntegrityErrors": 0,
-            "ExcessiveBufferOverrunErrors": 0,
-            "VL15Dropped": 0,
-            "PortXmitData": 123456789,
-            "PortRcvData": 987654321,
-            "PortXmitPkts": 1000000,
-            "PortRcvPkts": 2000000,
+            "symbol_error": 0,
+            "link_error_recovery": 0,
+            "link_downed": 0,
+            "port_rcv_errors": 0,
+            "port_rcv_remote_physical_errors": 0,
+            "port_rcv_switch_relay_errors": 0,
+            "port_xmit_discards": 0,
+            "port_xmit_constraint_errors": 0,
+            "port_rcv_constraint_errors": 0,
+            "local_link_integrity_errors": 0,
+            "excessive_buffer_overrun_errors": 0,
+            "VL15_dropped": 0,
+            "port_xmit_data": 123456789,
+            "port_rcv_data": 987654321,
+            "port_xmit_packets": 1000000,
+            "port_rcv_packets": 2000000,
         },
     },
 )
@@ -84,22 +84,22 @@ WARN_SINGLE_PORT = FakeIBCountersCheckImpl(
     ports=[("mlx5_0", "1")],
     counters={
         "mlx5_0/1": {
-            "SymbolErrorCounter": 5,
-            "LinkErrorRecoveryCounter": 0,
-            "LinkDownedCounter": 0,
-            "PortRcvErrors": 2,
-            "PortRcvRemotePhysicalErrors": 0,
-            "PortRcvSwitchRelayErrors": 0,
-            "PortXmitDiscards": 0,
-            "PortXmitConstraintErrors": 0,
-            "PortRcvConstraintErrors": 0,
-            "LocalLinkIntegrityErrors": 0,
-            "ExcessiveBufferOverrunErrors": 0,
-            "VL15Dropped": 0,
-            "PortXmitData": 100,
-            "PortRcvData": 200,
-            "PortXmitPkts": 50,
-            "PortRcvPkts": 60,
+            "symbol_error": 5,
+            "link_error_recovery": 0,
+            "link_downed": 0,
+            "port_rcv_errors": 2,
+            "port_rcv_remote_physical_errors": 0,
+            "port_rcv_switch_relay_errors": 0,
+            "port_xmit_discards": 0,
+            "port_xmit_constraint_errors": 0,
+            "port_rcv_constraint_errors": 0,
+            "local_link_integrity_errors": 0,
+            "excessive_buffer_overrun_errors": 0,
+            "VL15_dropped": 0,
+            "port_xmit_data": 100,
+            "port_rcv_data": 200,
+            "port_xmit_packets": 50,
+            "port_rcv_packets": 60,
         },
     },
 )
@@ -108,40 +108,40 @@ CRITICAL_MULTI_PORT = FakeIBCountersCheckImpl(
     ports=[("mlx5_0", "1"), ("mlx5_1", "1")],
     counters={
         "mlx5_0/1": {
-            "SymbolErrorCounter": 50,
-            "LinkErrorRecoveryCounter": 10,
-            "LinkDownedCounter": 5,
-            "PortRcvErrors": 30,
-            "PortRcvRemotePhysicalErrors": 0,
-            "PortRcvSwitchRelayErrors": 0,
-            "PortXmitDiscards": 10,
-            "PortXmitConstraintErrors": 0,
-            "PortRcvConstraintErrors": 0,
-            "LocalLinkIntegrityErrors": 0,
-            "ExcessiveBufferOverrunErrors": 0,
-            "VL15Dropped": 0,
-            "PortXmitData": 100,
-            "PortRcvData": 200,
-            "PortXmitPkts": 50,
-            "PortRcvPkts": 60,
+            "symbol_error": 50,
+            "link_error_recovery": 10,
+            "link_downed": 5,
+            "port_rcv_errors": 30,
+            "port_rcv_remote_physical_errors": 0,
+            "port_rcv_switch_relay_errors": 0,
+            "port_xmit_discards": 10,
+            "port_xmit_constraint_errors": 0,
+            "port_rcv_constraint_errors": 0,
+            "local_link_integrity_errors": 0,
+            "excessive_buffer_overrun_errors": 0,
+            "VL15_dropped": 0,
+            "port_xmit_data": 100,
+            "port_rcv_data": 200,
+            "port_xmit_packets": 50,
+            "port_rcv_packets": 60,
         },
         "mlx5_1/1": {
-            "SymbolErrorCounter": 0,
-            "LinkErrorRecoveryCounter": 0,
-            "LinkDownedCounter": 0,
-            "PortRcvErrors": 0,
-            "PortRcvRemotePhysicalErrors": 0,
-            "PortRcvSwitchRelayErrors": 0,
-            "PortXmitDiscards": 0,
-            "PortXmitConstraintErrors": 0,
-            "PortRcvConstraintErrors": 0,
-            "LocalLinkIntegrityErrors": 0,
-            "ExcessiveBufferOverrunErrors": 0,
-            "VL15Dropped": 0,
-            "PortXmitData": 300,
-            "PortRcvData": 400,
-            "PortXmitPkts": 70,
-            "PortRcvPkts": 80,
+            "symbol_error": 0,
+            "link_error_recovery": 0,
+            "link_downed": 0,
+            "port_rcv_errors": 0,
+            "port_rcv_remote_physical_errors": 0,
+            "port_rcv_switch_relay_errors": 0,
+            "port_xmit_discards": 0,
+            "port_xmit_constraint_errors": 0,
+            "port_rcv_constraint_errors": 0,
+            "local_link_integrity_errors": 0,
+            "excessive_buffer_overrun_errors": 0,
+            "VL15_dropped": 0,
+            "port_xmit_data": 300,
+            "port_rcv_data": 400,
+            "port_xmit_packets": 70,
+            "port_rcv_packets": 80,
         },
     },
 )
@@ -150,22 +150,22 @@ CLEAN_MULTI_PORT = FakeIBCountersCheckImpl(
     ports=[("mlx5_0", "1"), ("mlx5_1", "1"), ("mlx5_2", "1"), ("mlx5_3", "1")],
     counters={
         f"mlx5_{i}/1": {
-            "SymbolErrorCounter": 0,
-            "LinkErrorRecoveryCounter": 0,
-            "LinkDownedCounter": 0,
-            "PortRcvErrors": 0,
-            "PortRcvRemotePhysicalErrors": 0,
-            "PortRcvSwitchRelayErrors": 0,
-            "PortXmitDiscards": 0,
-            "PortXmitConstraintErrors": 0,
-            "PortRcvConstraintErrors": 0,
-            "LocalLinkIntegrityErrors": 0,
-            "ExcessiveBufferOverrunErrors": 0,
-            "VL15Dropped": 0,
-            "PortXmitData": 1000 * (i + 1),
-            "PortRcvData": 2000 * (i + 1),
-            "PortXmitPkts": 100 * (i + 1),
-            "PortRcvPkts": 200 * (i + 1),
+            "symbol_error": 0,
+            "link_error_recovery": 0,
+            "link_downed": 0,
+            "port_rcv_errors": 0,
+            "port_rcv_remote_physical_errors": 0,
+            "port_rcv_switch_relay_errors": 0,
+            "port_xmit_discards": 0,
+            "port_xmit_constraint_errors": 0,
+            "port_rcv_constraint_errors": 0,
+            "local_link_integrity_errors": 0,
+            "excessive_buffer_overrun_errors": 0,
+            "VL15_dropped": 0,
+            "port_xmit_data": 1000 * (i + 1),
+            "port_rcv_data": 2000 * (i + 1),
+            "port_xmit_packets": 100 * (i + 1),
+            "port_rcv_packets": 200 * (i + 1),
         }
         for i in range(4)
     },
@@ -198,8 +198,8 @@ class TestProcessIBCounters:
         pc = PortCounters(
             device="mlx5_0",
             port="1",
-            errors={"SymbolErrorCounter": 0, "PortRcvErrors": 0},
-            throughput={"PortXmitData": 12345},
+            errors={"symbol_error": 0, "port_rcv_errors": 0},
+            throughput={"port_xmit_data": 12345},
         )
         result = process_ib_counters([pc], warn_threshold=0, crit_threshold=100)
         assert result.check_status == ExitCode.OK
@@ -209,7 +209,7 @@ class TestProcessIBCounters:
         pc = PortCounters(
             device="mlx5_0",
             port="1",
-            errors={"SymbolErrorCounter": 5, "PortRcvErrors": 3},
+            errors={"symbol_error": 5, "port_rcv_errors": 3},
             throughput={},
         )
         result = process_ib_counters([pc], warn_threshold=0, crit_threshold=100)
@@ -221,7 +221,7 @@ class TestProcessIBCounters:
         pc = PortCounters(
             device="mlx5_0",
             port="1",
-            errors={"SymbolErrorCounter": 80, "PortRcvErrors": 30},
+            errors={"symbol_error": 80, "port_rcv_errors": 30},
             throughput={},
         )
         result = process_ib_counters([pc], warn_threshold=0, crit_threshold=100)
@@ -233,29 +233,29 @@ class TestProcessIBCounters:
             device="mlx5_0",
             port="1",
             errors={
-                "SymbolErrorCounter": 5,
-                "PortRcvErrors": 0,
-                "LinkDownedCounter": 2,
+                "symbol_error": 5,
+                "port_rcv_errors": 0,
+                "link_downed": 2,
             },
             throughput={},
         )
         result = process_ib_counters([pc], warn_threshold=0, crit_threshold=100)
         assert len(result.long_out) == 1
-        assert "SymbolErrorCounter=5" in result.long_out[0]
-        assert "LinkDownedCounter=2" in result.long_out[0]
-        assert "PortRcvErrors" not in result.long_out[0]
+        assert "symbol_error=5" in result.long_out[0]
+        assert "link_downed=2" in result.long_out[0]
+        assert "port_rcv_errors" not in result.long_out[0]
 
     def test_multi_port_mixed_errors(self) -> None:
         clean_port = PortCounters(
             device="mlx5_0",
             port="1",
-            errors={"SymbolErrorCounter": 0},
+            errors={"symbol_error": 0},
             throughput={},
         )
         bad_port = PortCounters(
             device="mlx5_1",
             port="1",
-            errors={"SymbolErrorCounter": 10},
+            errors={"symbol_error": 10},
             throughput={},
         )
         result = process_ib_counters(
@@ -273,14 +273,14 @@ class TestProcessIBCounters:
         pc = PortCounters(
             device="mlx5_0",
             port="1",
-            errors={"SymbolErrorCounter": 0, "PortRcvErrors": 0},
-            throughput={"PortXmitData": 999},
+            errors={"symbol_error": 0, "port_rcv_errors": 0},
+            throughput={"port_xmit_data": 999},
         )
         result = process_ib_counters([pc], warn_threshold=0, crit_threshold=100)
         metric_names = [m.name for m in result.short_metrics]
-        assert "mlx5_0/1.SymbolErrorCounter" in metric_names
-        assert "mlx5_0/1.PortRcvErrors" in metric_names
-        assert "mlx5_0/1.PortXmitData" in metric_names
+        assert "mlx5_0/1.symbol_error" in metric_names
+        assert "mlx5_0/1.port_rcv_errors" in metric_names
+        assert "mlx5_0/1.port_xmit_data" in metric_names
 
 
 # ---------------------------------------------------------------------------

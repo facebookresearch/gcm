@@ -13,26 +13,26 @@ Monitors InfiniBand port error and throughput counters via sysfs, detecting runt
 ### Error Counters
 | Counter | Description |
 |---------|-------------|
-| `SymbolErrorCounter` | Physical layer symbol errors |
-| `LinkErrorRecoveryCounter` | Link error recovery events |
-| `LinkDownedCounter` | Link down transitions |
-| `PortRcvErrors` | Malformed packets received |
-| `PortRcvRemotePhysicalErrors` | Remote physical receive errors |
-| `PortRcvSwitchRelayErrors` | Switch relay errors on receive path |
-| `PortXmitDiscards` | Outbound packets discarded |
-| `PortXmitConstraintErrors` | Transmit constraint violations |
-| `PortRcvConstraintErrors` | Receive constraint violations |
-| `LocalLinkIntegrityErrors` | Local link integrity failures |
-| `ExcessiveBufferOverrunErrors` | Buffer overrun events |
-| `VL15Dropped` | Dropped VL15 (management) packets |
+| `symbol_error` | Physical layer symbol errors |
+| `link_error_recovery` | Link error recovery events |
+| `link_downed` | Link down transitions |
+| `port_rcv_errors` | Malformed packets received |
+| `port_rcv_remote_physical_errors` | Remote physical receive errors |
+| `port_rcv_switch_relay_errors` | Switch relay errors on receive path |
+| `port_xmit_discards` | Outbound packets discarded |
+| `port_xmit_constraint_errors` | Transmit constraint violations |
+| `port_rcv_constraint_errors` | Receive constraint violations |
+| `local_link_integrity_errors` | Local link integrity failures |
+| `excessive_buffer_overrun_errors` | Buffer overrun events |
+| `VL15_dropped` | Dropped VL15 (management) packets |
 
 ### Throughput Counters (informational)
 | Counter | Description |
 |---------|-------------|
-| `PortXmitData` | Total data transmitted |
-| `PortRcvData` | Total data received |
-| `PortXmitPkts` | Total packets transmitted |
-| `PortRcvPkts` | Total packets received |
+| `port_xmit_data` | Total data transmitted |
+| `port_rcv_data` | Total data received |
+| `port_xmit_packets` | Total packets transmitted |
+| `port_rcv_packets` | Total packets received |
 
 ## Command-Line Options
 
