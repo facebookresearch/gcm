@@ -228,7 +228,12 @@ def process_ib_counters(
         f"total_errors={total_errors}"
     )
     check.short_metrics = [
-        Metric("total_errors", total_errors, metric_warn=str(warn_threshold), metric_crit=str(crit_threshold)),
+        Metric(
+            "total_errors",
+            total_errors,
+            metric_warn=str(warn_threshold),
+            metric_crit=str(crit_threshold),
+        ),
         Metric("ports_with_errors", ports_with_errors),
         Metric("ports_checked", len(port_counters)),
     ]
