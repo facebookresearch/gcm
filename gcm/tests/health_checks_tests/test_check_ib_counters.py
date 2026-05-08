@@ -269,7 +269,7 @@ class TestProcessIBCounters:
         assert len(result.long_out) == 1
         assert "mlx5_1/1" in result.long_out[0]
 
-    def test_metrics_emitted_for_all_counters(self) -> None:
+    def test_summary_metrics_in_short(self) -> None:
         pc = PortCounters(
             device="mlx5_0",
             port="1",
@@ -277,10 +277,23 @@ class TestProcessIBCounters:
             throughput={"port_xmit_data": 999},
         )
         result = process_ib_counters([pc], warn_threshold=0, crit_threshold=100)
-        metric_names = [m.name for m in result.short_metrics]
-        assert "mlx5_0/1.symbol_error" in metric_names
-        assert "mlx5_0/1.port_rcv_errors" in metric_names
-        assert "mlx5_0/1.port_xmit_data" in metric_names
+        short_names = [m.name for m in result.short_metrics]
+        assert "total_errors" in short_names
+        assert "ports_with_errors" in short_names
+        assert "ports_checked" in short_names
+
+    def test_per_counter_metrics_in_long(self) -> None:
+        pc = PortCounters(
+            device="mlx5_0",
+            port="1",
+            errors={"symbol_error": 0, "port_rcv_errors": 0},
+            throughput={"port_xmit_data": 999},
+        )
+        result = process_ib_counters([pc], warn_threshold=0, crit_threshold=100)
+        long_names = [m.name for metrics in result.long_metrics for m in metrics]
+        assert "mlx5_0/1.symbol_error" in long_names
+        assert "mlx5_0/1.port_rcv_errors" in long_names
+        assert "mlx5_0/1.port_xmit_data" in long_names
 
 
 # ---------------------------------------------------------------------------

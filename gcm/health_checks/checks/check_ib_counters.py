@@ -188,7 +188,7 @@ def process_ib_counters(
     total_errors = 0
     ports_with_errors = 0
     port_details: list[str] = []
-    all_metrics: list[Metric] = []
+    per_port_metrics: list[list[Metric]] = []
 
     for pc in port_counters:
         port_label = f"{pc.device}/{pc.port}"
@@ -200,9 +200,9 @@ def process_ib_counters(
             nonzero = [f"{name}={val}" for name, val in pc.errors.items() if val > 0]
             port_details.append(f"{port_label}: {'; '.join(nonzero)}")
 
-        # Emit metrics for each error counter.
+        port_metrics: list[Metric] = []
         for name, val in pc.errors.items():
-            all_metrics.append(
+            port_metrics.append(
                 Metric(
                     name=f"{port_label}.{name}",
                     value=val,
@@ -210,10 +210,9 @@ def process_ib_counters(
                     metric_crit=str(crit_threshold),
                 )
             )
-
-        # Emit throughput metrics (informational).
         for name, val in pc.throughput.items():
-            all_metrics.append(Metric(name=f"{port_label}.{name}", value=val))
+            port_metrics.append(Metric(name=f"{port_label}.{name}", value=val))
+        per_port_metrics.append(port_metrics)
 
     # Determine overall status.
     if total_errors > crit_threshold:
@@ -228,8 +227,13 @@ def process_ib_counters(
         f"{ports_with_errors} with errors, "
         f"total_errors={total_errors}"
     )
+    check.short_metrics = [
+        Metric("total_errors", total_errors, metric_warn=str(warn_threshold), metric_crit=str(crit_threshold)),
+        Metric("ports_with_errors", ports_with_errors),
+        Metric("ports_checked", len(port_counters)),
+    ]
     check.long_out = port_details
-    check.short_metrics = all_metrics
+    check.long_metrics = per_port_metrics
     return check
 
 
