@@ -26,9 +26,7 @@ class FakeSmStatusCheckImpl:
     log_level: str = "INFO"
     log_folder: str = "/tmp"
 
-    def get_sm_info(
-        self, timeout_secs: int, logger: logging.Logger
-    ) -> ShellCommandOut:
+    def get_sm_info(self, timeout_secs: int, logger: logging.Logger) -> ShellCommandOut:
         return self.sm_output
 
 
@@ -49,7 +47,9 @@ class TestProcessSmInfo:
         assert "MASTER" in msg
 
     def test_standby(self) -> None:
-        output = "sminfo: sm lid 2 lmc 0 guid 0x0011223344556688 prio 10 state 2 STANDBY"
+        output = (
+            "sminfo: sm lid 2 lmc 0 guid 0x0011223344556688 prio 10 state 2 STANDBY"
+        )
         exit_code, msg = process_sm_info(output, 0)
         assert exit_code == ExitCode.WARN
         assert "STANDBY" in msg

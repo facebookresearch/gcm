@@ -83,7 +83,9 @@ def process_unhealthy_ports(content: str) -> Tuple[ExitCode, str]:
 
     # Filter out comment lines
     data_lines = [
-        line for line in stripped.split("\n") if line.strip() and not line.startswith("#")
+        line
+        for line in stripped.split("\n")
+        if line.strip() and not line.startswith("#")
     ]
 
     if not data_lines:

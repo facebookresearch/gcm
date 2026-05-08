@@ -55,7 +55,6 @@ class HealthCheckName(Enum):
     CHECK_IBSTAT = "check ibstat"
     CHECK_IB_INTERFACES = "check ib interfaces"
     CHECK_IBLINK = "check iblink"
-    CHECK_IB_COUNTERS = "check ib counters"
     CHECK_PASS_STATUS = "check password status"
     CHECK_PATH_ACCESS = "check path access"
     CHECK_UPTIME = "check uptime"

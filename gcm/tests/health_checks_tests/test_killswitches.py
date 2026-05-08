@@ -79,7 +79,6 @@ def _write_to_file(path: Path, data: str) -> Path:
         "check-node check-dnf-repos",
         "check-sensors",
         "check-aws-events",
-        "check-ib check-ib-counters",
         "check-ib check-mlxcables",
         "check-ib check-sm-status",
         "check-ib check-ib-port-errors",
@@ -134,7 +133,6 @@ def test_killswitches(
         disable_dcgmi_nvlink_error = true
         disable_dcgmi_nvlink_status = true
         disable_check_ibstat = true
-        disable_check_ib_counters = true
         disable_check_ib_interfaces = true
         disable_pass_status = true
         disable_user_access_path_check = true

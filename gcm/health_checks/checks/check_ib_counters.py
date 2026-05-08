@@ -1,14 +1,22 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
-"""Read IB port counters from sysfs and alert on errors."""
+"""Check InfiniBand port error and throughput counters via sysfs.
+
+Reads counters from /sys/class/infiniband/{device}/ports/{port}/counters/
+and alerts when error counters exceed configurable thresholds.  This is the
+runtime complement to check_iblink: where check_iblink validates link
+*presence*, check_ib_counters detects performance-degrading conditions that
+silently hurt distributed training (NCCL AllReduce, FSDP, etc.).
+"""
 
 import logging
 import os
 from collections.abc import Collection
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Protocol, Tuple
+from dataclasses import dataclass, field
+from typing import Optional, Protocol
 
 import click
+from gcm.health_checks.check_utils.output_utils import CheckOutput, Metric
 from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
 from gcm.health_checks.click import (
     common_arguments,
@@ -22,104 +30,224 @@ from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import 
 from gcm.schemas.health_check.health_check_name import HealthCheckName
 from typeguard import typechecked
 
-SYSFS_IB_BASE = "/sys/class/infiniband"
-
-ERROR_COUNTERS = [
+# Error counters that indicate fabric health problems.
+# Any non-zero value is suspicious; rapid increase is critical.
+ERROR_COUNTERS: list[str] = [
     "symbol_error",
     "link_error_recovery",
     "link_downed",
     "port_rcv_errors",
-    "port_rcv_constraint_errors",
+    "port_rcv_remote_physical_errors",
+    "port_rcv_switch_relay_errors",
     "port_xmit_discards",
-    "excessive_buffer_overrun_errors",
+    "port_xmit_constraint_errors",
+    "port_rcv_constraint_errors",
     "local_link_integrity_errors",
+    "excessive_buffer_overrun_errors",
+    "VL15_dropped",
 ]
 
-CRITICAL_COUNTERS = {"link_downed"}
+# Throughput counters (informational, included in metrics output).
+THROUGHPUT_COUNTERS: list[str] = [
+    "port_xmit_data",
+    "port_rcv_data",
+    "port_xmit_packets",
+    "port_rcv_packets",
+]
+
+# Default threshold: total error count above which we alert.
+DEFAULT_WARN_THRESHOLD: int = 0
+DEFAULT_CRIT_THRESHOLD: int = 100
+
+DEFAULT_CRITICAL_COUNTERS: tuple[str, ...] = ("link_downed",)
+
+SYSFS_IB_ROOT = "/sys/class/infiniband"
 
 
-class IbCountersCheck(CheckEnv, Protocol):
-    """Provide a class stub definition."""
+class IBCountersCheck(CheckEnv, Protocol):
+    """Protocol for IB counter reads — enables test injection."""
 
-    def get_ib_counters(
+    def discover_ports(
         self,
         logger: logging.Logger,
-    ) -> str:
-        """Read IB port counters from sysfs and return as structured text."""
+    ) -> list[tuple[str, str]]:
+        """Return list of (device, port) tuples found on this node."""
+        ...
+
+    def read_counter(
+        self,
+        device: str,
+        port: str,
+        counter_name: str,
+        logger: logging.Logger,
+    ) -> Optional[int]:
+        """Read a single counter value from sysfs."""
         ...
 
 
-@dataclass(frozen=True)
-class IbCountersCheckImpl:
-    """Read IB port counters from sysfs."""
+@dataclass
+class IBCountersCheckImpl:
+    """Production implementation — reads counters from sysfs."""
 
     cluster: str
     type: str
     log_level: str
     log_folder: str
 
-    def get_ib_counters(
+    def discover_ports(
         self,
         logger: logging.Logger,
-    ) -> str:
-        """Read all IB port error counters from sysfs."""
-        lines: List[str] = []
-        if not os.path.isdir(SYSFS_IB_BASE):
-            return "ERROR: no IB devices found"
+    ) -> list[tuple[str, str]]:
+        """Discover all IB device/port pairs under /sys/class/infiniband."""
+        ports: list[tuple[str, str]] = []
+        try:
+            devices = os.listdir(SYSFS_IB_ROOT)
+        except OSError:
+            logger.warning("Cannot list %s", SYSFS_IB_ROOT)
+            return ports
 
-        for device in sorted(os.listdir(SYSFS_IB_BASE)):
-            ports_dir = os.path.join(SYSFS_IB_BASE, device, "ports")
-            if not os.path.isdir(ports_dir):
+        for dev in sorted(devices):
+            ports_dir = os.path.join(SYSFS_IB_ROOT, dev, "ports")
+            try:
+                port_nums = os.listdir(ports_dir)
+            except OSError:
+                logger.warning("Cannot list ports for %s", dev)
                 continue
-            for port in sorted(os.listdir(ports_dir)):
-                counters_dir = os.path.join(ports_dir, port, "counters")
-                if not os.path.isdir(counters_dir):
-                    continue
-                for counter_name in ERROR_COUNTERS:
-                    counter_path = os.path.join(counters_dir, counter_name)
-                    try:
-                        with open(counter_path) as f:
-                            value = f.read().strip()
-                    except OSError:
-                        value = "N/A"
-                    lines.append(f"{device}/{port}/{counter_name}={value}")
+            for p in sorted(port_nums):
+                counters_dir = os.path.join(ports_dir, p, "counters")
+                if os.path.isdir(counters_dir):
+                    ports.append((dev, p))
+        return ports
 
-        return "\n".join(lines) if lines else "ERROR: no IB counters found"
+    def read_counter(
+        self,
+        device: str,
+        port: str,
+        counter_name: str,
+        logger: logging.Logger,
+    ) -> Optional[int]:
+        """Read a single counter value from sysfs."""
+        path = os.path.join(
+            SYSFS_IB_ROOT, device, "ports", port, "counters", counter_name
+        )
+        try:
+            with open(path, "r") as f:
+                return int(f.read().strip())
+        except (OSError, ValueError):
+            logger.debug(
+                "Failed to read counter %s for %s/%s", counter_name, device, port
+            )
+            return None
+
+
+@dataclass
+class PortCounters:
+    """Parsed counters for a single IB port."""
+
+    device: str
+    port: str
+    errors: dict[str, int] = field(default_factory=dict)
+    throughput: dict[str, int] = field(default_factory=dict)
+
+
+def collect_port_counters(
+    obj: IBCountersCheck,
+    logger: logging.Logger,
+) -> list[PortCounters]:
+    """Read all counters for every discovered IB port."""
+    results: list[PortCounters] = []
+    for device, port in obj.discover_ports(logger):
+        pc = PortCounters(device=device, port=port)
+        for counter_name in ERROR_COUNTERS:
+            val = obj.read_counter(device, port, counter_name, logger)
+            if val is not None:
+                pc.errors[counter_name] = val
+        for counter_name in THROUGHPUT_COUNTERS:
+            val = obj.read_counter(device, port, counter_name, logger)
+            if val is not None:
+                pc.throughput[counter_name] = val
+        results.append(pc)
+    return results
 
 
 def process_ib_counters(
-    output: str,
-    threshold: int,
-) -> Tuple[ExitCode, str]:
-    """Parse sysfs counter output and determine exit code."""
-    if output.startswith("ERROR:"):
-        return ExitCode.WARN, output
+    port_counters: list[PortCounters],
+    warn_threshold: int,
+    crit_threshold: int,
+    critical_counters: Collection[str] = DEFAULT_CRITICAL_COUNTERS,
+) -> CheckOutput:
+    """Evaluate collected counters against thresholds.
 
-    errors: List[str] = []
-    has_critical = False
+    Returns a CheckOutput with per-port error details and Nagios metrics.
+    Counters listed in critical_counters auto-escalate to CRITICAL when nonzero.
+    """
+    check = CheckOutput("check_ib_counters")
 
-    for line in output.strip().split("\n"):
-        if "=" not in line:
-            continue
-        path, value_str = line.rsplit("=", 1)
-        if value_str == "N/A":
-            continue
-        try:
-            value = int(value_str)
-        except ValueError:
-            continue
+    if not port_counters:
+        check.check_status = ExitCode.WARN
+        check.short_out = "No IB ports discovered"
+        return check
 
-        if value > threshold:
-            counter_name = path.rsplit("/", 1)[-1]
-            errors.append(f"{path}={value}")
-            if counter_name in CRITICAL_COUNTERS:
-                has_critical = True
+    critical_set = set(critical_counters)
+    total_errors = 0
+    ports_with_errors = 0
+    has_critical_counter = False
+    port_details: list[str] = []
+    per_port_metrics: list[list[Metric]] = []
 
-    if not errors:
-        return ExitCode.OK, "All IB port counters within threshold."
+    for pc in port_counters:
+        port_label = f"{pc.device}/{pc.port}"
+        port_error_total = sum(pc.errors.values())
+        total_errors += port_error_total
 
-    msg = f"{len(errors)} counter(s) above threshold: " + "; ".join(errors)
-    return ExitCode.CRITICAL if has_critical else ExitCode.WARN, msg
+        if port_error_total > 0:
+            ports_with_errors += 1
+            nonzero = [f"{name}={val}" for name, val in pc.errors.items() if val > 0]
+            port_details.append(f"{port_label}: {'; '.join(nonzero)}")
+            for name, val in pc.errors.items():
+                if val > 0 and name in critical_set:
+                    has_critical_counter = True
+
+        port_metrics: list[Metric] = []
+        for name, val in pc.errors.items():
+            port_metrics.append(
+                Metric(
+                    name=f"{port_label}.{name}",
+                    value=val,
+                    metric_warn=str(warn_threshold),
+                    metric_crit=str(crit_threshold),
+                )
+            )
+        for name, val in pc.throughput.items():
+            port_metrics.append(Metric(name=f"{port_label}.{name}", value=val))
+        per_port_metrics.append(port_metrics)
+
+    # Determine overall status.
+    if has_critical_counter or total_errors > crit_threshold:
+        check.check_status = ExitCode.CRITICAL
+    elif total_errors > warn_threshold:
+        check.check_status = ExitCode.WARN
+    else:
+        check.check_status = ExitCode.OK
+
+    check.short_out = (
+        f"{len(port_counters)} ports checked, "
+        f"{ports_with_errors} with errors, "
+        f"total_errors={total_errors}"
+    )
+    check.short_metrics = [
+        Metric(
+            "total_errors",
+            total_errors,
+            metric_warn=str(warn_threshold),
+            metric_crit=str(crit_threshold),
+        ),
+        Metric("ports_with_errors", ports_with_errors),
+        Metric("ports_checked", len(port_counters)),
+    ]
+    check.long_out = port_details
+    check.long_metrics = per_port_metrics
+    return check
 
 
 @click.command()
@@ -127,15 +255,31 @@ def process_ib_counters(
 @telemetry_argument
 @heterogeneous_cluster_v1_option
 @click.option(
-    "--error-threshold",
+    "--warn-threshold",
     type=click.INT,
-    default=0,
-    help="Counter value threshold. Values above this trigger an alert.",
+    default=DEFAULT_WARN_THRESHOLD,
+    show_default=True,
+    help="Total error count above which the check returns WARNING.",
+)
+@click.option(
+    "--crit-threshold",
+    type=click.INT,
+    default=DEFAULT_CRIT_THRESHOLD,
+    show_default=True,
+    help="Total error count above which the check returns CRITICAL.",
+)
+@click.option(
+    "--critical-counters",
+    type=click.STRING,
+    multiple=True,
+    default=DEFAULT_CRITICAL_COUNTERS,
+    show_default=True,
+    help="Counter names that auto-escalate to CRITICAL when nonzero.",
 )
 @click.pass_obj
 @typechecked
 def check_ib_counters(
-    obj: Optional[IbCountersCheck],
+    obj: Optional[IBCountersCheck],
     cluster: str,
     type: CHECK_TYPE,
     log_level: LOG_LEVEL,
@@ -144,11 +288,19 @@ def check_ib_counters(
     sink_opts: Collection[str],
     verbose_out: bool,
     heterogeneous_cluster_v1: bool,
-    error_threshold: int,
+    warn_threshold: int,
+    crit_threshold: int,
+    critical_counters: tuple[str, ...],
 ) -> None:
-    """Check IB port error counters from sysfs."""
+    """Check IB port error counters against configurable thresholds.
+
+    Reads /sys/class/infiniband/*/ports/*/counters/ for error counters
+    (symbol_error, link_downed, port_rcv_errors, …) and
+    throughput counters (port_xmit_data, port_rcv_data, …).  Alerts when the
+    aggregate error count exceeds the configured thresholds.
+    """
     if not obj:
-        obj = IbCountersCheckImpl(cluster, type, log_level, log_folder)
+        obj = IBCountersCheckImpl(cluster, type, log_level, log_folder)
 
     with HealthCheckRuntime(
         cluster=cluster,
@@ -162,7 +314,13 @@ def check_ib_counters(
         health_check_name=HealthCheckName.IB_PORT_COUNTERS,
         killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_ib_port_counters(),
     ) as rt:
-        counters_output = obj.get_ib_counters(rt.logger)
-        rt.logger.info(f"IB counters output:\n{counters_output}")
-        exit_code, msg = process_ib_counters(counters_output, error_threshold)
-        rt.finish(exit_code, msg)
+        try:
+            port_counters = collect_port_counters(obj, rt.logger)
+        except Exception:
+            rt.logger.exception("Failed to collect IB counters")
+            port_counters = []
+
+        output = process_ib_counters(
+            port_counters, warn_threshold, crit_threshold, critical_counters
+        )
+        rt.finish(output.check_status, str(output))

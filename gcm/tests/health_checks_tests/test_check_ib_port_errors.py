@@ -75,9 +75,7 @@ class TestProcessPortErrors:
         assert "Unknown" in msg
 
     def test_multi_block_finds_all_errors(self) -> None:
-        exit_code, msg = process_port_errors(
-            SAMPLE_PM_MULTI_BLOCK, SAMPLE_DISCOVER, 0
-        )
+        exit_code, msg = process_port_errors(SAMPLE_PM_MULTI_BLOCK, SAMPLE_DISCOVER, 0)
         assert exit_code == ExitCode.CRITICAL
         # Should find errors in block 2 (port_rcv_errors=5) and block 3 (symbol_error=26)
         assert "port_rcv_errors" in msg
@@ -85,16 +83,12 @@ class TestProcessPortErrors:
         assert "2 port error" in msg
 
     def test_multi_block_clean_port_skipped(self) -> None:
-        exit_code, msg = process_port_errors(
-            SAMPLE_PM_MULTI_BLOCK, SAMPLE_DISCOVER, 0
-        )
+        exit_code, msg = process_port_errors(SAMPLE_PM_MULTI_BLOCK, SAMPLE_DISCOVER, 0)
         # Block 1 (node001 HCA port) has all zeros — should not appear in errors
         assert "node001" not in msg
 
     def test_multi_block_switch_name_resolved(self) -> None:
-        exit_code, msg = process_port_errors(
-            SAMPLE_PM_MULTI_BLOCK, SAMPLE_DISCOVER, 0
-        )
+        exit_code, msg = process_port_errors(SAMPLE_PM_MULTI_BLOCK, SAMPLE_DISCOVER, 0)
         # Block 2 switch GUID should resolve to switch0001
         assert "switch0001" in msg
         # Block 3 switch GUID should resolve to switch0002
