@@ -66,6 +66,7 @@ class HealthChecksFeatures:
     disable_check_aws_events: bool
     disable_check_ib_counters: bool
     disable_check_ib_cable_ddm: bool
+    disable_check_ib_module_health: bool
     disable_check_ib_sm_status: bool
     disable_check_ib_port_errors: bool
     disable_check_ib_ufm_health: bool

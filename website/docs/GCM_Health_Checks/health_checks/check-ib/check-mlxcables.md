@@ -25,15 +25,19 @@ Each metric can report `OK`, `WARNING` (approaching limits), or `ALARM` (out of 
 - **Mellanox Firmware Tools (MFT)**: Provides the `mlxcables` command
 - **MST kernel module**: Must be loaded (provides `/dev/mst/` device nodes)
 - **Cable devices**: At least one `/dev/mst/mt*cable_0` device must exist
+- **Hardware**: ConnectX-5/6 with QSFP transceivers. **Not supported on ConnectX-7/OSFP** -- use [check-mlxlink](./check-mlxlink.md) instead.
 
 ### Setup
 ```shell
-# Load MST kernel module
-mst start
+# Load MST kernel module and add cable devices
+sudo mst start
+sudo mst cable add
 
 # Verify cable devices exist
 ls /dev/mst/mt*cable_0
 ```
+
+`mst start` and `mst cable add` are non-disruptive — they just load kernel modules and create device files for diagnostic tools. They do not touch the IB driver or in-flight traffic.
 
 ## Command-Line Options
 

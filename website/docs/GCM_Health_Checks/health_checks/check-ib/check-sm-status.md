@@ -21,6 +21,7 @@ sminfo: sm lid 1 lmc 0 guid 0x0011223344556677 prio 14 state 3 MASTER
 
 - **InfiniBand Drivers**: Mellanox/NVIDIA OFED or inbox drivers
 - **sminfo**: Part of the `infiniband-diags` package
+- **Root or sudo**: `sminfo` opens a UMAD device (`/dev/infiniband/umad*`) which is `root:root 0600` by default in the Linux IB stack. Run the check via `sudo` or as root.
 
 ### Package Installation
 ```shell
@@ -67,23 +68,8 @@ health_checks check-ib check-sm-status \
 ```shell
 health_checks check-ib check-sm-status \
   --sink otel \
+  --sink-opts "log_resource_attributes={'attr_1': 'value1'}" \
   [CLUSTER] \
   prolog
 ```
 
-### Short timeout for fast prolog
-```shell
-health_checks check-ib check-sm-status \
-  --timeout 10 \
-  --sink stdout \
-  [CLUSTER] \
-  prolog
-```
-
-## Killswitch
-
-Disable via TOML config:
-```toml
-[HealthChecksFeatures]
-disable_check_ib_sm_status = true
-```

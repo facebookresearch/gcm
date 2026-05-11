@@ -6,23 +6,26 @@ Reads the OpenSM unhealthy-ports dump file and reports any ports that have been 
 
 **This is a cluster-wide check.** Run it from the UFM management node where `/opt/ufm/log/opensm-unhealthy-ports.dump` is populated, not from compute nodes.
 
+
 ## What It Monitors
 
-OpenSM's health manager writes problematic ports to `/opt/ufm/log/opensm-unhealthy-ports.dump`. Conditions tracked include:
+OpenSM's health manager writes problematic ports to `/opt/ufm/log/opensm-unhealthy-ports.dump`. Conditions that declare a node as [unhealthy](https://docs.nvidia.com/networking/display/ufmenterpriseumv6150/unhealthy+ports+window) include:
 
-- REBOOT — nodes rebooting too frequently
-- FLAPPING — link going up/down repeatedly
-- UNRESPONSIVE — ports not responding to SM sweeps
-- NOISY — ports generating excessive traps
-- SET_ERR — ports returning errors on Set operations
-- ILLEGAL — ports returning illegal SMP responses
+- **REBOOT** — node rebooted more than 10 times during last 900 seconds
+- **FLAPPING** — several links found in Initializing state in 5 out of 10 previous sweeps
+- **UNRESPONSIVE** — port does not respond to SMPs (MAD status TIMEOUT) in 5 out of 7 previous sweeps
+- **NOISY** — node sends traps 129, 130, or 131 more than 250 times with less than 60 seconds between each
+- **SET_ERR** — node responds with bad status upon SET SMPs (PortInfo, SwitchInfo, VLArb, SL2VL, or Pkeys)
+- **ILLEGAL** — illegal MAD fields discovered during receive_process
+- **MANUAL** — manually marked as unhealthy by an operator
+- **LLR** — Link Level Retransmission per-second counter exceeds threshold
 
 The check reads the dump file and reports its contents. An empty file means no unhealthy ports.
 
 ## Requirements
 
 - **UFM**: NVIDIA Unified Fabric Manager must be installed and running
-- **Access**: Read access to `/opt/ufm/log/opensm-unhealthy-ports.dump`
+- **Root or sudo**: `/opt/ufm/log/opensm-unhealthy-ports.dump` is owned by root. Run the check via `sudo` or as root.
 - **Node**: Run from the UFM management node
 
 ## Command-Line Options

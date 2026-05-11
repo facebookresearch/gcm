@@ -69,6 +69,7 @@ class HealthCheckName(Enum):
     CHECK_AWS_EVENTS = "check aws events"
     CHECK_IB_COUNTERS = "check ib counters"
     CHECK_IB_CABLE_DDM = "check ib cable ddm"
+    CHECK_IB_MODULE_HEALTH = "check ib module health"
     CHECK_IB_SM_STATUS = "check ib sm status"
     CHECK_IB_PORT_ERRORS = "check ib port errors"
     CHECK_IB_UFM_HEALTH = "check ib ufm health"

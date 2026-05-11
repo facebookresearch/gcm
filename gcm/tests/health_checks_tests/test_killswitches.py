@@ -79,6 +79,7 @@ def _write_to_file(path: Path, data: str) -> Path:
         "check-sensors",
         "check-aws-events",
         "check-ib check-mlxcables",
+        "check-ib check-mlxlink",
         "check-ib check-sm-status",
         "check-ib check-ib-port-errors",
         "check-ib check-ufm-health",
@@ -142,6 +143,7 @@ def test_killswitches(
         disable_check_aws_events = true
         disable_check_ib_counters = true
         disable_check_ib_cable_ddm = true
+        disable_check_ib_module_health = true
         disable_check_ib_sm_status = true
         disable_check_ib_port_errors = true
         disable_check_ib_ufm_health = true
