@@ -110,5 +110,3 @@ sudo health_checks check-ib check-mlxlink \
 | Source devices | `/dev/mst/mt*cable_0` (needs `mst cable add`) | `/dev/mst/mt*pciconf*` (just `mst start`) |
 | Detection method | Greps for `WARNING`/`ALARM` keywords | Per-lane fault flags + DDM range checks |
 | CMIS/OSFP support | No (returns "does not support DDM") | Yes |
-
-Use `check-mlxlink` for new deployments. `check-mlxcables` is retained for backwards compatibility on QSFP-only hardware.

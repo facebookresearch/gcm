@@ -33,6 +33,8 @@ The check reads the dump file and reports its contents. An empty file means no u
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `--unhealthy-ports-file` | Path | `/opt/ufm/log/opensm-unhealthy-ports.dump` | Path to OpenSM unhealthy-ports dump |
+| `--truncate` / `--no-truncate` | Flag | `--no-truncate` | Truncate the dump file after reading to avoid stale alerts |
+| `--preview-limit` | Integer | 20 | Maximum number of unhealthy port lines to include in the output message |
 | `--sink` | String | do_nothing | Telemetry sink destination |
 | `--verbose-out` | Flag | False | Display detailed output |
 

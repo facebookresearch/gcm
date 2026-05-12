@@ -24,6 +24,7 @@ from gcm.schemas.health_check.health_check_name import HealthCheckName
 from typeguard import typechecked
 
 DEFAULT_UNHEALTHY_PORTS_FILE = "/opt/ufm/log/opensm-unhealthy-ports.dump"
+DEFAULT_PREVIEW_LIMIT = 20
 
 
 class UfmHealthCheck(CheckEnv, Protocol):
@@ -67,7 +68,9 @@ class UfmHealthCheckImpl:
             logger.warning("Failed to truncate %s: %s", self.unhealthy_ports_file, e)
 
 
-def process_unhealthy_ports(content: str) -> Tuple[ExitCode, str]:
+def process_unhealthy_ports(
+    content: str, preview_limit: int = DEFAULT_PREVIEW_LIMIT
+) -> Tuple[ExitCode, str]:
     """Parse OpenSM unhealthy-ports dump content.
 
     Expected format (CSV with header comment):
@@ -89,9 +92,9 @@ def process_unhealthy_ports(content: str) -> Tuple[ExitCode, str]:
         return ExitCode.OK, "No unhealthy ports reported by UFM."
 
     port_count = len(data_lines)
-    preview = "\n".join(data_lines[:20])
-    if port_count > 20:
-        preview += f"\n... ({port_count - 20} more)"
+    preview = "\n".join(data_lines[:preview_limit])
+    if port_count > preview_limit:
+        preview += f"\n... ({port_count - preview_limit} more)"
 
     return (
         ExitCode.CRITICAL,
@@ -114,6 +117,13 @@ def process_unhealthy_ports(content: str) -> Tuple[ExitCode, str]:
     default=False,
     help="Truncate the dump file after reading to avoid stale alerts.",
 )
+@click.option(
+    "--preview-limit",
+    type=click.INT,
+    default=DEFAULT_PREVIEW_LIMIT,
+    show_default=True,
+    help="Maximum number of unhealthy port lines to include in the output message.",
+)
 @click.pass_obj
 @typechecked
 def check_ufm_health(
@@ -128,6 +138,7 @@ def check_ufm_health(
     heterogeneous_cluster_v1: bool,
     unhealthy_ports_file: str,
     truncate: bool,
+    preview_limit: int,
 ) -> None:
     """Check UFM for unhealthy IB ports.
 
@@ -151,7 +162,7 @@ def check_ufm_health(
         killswitch_getter=lambda: FeatureValueHealthChecksFeatures().get_healthchecksfeatures_disable_check_ib_ufm_health(),
     ) as rt:
         content = obj.read_unhealthy_ports(rt.logger)
-        exit_code, msg = process_unhealthy_ports(content)
+        exit_code, msg = process_unhealthy_ports(content, preview_limit)
         if truncate and content.strip():
             obj.truncate_unhealthy_ports(rt.logger)
         rt.finish(exit_code, msg)
