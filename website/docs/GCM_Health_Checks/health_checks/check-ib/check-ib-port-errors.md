@@ -97,9 +97,3 @@ health_checks check-ib check-ib-port-errors \
   app
 ```
 
-## Killswitch
-
-```toml
-[HealthChecksFeatures]
-disable_check_ib_port_errors = true
-```

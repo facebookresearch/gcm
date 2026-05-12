@@ -72,13 +72,6 @@ health_checks check-ib check-ufm-health \
   app
 ```
 
-## Killswitch
-
-```toml
-[HealthChecksFeatures]
-disable_check_ib_ufm_health = true
-```
-
 ## Deployment
 
 This check should run on the UFM management node where the OpenSM dump file exists, not on compute nodes. It is not part of the per-node prolog/epilog pipeline.

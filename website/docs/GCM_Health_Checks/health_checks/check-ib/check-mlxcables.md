@@ -90,13 +90,6 @@ health_checks check-ib check-mlxcables \
   app
 ```
 
-## Killswitch
-
-Disable via TOML config:
-```toml
-[HealthChecksFeatures]
-disable_check_ib_cable_ddm = true
-```
 
 ## Troubleshooting
 
