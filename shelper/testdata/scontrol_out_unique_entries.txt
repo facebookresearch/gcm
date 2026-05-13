@@ -1,6 +1,7 @@
 JobId=30214 ArrayJobId=30185 ArrayTaskId=28 ArrayTaskThrottle=100 JobName=demo_ods
    UserId=test_username(1472000020) GroupId=test_username(1472000020) MCS_label=N/A
    Priority=1000000 Nice=0 Account=test2_account QOS=normal
+   Comment=test_comment
    JobState=RUNNING Reason=None Dependency=(null)
    Requeue=1 Restarts=0 BatchFlag=1 Reboot=0 ExitCode=0:0
    DerivedExitCode=0:0
@@ -34,6 +35,7 @@ JobId=30214 ArrayJobId=30185 ArrayTaskId=28 ArrayTaskThrottle=100 JobName=demo_o
 JobId=31214 ArrayJobId=31185 ArrayTaskId=128 ArrayTaskThrottle=100 JobName=demo_ods2
    UserId=test_username_2(1472000020) GroupId=test_username_2(1472000020) MCS_label=N/A
    Priority=1000000 Nice=0 Account=test_account QOS=dev
+   Comment=test_comment_2
    JobState=RUNNING Reason=None Dependency=(null)
    Requeue=1 Restarts=0 BatchFlag=1 Reboot=0 ExitCode=0:0
    DerivedExitCode=0:0
