@@ -29,6 +29,7 @@ func TestGetSlurmDataFromSlurmLineAllGpus(t *testing.T) {
 			Account:     "test_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 		"1": {
 			User:        "test_username",
@@ -40,6 +41,7 @@ func TestGetSlurmDataFromSlurmLineAllGpus(t *testing.T) {
 			Account:     "test_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 		"2": {
 			User:        "test_username",
@@ -51,6 +53,7 @@ func TestGetSlurmDataFromSlurmLineAllGpus(t *testing.T) {
 			Account:     "test_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 		"3": {
 			User:        "test_username",
@@ -62,6 +65,7 @@ func TestGetSlurmDataFromSlurmLineAllGpus(t *testing.T) {
 			Account:     "test_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 		"4": {
 			User:        "test_username",
@@ -73,6 +77,7 @@ func TestGetSlurmDataFromSlurmLineAllGpus(t *testing.T) {
 			Account:     "test_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 		"5": {
 			User:        "test_username",
@@ -84,6 +89,7 @@ func TestGetSlurmDataFromSlurmLineAllGpus(t *testing.T) {
 			Account:     "test_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 		"6": {
 			User:        "test_username",
@@ -95,6 +101,7 @@ func TestGetSlurmDataFromSlurmLineAllGpus(t *testing.T) {
 			Account:     "test_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 		"7": {
 			User:        "test_username",
@@ -106,6 +113,7 @@ func TestGetSlurmDataFromSlurmLineAllGpus(t *testing.T) {
 			Account:     "test_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 	}
 
@@ -133,6 +141,7 @@ func TestGetSlurmDataFromSlurmLineSomeGpus(t *testing.T) {
 			Account:     "test_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 		"1": {
 			User:        "test_username",
@@ -144,6 +153,7 @@ func TestGetSlurmDataFromSlurmLineSomeGpus(t *testing.T) {
 			Account:     "test_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 		"2": {
 			User:        "test_username",
@@ -155,6 +165,7 @@ func TestGetSlurmDataFromSlurmLineSomeGpus(t *testing.T) {
 			Account:     "test_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 		"3": {
 			User:        "test_username",
@@ -166,6 +177,7 @@ func TestGetSlurmDataFromSlurmLineSomeGpus(t *testing.T) {
 			Account:     "test_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 	}
 
@@ -208,6 +220,7 @@ func TestGetSlurmDataFromSlurmLineUniqueEntries(t *testing.T) {
 			Account:     "test2_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 		"1": {
 			User:        "test_username",
@@ -219,6 +232,7 @@ func TestGetSlurmDataFromSlurmLineUniqueEntries(t *testing.T) {
 			Account:     "test2_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 		"2": {
 			User:        "test_username",
@@ -230,6 +244,7 @@ func TestGetSlurmDataFromSlurmLineUniqueEntries(t *testing.T) {
 			Account:     "test2_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 		"3": {
 			User:        "test_username",
@@ -241,6 +256,7 @@ func TestGetSlurmDataFromSlurmLineUniqueEntries(t *testing.T) {
 			Account:     "test2_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 		"5": {
 			User:        "test_username_2",
@@ -252,6 +268,7 @@ func TestGetSlurmDataFromSlurmLineUniqueEntries(t *testing.T) {
 			Account:     "test_account",
 			Partition:   "test",
 			NumNodes:    "3",
+			Comment:     "test_comment_2",
 		},
 		"6": {
 			User:        "test_username_2",
@@ -263,6 +280,7 @@ func TestGetSlurmDataFromSlurmLineUniqueEntries(t *testing.T) {
 			Account:     "test_account",
 			Partition:   "test",
 			NumNodes:    "3",
+			Comment:     "test_comment_2",
 		},
 		"7": {
 			User:        "test_username_2",
@@ -274,6 +292,7 @@ func TestGetSlurmDataFromSlurmLineUniqueEntries(t *testing.T) {
 			Account:     "test_account",
 			Partition:   "test",
 			NumNodes:    "3",
+			Comment:     "test_comment_2",
 		},
 	}
 	AttributeGPU2SlurmMetadata(blocks, "node1751", GPU2Slurm)
@@ -300,6 +319,7 @@ func TestGetSlurmDataFromSlurmLineMainArrayJob(t *testing.T) {
 			Account:     "test2_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 		"1": {
 			User:        "test_username",
@@ -311,6 +331,7 @@ func TestGetSlurmDataFromSlurmLineMainArrayJob(t *testing.T) {
 			Account:     "test2_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 		"2": {
 			User:        "test_username",
@@ -322,6 +343,7 @@ func TestGetSlurmDataFromSlurmLineMainArrayJob(t *testing.T) {
 			Account:     "test2_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 		"3": {
 			User:        "test_username",
@@ -333,6 +355,7 @@ func TestGetSlurmDataFromSlurmLineMainArrayJob(t *testing.T) {
 			Account:     "test2_account",
 			Partition:   "learn",
 			NumNodes:    "1",
+			Comment:     "test_comment",
 		},
 		"5": {
 			User:        "test_username_2",
@@ -344,6 +367,7 @@ func TestGetSlurmDataFromSlurmLineMainArrayJob(t *testing.T) {
 			Account:     "test_account",
 			Partition:   "test",
 			NumNodes:    "3",
+			Comment:     "test_comment_2",
 		},
 		"6": {
 			User:        "test_username_2",
@@ -355,6 +379,7 @@ func TestGetSlurmDataFromSlurmLineMainArrayJob(t *testing.T) {
 			Account:     "test_account",
 			Partition:   "test",
 			NumNodes:    "3",
+			Comment:     "test_comment_2",
 		},
 		"7": {
 			User:        "test_username_2",
@@ -366,6 +391,7 @@ func TestGetSlurmDataFromSlurmLineMainArrayJob(t *testing.T) {
 			Account:     "test_account",
 			Partition:   "test",
 			NumNodes:    "3",
+			Comment:     "test_comment_2",
 		},
 	}
 	AttributeGPU2SlurmMetadata(blocks, "node1751", GPU2Slurm)
@@ -555,6 +581,7 @@ func TestGetGPUData(t *testing.T) {
 			NumNodes:    "1",
 			ArrayJobID:  "0",
 			ArrayTaskID: "0",
+			Comment:     "test_comment",
 		},
 		"1": {
 			JobID:       "1234",
@@ -566,6 +593,7 @@ func TestGetGPUData(t *testing.T) {
 			NumNodes:    "1",
 			ArrayJobID:  "10",
 			ArrayTaskID: "10",
+			Comment:     "test_comment",
 		},
 	}
 	expectedMetadata := SlurmMetadataList{
@@ -578,6 +606,7 @@ func TestGetGPUData(t *testing.T) {
 		NumNodes:    []string{"1"},
 		ArrayJobID:  []string{"0", "10"},
 		ArrayTaskID: []string{"0", "10"},
+		Comment:     []string{"test_comment"},
 	}
 
 	metadata := GetGPUData(GPUToSlurm)

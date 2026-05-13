@@ -40,6 +40,9 @@ const SlurmAccount = "account"
 // SlurmNNodes is used as the attribute key for slurm number of nodes assigned to the job
 const SlurmNNodes = "num_nodes"
 
+// SlurmComment is used as the attribute key for slurm job comment
+const SlurmComment = "comment"
+
 // gpuUUID is used as the attribute key for GPU UUID
 const gpuUUID = "uuid"
 
@@ -93,6 +96,7 @@ func (spb *SlurmProcessorBase) AddSlurmMetadataStr(attributes pcommon.Map, slurm
 		SlurmPartition:   slurmMetadata.Partition,
 		SlurmAccount:     slurmMetadata.Account,
 		SlurmNNodes:      slurmMetadata.NumNodes,
+		SlurmComment:     slurmMetadata.Comment,
 	}
 
 	for name, value := range columnMap {
@@ -112,6 +116,7 @@ func (spb *SlurmProcessorBase) AddSlurmMetadataSlice(attributes pcommon.Map, all
 		SlurmPartition:   allGPUData.Partition,
 		SlurmAccount:     allGPUData.Account,
 		SlurmNNodes:      allGPUData.NumNodes,
+		SlurmComment:     allGPUData.Comment,
 	}
 
 	for name, value := range columnMap {

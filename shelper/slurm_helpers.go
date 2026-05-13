@@ -22,9 +22,9 @@ func parseGRES(gresOut string) []string {
 	}
 
 	indexString := strings.SplitN(indicesKey[1], ":", 2)[1]
-	indices := strings.Split(indexString, ",")
+	indices := strings.SplitSeq(indexString, ",")
 
-	for _, index := range indices {
+	for index := range indices {
 		if strings.Contains(index, "-") {
 			indexRange := strings.Split(index, "-")
 			st, err1 := strconv.Atoi(indexRange[0])
@@ -74,6 +74,7 @@ func GetGPUData(GPUToSlurm map[string]SlurmMetadata) SlurmMetadataList {
 	allPartition := make(map[string]bool)
 	allAccount := make(map[string]bool)
 	allNumNodes := make(map[string]bool)
+	allComment := make(map[string]bool)
 	for _, value := range GPUToSlurm {
 		allJobID[value.JobID] = true
 		allJobName[value.JobName] = true
@@ -84,6 +85,7 @@ func GetGPUData(GPUToSlurm map[string]SlurmMetadata) SlurmMetadataList {
 		allPartition[value.Partition] = true
 		allAccount[value.Account] = true
 		allNumNodes[value.NumNodes] = true
+		allComment[value.Comment] = true
 	}
 	return SlurmMetadataList{
 		JobID:       setToSlice(allJobID),
@@ -95,6 +97,7 @@ func GetGPUData(GPUToSlurm map[string]SlurmMetadata) SlurmMetadataList {
 		Partition:   setToSlice(allPartition),
 		Account:     setToSlice(allAccount),
 		NumNodes:    setToSlice(allNumNodes),
+		Comment:     setToSlice(allComment),
 	}
 }
 
@@ -118,12 +121,13 @@ func AttributeGPU2SlurmMetadata(jobMetadata []string, hostname string, GPU2Slurm
 		allAccount := make(map[string]bool)
 		allPartition := make(map[string]bool)
 		allNumNodes := make(map[string]bool)
+		allComment := make(map[string]bool)
 
-		lines := strings.Split(jm, "\n")
-		for _, line := range lines {
-			field := strings.Fields(line)
+		lines := strings.SplitSeq(jm, "\n")
+		for line := range lines {
+			field := strings.FieldsSeq(line)
 
-			for _, data := range field {
+			for data := range field {
 				parts := strings.SplitN(data, "=", 2)
 				if parts[0] == "UserId" {
 					end := strings.Index(parts[1], "(")
@@ -161,6 +165,9 @@ func AttributeGPU2SlurmMetadata(jobMetadata []string, hostname string, GPU2Slurm
 				if parts[0] == "NumNodes" {
 					allNumNodes[parts[1]] = true
 				}
+				if parts[0] == "Comment" {
+					allComment[parts[1]] = true
+				}
 				if parts[0] == "GRES" {
 					gresIndex = append(gresIndex, parseGRES(parts[1])...)
 				}
@@ -177,6 +184,7 @@ func AttributeGPU2SlurmMetadata(jobMetadata []string, hostname string, GPU2Slurm
 			Account:     stringifySet(allAccount),
 			Partition:   stringifySet(allPartition),
 			NumNodes:    stringifySet(allNumNodes),
+			Comment:     stringifySet(allComment),
 		}
 
 		for _, gpu := range gresIndex {
@@ -187,11 +195,11 @@ func AttributeGPU2SlurmMetadata(jobMetadata []string, hostname string, GPU2Slurm
 
 // GetHostList takes a slurm job metadata string and returns the hostlist
 func GetHostList(jobMetadata string) string {
-	lines := strings.Split(jobMetadata, "\n")
+	lines := strings.SplitSeq(jobMetadata, "\n")
 
-	for _, line := range lines {
-		field := strings.Fields(line)
-		for _, data := range field {
+	for line := range lines {
+		field := strings.FieldsSeq(line)
+		for data := range field {
 			parts := strings.SplitN(data, "=", 2)
 			if parts[0] == "NodeList" {
 				return parts[1]
@@ -259,8 +267,8 @@ func hostnameMatchesGroup(hostname string, group string) bool {
 		return false
 	}
 
-	ranges := strings.Split(rangesStr, ",")
-	for _, r := range ranges {
+	ranges := strings.SplitSeq(rangesStr, ",")
+	for r := range ranges {
 		if strings.Contains(r, "-") {
 			bounds := strings.Split(r, "-")
 			start, err := strconv.Atoi(bounds[0])

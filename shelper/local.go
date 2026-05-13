@@ -20,6 +20,7 @@ type SlurmMetadata struct {
 	NumNodes    string `json:"NumNodes"`
 	ArrayJobID  string `json:"ArrayJobID"`
 	ArrayTaskID string `json:"ArrayTaskID"`
+	Comment     string `json:"Comment"`
 }
 
 // SlurmMetadataList is a struct that contains metadata about a slurm job
@@ -33,6 +34,7 @@ type SlurmMetadataList struct {
 	NumNodes    []string
 	ArrayJobID  []string
 	ArrayTaskID []string
+	Comment     []string
 }
 
 func parseNewLineToList(input string) []string {
