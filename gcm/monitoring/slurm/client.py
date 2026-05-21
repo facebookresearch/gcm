@@ -45,7 +45,10 @@ logger = logging.getLogger(__name__)
 
 def add_pending_resources(message: dict[Any, Any]) -> None:
     """Adds an additional field ("PENDING_RESOURCES") to squeue output that tracks if the job is ready to be scheduled and waiting for resources."""
-    if message["STATE"] == "PENDING" and message["REASON"] in PENDING_RESOURCE_REASONS:
+    if (
+        message.get("STATE") == "PENDING"
+        and message.get("REASON") in PENDING_RESOURCE_REASONS
+    ):
         message["PENDING_RESOURCES"] = "True"
     else:
         message["PENDING_RESOURCES"] = "False"
