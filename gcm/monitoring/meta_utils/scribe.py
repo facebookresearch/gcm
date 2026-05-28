@@ -108,8 +108,10 @@ def try_write_logs(
     num_failed = sum(not ack for ack in acks)
     if num_failed == 0:
         return
+    unique_codes = sorted({code for code in response_codes.values() if code != "OK"})
     raise ScribeErrorWithAcks(
-        f"Failed to write {num_failed}/{len(logs)} messages", acks=acks
+        f"Failed to write {num_failed}/{len(logs)} messages; reject codes: {unique_codes}",
+        acks=acks,
     )
 
 

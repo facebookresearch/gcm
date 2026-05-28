@@ -143,6 +143,7 @@ def run_data_collection_loop(
         run_st_time = clock.monotonic()
         log_time = clock.unixtime()
 
+        # Task ordering matters for some collections. If you wish to update this assumption please create a new `run_data_collection_loop` function
         for get_data, additional_params in data_collection_tasks:
             logger.debug("will try getting data for %s", logger_name)
             data = get_data(

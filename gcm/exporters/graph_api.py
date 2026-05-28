@@ -56,6 +56,7 @@ class GraphAPI:
         job_scribe_category: Optional[str] = None,
         statvfs_scribe_category: Optional[str] = None,
         pure_scribe_category: Optional[str] = None,
+        sdiag_scribe_category: Optional[str] = None,
         ods_entity: Optional[str | int] = None,
         scribe_write: ScribeWrite = write_messages,
     ):
@@ -65,6 +66,7 @@ class GraphAPI:
             DataIdentifier.NODE: node_scribe_category,
             DataIdentifier.STATVFS: statvfs_scribe_category,
             DataIdentifier.PURE: pure_scribe_category,
+            DataIdentifier.SDIAG: sdiag_scribe_category,
         }
         self.scribe_write = scribe_write
         if ods_entity is None:

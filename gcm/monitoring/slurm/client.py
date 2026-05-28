@@ -11,6 +11,7 @@ from dataclasses import fields
 from typing import (
     Any,
     Callable,
+    cast,
     Generator,
     Hashable,
     Iterable,
@@ -202,33 +203,43 @@ class SlurmCliClient(SlurmClient):
                 subprocess.check_output(["sdiag", "--all", "--json"], text=True)
             )
             stats = sdiag_output["statistics"]
+
+            # Extract nested objects (use `or {}` to handle both missing keys
+            # and explicit None values from sdiag).
             schedule_exit = stats.get("schedule_exit") or {}
             bf_exit = stats.get("bf_exit") or {}
 
+            # Extract timestamp fields (they have {set, infinite, number} structure).
+            # Use `or {}` to handle both missing keys AND explicit `null` values
+            # from sdiag JSON; `.get(key, {})` alone returns None when the key
+            # is present but null, and `.get("set")` then raises AttributeError.
+            req_time_obj = stats.get("req_time") or {}
+            req_time_start_obj = stats.get("req_time_start") or {}
+            job_states_ts_obj = stats.get("job_states_ts") or {}
+            bf_when_last_cycle_obj = stats.get("bf_when_last_cycle") or {}
+
+            # Serialize RPCs to JSON strings
+            rpcs_by_message_type = stats.get("rpcs_by_message_type", [])
+            rpcs_by_user = stats.get("rpcs_by_user", [])
+
             result = Sdiag(
+                # Required fields
                 server_thread_count=stats.get("server_thread_count"),
                 agent_queue_size=stats.get("agent_queue_size"),
                 agent_count=stats.get("agent_count"),
                 agent_thread_count=stats.get("agent_thread_count"),
                 dbd_agent_queue_size=stats.get("dbd_agent_queue_size"),
+                # Schedule cycle
                 schedule_cycle_max=stats.get("schedule_cycle_max"),
                 schedule_cycle_mean=stats.get("schedule_cycle_mean"),
                 schedule_cycle_sum=stats.get("schedule_cycle_sum"),
                 schedule_cycle_total=stats.get("schedule_cycle_total"),
                 schedule_cycle_per_minute=stats.get("schedule_cycle_per_minute"),
                 schedule_queue_length=stats.get("schedule_queue_length"),
-                sdiag_jobs_submitted=stats.get("jobs_submitted"),
-                sdiag_jobs_started=stats.get("jobs_started"),
-                sdiag_jobs_completed=stats.get("jobs_completed"),
-                sdiag_jobs_canceled=stats.get("jobs_canceled"),
-                sdiag_jobs_failed=stats.get("jobs_failed"),
-                sdiag_jobs_pending=stats.get("jobs_pending"),
-                sdiag_jobs_running=stats.get("jobs_running"),
-                bf_backfilled_jobs=stats.get("bf_backfilled_jobs"),
-                bf_cycle_mean=stats.get("bf_cycle_mean"),
-                bf_cycle_sum=stats.get("bf_cycle_sum"),
-                bf_cycle_max=stats.get("bf_cycle_max"),
-                bf_queue_len=stats.get("bf_queue_len"),
+                schedule_cycle_last=stats.get("schedule_cycle_last"),
+                schedule_cycle_mean_depth=stats.get("schedule_cycle_mean_depth"),
+                schedule_cycle_depth=stats.get("schedule_cycle_depth"),
+                # Schedule exit
                 schedule_exit_end_job_queue=schedule_exit.get("end_job_queue"),
                 schedule_exit_default_queue_depth=schedule_exit.get(
                     "default_queue_depth"
@@ -237,12 +248,77 @@ class SlurmCliClient(SlurmClient):
                 schedule_exit_max_rpc_cnt=schedule_exit.get("max_rpc_cnt"),
                 schedule_exit_max_sched_time=schedule_exit.get("max_sched_time"),
                 schedule_exit_licenses=schedule_exit.get("licenses"),
+                # Job stats
+                sdiag_jobs_submitted=stats.get("jobs_submitted"),
+                sdiag_jobs_started=stats.get("jobs_started"),
+                sdiag_jobs_completed=stats.get("jobs_completed"),
+                sdiag_jobs_canceled=stats.get("jobs_canceled"),
+                sdiag_jobs_failed=stats.get("jobs_failed"),
+                sdiag_jobs_pending=stats.get("jobs_pending"),
+                sdiag_jobs_running=stats.get("jobs_running"),
+                # Backfill stats
+                bf_backfilled_jobs=stats.get("bf_backfilled_jobs"),
+                bf_last_backfilled_jobs=stats.get("bf_last_backfilled_jobs"),
+                bf_backfilled_het_jobs=stats.get("bf_backfilled_het_jobs"),
+                bf_cycle_counter=stats.get("bf_cycle_counter"),
+                bf_cycle_mean=stats.get("bf_cycle_mean"),
+                bf_cycle_sum=stats.get("bf_cycle_sum"),
+                bf_cycle_max=stats.get("bf_cycle_max"),
+                bf_cycle_last=stats.get("bf_cycle_last"),
+                bf_depth_mean=stats.get("bf_depth_mean"),
+                bf_depth_mean_try=stats.get("bf_depth_mean_try"),
+                bf_depth_sum=stats.get("bf_depth_sum"),
+                bf_depth_try_sum=stats.get("bf_depth_try_sum"),
+                bf_last_depth=stats.get("bf_last_depth"),
+                bf_last_depth_try=stats.get("bf_last_depth_try"),
+                bf_queue_len=stats.get("bf_queue_len"),
+                bf_queue_len_mean=stats.get("bf_queue_len_mean"),
+                bf_queue_len_sum=stats.get("bf_queue_len_sum"),
+                bf_table_size=stats.get("bf_table_size"),
+                bf_table_size_sum=stats.get("bf_table_size_sum"),
+                bf_table_size_mean=stats.get("bf_table_size_mean"),
+                bf_when_last_cycle=(
+                    bf_when_last_cycle_obj.get("number")
+                    if bf_when_last_cycle_obj.get("set")
+                    else None
+                ),
+                bf_active=(
+                    bool(stats.get("bf_active"))
+                    if stats.get("bf_active") is not None
+                    else None
+                ),
+                # Backfill exit
                 bf_exit_end_job_queue=bf_exit.get("end_job_queue"),
                 bf_exit_max_job_start=bf_exit.get("bf_max_job_start"),
                 bf_exit_max_job_test=bf_exit.get("bf_max_job_test"),
                 bf_exit_max_time=bf_exit.get("bf_max_time"),
                 bf_exit_node_space_size=bf_exit.get("bf_node_space_size"),
                 bf_exit_state_changed=bf_exit.get("state_changed"),
+                # Timing
+                req_time=(
+                    req_time_obj.get("number") if req_time_obj.get("set") else None
+                ),
+                req_time_start=(
+                    req_time_start_obj.get("number")
+                    if req_time_start_obj.get("set")
+                    else None
+                ),
+                gettimeofday_latency=stats.get("gettimeofday_latency"),
+                job_states_ts=(
+                    job_states_ts_obj.get("number")
+                    if job_states_ts_obj.get("set")
+                    else None
+                ),
+                parts_packed=stats.get("parts_packed"),
+                # JSON blobs
+                rpcs_by_message_type_json=(
+                    json.dumps(rpcs_by_message_type)
+                    if rpcs_by_message_type is not None
+                    else "[]"
+                ),
+                rpcs_by_user_json=(
+                    json.dumps(rpcs_by_user) if rpcs_by_user is not None else "[]"
+                ),
             )
 
             # Reset sdiag counters after collection
@@ -258,6 +334,9 @@ class SlurmCliClient(SlurmClient):
             "Agent thread count:": "agent_thread_count",
             "DBD Agent queue size:": "dbd_agent_queue_size",
         }
+        # Legacy (slurm < 23.2) text-parse path only emits int/None values;
+        # the new JSON-blob and string-typed Sdiag fields are only populated
+        # via the slurm >= 23.2 JSON branch above. Keep the type narrow.
         data: dict[str, Optional[int]] = {
             "server_thread_count": 0,
             "agent_queue_size": 0,
@@ -299,10 +378,17 @@ class SlurmCliClient(SlurmClient):
             else:
                 data[name] = None
 
+        # Cast to Any for the splat: mypy cannot reconcile dict[str, int|None]
+        # values against Sdiag's mixed int|bool|str|None fields without per-key
+        # checks. At runtime this path only emits int/None values; non-int
+        # Sdiag fields (bf_active, rpcs_by_*_json) fall back to their None
+        # defaults.
+        result = Sdiag(**cast(dict[str, Any], data))
+
         # Reset sdiag counters after collection
         self._reset_sdiag_counters()
 
-        return Sdiag(**data)
+        return result
 
     def _reset_sdiag_counters(self) -> None:
         """Reset sdiag counters after collection.

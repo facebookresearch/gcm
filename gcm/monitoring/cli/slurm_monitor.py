@@ -3,7 +3,7 @@
 # All rights reserved.
 import logging
 from collections import defaultdict
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import timedelta
 from typing import (
     Collection,
@@ -40,9 +40,14 @@ from gcm.monitoring.clock import (
     ClockImpl,
     unixtime_to_pacific_datetime,
 )
-from gcm.monitoring.sink.protocol import DataType, SinkAdditionalParams, SinkImpl
+from gcm.monitoring.sink.protocol import (
+    DataIdentifier,
+    DataType,
+    SinkAdditionalParams,
+    SinkImpl,
+)
 from gcm.monitoring.sink.utils import Factory, HasRegistry
-from gcm.monitoring.slurm.client import SlurmCliClient
+from gcm.monitoring.slurm.client import SlurmCliClient, SlurmClient
 from gcm.monitoring.slurm.constants import RUNNING_JOB_STATES
 from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
 from gcm.monitoring.slurm.sacct import parse_slurm_jobs
@@ -242,11 +247,22 @@ class CliObject(HasRegistry[SinkImpl], Protocol):
 
     def cluster(self) -> str: ...
 
+    @property
+    def slurm_client(self) -> SlurmClient: ...
+
+    # Per-cycle cache populated by collect_slurm and consumed by collect_sdiag
+    # so the sdiag scrape is shared (no double-scrape, no reset race).
+    last_sdiag: Optional[Sdiag]
+
 
 @dataclass
 class CliObjectImpl:
     clock: Clock = field(default_factory=ClockImpl)
+    slurm_client: SlurmClient = field(default_factory=SlurmCliClient)
     registry: Mapping[str, Factory[SinkImpl]] = field(default_factory=lambda: registry)
+    # Set by collect_slurm at the start of each cycle, read by collect_sdiag.
+    # Single-cluster per process, so no per-cluster keying needed.
+    last_sdiag: Optional[Sdiag] = None
 
     def cluster(self) -> str:
         return clusterscope.cluster()
@@ -265,10 +281,18 @@ def collect_slurm(
     """Collect all the relevant slurm metrics that will be stored on ODS"""
     end_time = unixtime_to_pacific_datetime(obj.clock.unixtime())
     start_time = end_time - timedelta(seconds=interval)
-    slurm_client = SlurmCliClient()
+    slurm_client = obj.slurm_client
+
+    # Invalidate the cache up-front so a scrape failure below cannot let
+    # collect_sdiag re-publish a stale prior-cycle sdiag as a fresh row.
+    obj.last_sdiag = None
 
     sinfo = slurm_client.sinfo_structured()
     sdiag = slurm_client.sdiag_structured()
+    # Stash for collect_sdiag (same cycle, runs after this task). sdiag is a
+    # cluster-wide slurmctld stat -- one value per scrape, no per-partition
+    # variation -- so a single attr is sufficient.
+    obj.last_sdiag = sdiag
 
     if heterogeneous_cluster_v1:
         nodes_per_partition: dict[str, list[SinfoNode]] = defaultdict(list)
@@ -307,6 +331,35 @@ def collect_slurm(
         logger=logger,
     )
     yield from slurm_log
+
+
+def collect_sdiag(
+    obj: CliObject,
+    cluster: str,
+    logger: logging.Logger,
+) -> Generator[Sdiag, None, None]:
+    """Project the most recent sdiag scrape (cached on the CliObject by
+    `collect_slurm`) to an Sdiag row for the Scuba `perfpipe_fair_sdiag_v2` dataset.
+
+    Single sdiag scrape per cycle is shared with `collect_slurm` -- no
+    double-scrape, no reset-counter race. sdiag is a cluster-wide slurmctld
+    stat so we yield exactly one Sdiag per cycle (not one per partition);
+    `derived_cluster` is intentionally omitted -- tagging a cluster-wide
+    stat with per-partition derived_cluster values would create misleading
+    duplicate rows for the same scrape.
+
+    Prerequisite: `collect_slurm` must have run earlier in the same cycle to
+    populate `obj.last_sdiag`. If `collect_slurm` failed or hasn't run, this
+    collector no-ops (yields zero rows).
+    """
+    sdiag = obj.last_sdiag
+    if sdiag is None:
+        # collect_slurm hasn't populated the cache yet (first cycle race or
+        # collect_slurm raised). Skip rather than crash the loop -- the next
+        # cycle will recover.
+        logger.debug("collect_sdiag: no cached sdiag scrape available, skipping")
+        return
+    yield replace(sdiag, cluster=cluster)
 
 
 @click_default_cmd(
@@ -356,6 +409,11 @@ def main(
             heterogeneous_cluster_v1=heterogeneous_cluster_v1,
         )
 
+    def collect_sdiag_callable(
+        cluster: str, interval: int, logger: logging.Logger
+    ) -> Generator[Sdiag, None, None]:
+        return collect_sdiag(obj=obj, cluster=cluster, logger=logger)
+
     run_data_collection_loop(
         logger_name=LOGGER_NAME,
         log_folder=log_folder,
@@ -366,11 +424,22 @@ def main(
         once=once,
         interval=interval,
         data_collection_tasks=[
+            # Task A: SLURMLog -> METRIC -> ODS via graph_api._write_metric.
             (
                 collect_slurm_callable,
                 SinkAdditionalParams(
                     data_type=DataType.METRIC,
                     heterogeneous_cluster_v1=heterogeneous_cluster_v1,
+                ),
+            ),
+            # Task B: Sdiag -> LOG -> scribe (perfpipe_fair_sdiag_v2) ->
+            # Scuba (perfpipe_fair_sdiag_v2) via graph_api._write_log. Reads cached
+            # sdiag from Task A.
+            (
+                collect_sdiag_callable,
+                SinkAdditionalParams(
+                    data_type=DataType.LOG,
+                    data_identifier=DataIdentifier.SDIAG,
                 ),
             ),
         ],
