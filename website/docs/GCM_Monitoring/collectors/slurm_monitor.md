@@ -3,7 +3,13 @@
 ## Overview
 Performs comprehensive analytics on SLURM cluster state by combining data from multiple sources (`sinfo`, `sdiag`, `sacct`) and computing aggregated metrics. Provides deep insights into cluster health, resource utilization, job analytics, and user activity.
 
-**Data Type**: `DataType.METRIC`, **Schemas**: `SLURMLog`, `SLURMLogAccountMetrics`
+**Data Type**: `DataType.METRIC` + `DataType.LOG` with `DataIdentifier.SDIAG`.
+
+**Schemas**: `SLURMLog`, `SLURMLogAccountMetrics`, `Sdiag`.
+
+:::info Dual-publish to Scuba (Meta-internal)
+When `sink_opts` sets `sdiag_scribe_category=<scuba_dataset>` (production value: `perfpipe_fair_sdiag_v2`), the same sdiag scrape that powers the ODS write is also published to the same-named Scuba dataset as a `Sdiag` row with `cluster` populated (sdiag is a cluster-wide slurmctld stat, so no `derived_cluster` — one row per cluster per cycle, even with `--heterogeneous-cluster-v1`). The single sdiag scrape per cycle is cached on `CliObject.last_sdiag` and shared between the two `data_collection_tasks` entries — no double-scrape, no reset-counter race. `collect_sdiag` requires `collect_slurm` to have run earlier in the same cycle; if it didn't, the LOG-path no-ops cleanly. Pattern mirrors `slurm_job_monitor`'s `node_scribe_category` / `job_scribe_category` routing via `DataIdentifier`.
+:::
 
 ## Execution Scope
 

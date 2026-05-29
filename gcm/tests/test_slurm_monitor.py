@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 import pytest
 from click.testing import CliRunner
 
-from gcm.monitoring.cli.slurm_monitor import main
+from gcm.monitoring.cli.slurm_monitor import CliObjectImpl, collect_sdiag, main
 from gcm.monitoring.clock import AwareDatetime, PT
 from gcm.monitoring.slurm.sinfo import (
     compute_allocated_resources,
@@ -30,6 +30,7 @@ from gcm.monitoring.slurm.sinfo import (
     compute_wait_time_distribution,
 )
 from gcm.schemas.slurm.sacct import SacctMetrics
+from gcm.schemas.slurm.sdiag import Sdiag
 from gcm.schemas.slurm.sinfo import Sinfo
 from gcm.schemas.slurm.sinfo_cpus_gpus import SinfoCpusGpus
 from gcm.schemas.slurm.sinfo_node import SinfoNode
@@ -5447,3 +5448,95 @@ def test_compute_down_nodes_deduplication(
     down_nodes = compute_down_nodes(sinfo)
 
     assert down_nodes == expected_down_nodes
+
+
+def _make_sdiag() -> Sdiag:
+    return Sdiag(
+        server_thread_count=1,
+        agent_queue_size=0,
+        agent_count=0,
+        agent_thread_count=0,
+        dbd_agent_queue_size=0,
+        schedule_cycle_last=42,
+        bf_active=False,
+    )
+
+
+class TestCollectSdiag:
+    """collect_sdiag projects the cached Sdiag from collect_slurm into an
+    Sdiag row (with cluster set) for the LOG/scribe path. Verifies
+    one-row-per-cycle (sdiag is a cluster-wide stat) and defensive None
+    handling."""
+
+    def test_yields_one_sdiag_log_when_cache_populated(self) -> None:
+        obj = CliObjectImpl()
+        obj.last_sdiag = _make_sdiag()
+        out = list(
+            collect_sdiag(
+                obj=obj, cluster="fair-aws-rc-1", logger=logging.getLogger("test")
+            )
+        )
+        assert len(out) == 1
+        row = out[0]
+        assert isinstance(row, Sdiag)
+        assert row.cluster == "fair-aws-rc-1"
+        # Sdiag fields propagate through dataclasses.replace.
+        assert row.schedule_cycle_last == 42
+        assert row.bf_active is False
+        assert row.server_thread_count == 1
+
+    def test_yields_nothing_when_cache_empty(self) -> None:
+        """Defensive: if collect_slurm hasn't populated the cache (first cycle
+        race or upstream raise), collect_sdiag must not crash the loop."""
+        obj = CliObjectImpl()
+        assert obj.last_sdiag is None
+        out = list(
+            collect_sdiag(
+                obj=obj, cluster="fair-aws-rc-1", logger=logging.getLogger("test")
+            )
+        )
+        assert out == []
+
+    def test_cli_object_impl_has_last_sdiag_field(self) -> None:
+        """CliObjectImpl must expose last_sdiag for collect_slurm to write
+        and collect_sdiag to read. Default is None (no scrape yet)."""
+        obj = CliObjectImpl()
+        assert hasattr(obj, "last_sdiag")
+        assert obj.last_sdiag is None
+
+    def test_collect_slurm_failure_clears_last_sdiag(self) -> None:
+        """Regression: if collect_slurm raises mid-cycle, the prior cycle's
+        sdiag must not linger in obj.last_sdiag, or collect_sdiag will
+        re-publish a stale row as if it were fresh."""
+        from unittest.mock import MagicMock as _MagicMock
+
+        from gcm.monitoring.cli.slurm_monitor import collect_slurm as _collect_slurm
+
+        obj = CliObjectImpl()
+        obj.last_sdiag = _make_sdiag()  # leftover from a prior successful cycle
+        obj.slurm_client = _MagicMock()
+        obj.slurm_client.sinfo_structured.side_effect = RuntimeError("scrape boom")
+
+        with pytest.raises(RuntimeError):
+            list(
+                _collect_slurm(
+                    obj=obj,
+                    interval=300,
+                    cluster="fair-aws-rc-1",
+                    logger=logging.getLogger("test"),
+                    heterogeneous_cluster_v1=False,
+                )
+            )
+
+        assert obj.last_sdiag is None
+        # And the dual-task no-ops cleanly instead of re-publishing stale data.
+        assert (
+            list(
+                collect_sdiag(
+                    obj=obj,
+                    cluster="fair-aws-rc-1",
+                    logger=logging.getLogger("test"),
+                )
+            )
+            == []
+        )

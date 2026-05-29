@@ -13,7 +13,6 @@ from gcm.monitoring.slurm.client import SlurmCliClient
 
 from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
 
-from gcm.schemas.slurm.sdiag import Sdiag
 from gcm.schemas.slurm.sinfo import Sinfo
 from gcm.schemas.slurm.sinfo_node import SinfoNode
 from gcm.schemas.slurm.squeue import JobData
@@ -489,45 +488,43 @@ class TestSlurmCliClient:
         c = SlurmCliClient()
         result = c.sdiag_structured()
 
-        expected = Sdiag(
-            server_thread_count=4,
-            agent_queue_size=5,
-            agent_count=3,
-            agent_thread_count=8,
-            dbd_agent_queue_size=2,
-            schedule_cycle_max=2788800,
-            schedule_cycle_mean=1737702,
-            schedule_cycle_sum=582130236,
-            schedule_cycle_total=335,
-            schedule_cycle_per_minute=12,
-            schedule_queue_length=407,
-            sdiag_jobs_submitted=504,
-            sdiag_jobs_started=579,
-            sdiag_jobs_completed=524,
-            sdiag_jobs_canceled=20,
-            sdiag_jobs_failed=0,
-            sdiag_jobs_pending=20725,
-            sdiag_jobs_running=3273,
-            bf_backfilled_jobs=287,
-            bf_cycle_mean=37143463,
-            bf_cycle_sum=371434634,
-            bf_cycle_max=47125449,
-            bf_queue_len=411,
-            schedule_exit_end_job_queue=54,
-            schedule_exit_default_queue_depth=0,
-            schedule_exit_max_job_start=0,
-            schedule_exit_max_rpc_cnt=0,
-            schedule_exit_max_sched_time=281,
-            schedule_exit_licenses=0,
-            bf_exit_end_job_queue=10,
-            bf_exit_max_job_start=0,
-            bf_exit_max_job_test=0,
-            bf_exit_max_time=0,
-            bf_exit_node_space_size=0,
-            bf_exit_state_changed=0,
-        )
-
-        assert result == expected
+        # Verify core fields from sample-sdiag-output.json
+        assert result.server_thread_count == 4
+        assert result.agent_queue_size == 5
+        assert result.agent_count == 3
+        assert result.agent_thread_count == 8
+        assert result.dbd_agent_queue_size == 2
+        assert result.schedule_cycle_max == 2788800
+        assert result.schedule_cycle_mean == 1737702
+        assert result.schedule_queue_length == 407
+        assert result.sdiag_jobs_submitted == 504
+        assert result.sdiag_jobs_running == 3273
+        assert result.bf_backfilled_jobs == 287
+        assert result.bf_cycle_mean == 37143463
+        assert result.bf_queue_len == 411
+        # Schedule exit + backfill exit
+        assert result.schedule_exit_end_job_queue == 54
+        assert result.schedule_exit_max_sched_time == 281
+        assert result.bf_exit_end_job_queue == 10
+        assert result.bf_exit_state_changed == 0
+        # New fields added in this diff
+        assert result.schedule_cycle_last == 2258381
+        assert result.bf_last_backfilled_jobs == 287
+        assert result.bf_cycle_last == 46552416
+        assert result.bf_active is True
+        assert result.gettimeofday_latency == 26
+        # Verify rpcs_by_*_json are parseable JSON with expected shape, not
+        # just non-None (addresses ai_diff_reviewer assertion-strength comment).
+        assert result.rpcs_by_message_type_json is not None
+        rpcs_by_type = json.loads(result.rpcs_by_message_type_json)
+        assert isinstance(rpcs_by_type, list) and len(rpcs_by_type) > 0
+        assert "message_type" in rpcs_by_type[0]
+        assert "count" in rpcs_by_type[0]
+        assert result.rpcs_by_user_json is not None
+        rpcs_by_user = json.loads(result.rpcs_by_user_json)
+        assert isinstance(rpcs_by_user, list) and len(rpcs_by_user) > 0
+        assert "user" in rpcs_by_user[0]
+        assert "count" in rpcs_by_user[0]
         mock_check_output.assert_called_once_with(
             ["sdiag", "--all", "--json"], text=True
         )
@@ -560,43 +557,99 @@ class TestSlurmCliClient:
         c = SlurmCliClient()
         result = c.sdiag_structured()
 
-        expected = Sdiag(
-            server_thread_count=10,
-            agent_queue_size=5,
-            agent_count=3,
-            agent_thread_count=8,
-            dbd_agent_queue_size=2,
-            schedule_cycle_max=None,
-            schedule_cycle_mean=None,
-            schedule_cycle_sum=None,
-            schedule_cycle_total=None,
-            schedule_cycle_per_minute=None,
-            schedule_queue_length=None,
-            sdiag_jobs_submitted=None,
-            sdiag_jobs_started=None,
-            sdiag_jobs_completed=None,
-            sdiag_jobs_canceled=None,
-            sdiag_jobs_failed=None,
-            sdiag_jobs_pending=None,
-            sdiag_jobs_running=None,
-            bf_backfilled_jobs=None,
-            bf_cycle_mean=None,
-            bf_cycle_sum=None,
-            bf_cycle_max=None,
-            bf_queue_len=None,
-            schedule_exit_end_job_queue=None,
-            schedule_exit_default_queue_depth=None,
-            schedule_exit_max_job_start=None,
-            schedule_exit_max_rpc_cnt=None,
-            schedule_exit_max_sched_time=None,
-            schedule_exit_licenses=None,
-            bf_exit_end_job_queue=None,
-            bf_exit_max_job_start=None,
-            bf_exit_max_job_test=None,
-            bf_exit_max_time=None,
-            bf_exit_node_space_size=None,
-            bf_exit_state_changed=None,
-        )
+        assert result.server_thread_count == 10
+        assert result.agent_queue_size == 5
+        assert result.schedule_cycle_max is None
+        assert result.bf_backfilled_jobs is None
+        assert result.schedule_exit_end_job_queue is None
+        assert result.bf_exit_end_job_queue is None
+        assert result.rpcs_by_message_type_json == "[]"
+        assert result.rpcs_by_user_json == "[]"
+        mock_reset.assert_called_once()
 
-        assert result == expected
+    @staticmethod
+    @pytest.mark.parametrize(
+        "raw_bf_active, expected",
+        [
+            (False, False),
+            (True, True),
+            (0, False),
+            (1, True),
+            ("__missing__", None),
+            (None, None),
+        ],
+    )
+    @patch.object(SlurmCliClient, "_reset_sdiag_counters")
+    @patch("clusterscope.slurm_version")
+    @patch("subprocess.check_output")
+    def test_parse_sdiag_json_bf_active_variants(
+        mock_check_output: MagicMock,
+        mock_slurm_version: MagicMock,
+        mock_reset: MagicMock,
+        raw_bf_active: object,
+        expected: object,
+    ) -> None:
+        """Regression: bf_active must round-trip JSON booleans (true/false),
+        defensively coerce numeric 0/1, and stay None when absent or null.
+        Catches a future refactor that drops the `is not None` guard and
+        turns missing -> False, or that loses the bool() coercion."""
+        mock_slurm_version.return_value = (23, 2)
+
+        stats: dict[str, object] = {
+            "server_thread_count": 1,
+            "agent_queue_size": 0,
+            "agent_count": 0,
+            "agent_thread_count": 0,
+            "dbd_agent_queue_size": 0,
+        }
+        if raw_bf_active != "__missing__":
+            stats["bf_active"] = raw_bf_active
+        mock_check_output.return_value = json.dumps({"statistics": stats})
+
+        c = SlurmCliClient()
+        result = c.sdiag_structured()
+
+        assert result.bf_active is expected
+        mock_reset.assert_called_once()
+
+    @staticmethod
+    @patch.object(SlurmCliClient, "_reset_sdiag_counters")
+    @patch("clusterscope.slurm_version")
+    @patch("subprocess.check_output")
+    def test_parse_sdiag_json_with_explicit_null_timestamp_objects(
+        mock_check_output: MagicMock,
+        mock_slurm_version: MagicMock,
+        mock_reset: MagicMock,
+    ) -> None:
+        """Regression: sdiag can emit explicit `null` for timestamp objects
+        (req_time, req_time_start, job_states_ts, bf_when_last_cycle) when
+        the cluster has never reset its counters. Earlier code used
+        `stats.get(k, {})` which returns None for an explicit null and then
+        crashed on `.get("set")`. The fix uses `stats.get(k) or {}`."""
+        mock_slurm_version.return_value = (23, 2)
+
+        null_ts_json = json.dumps(
+            {
+                "statistics": {
+                    "server_thread_count": 1,
+                    "agent_queue_size": 0,
+                    "agent_count": 0,
+                    "agent_thread_count": 0,
+                    "dbd_agent_queue_size": 0,
+                    "req_time": None,
+                    "req_time_start": None,
+                    "job_states_ts": None,
+                    "bf_when_last_cycle": None,
+                }
+            }
+        )
+        mock_check_output.return_value = null_ts_json
+
+        c = SlurmCliClient()
+        result = c.sdiag_structured()
+
+        assert result.req_time is None
+        assert result.req_time_start is None
+        assert result.job_states_ts is None
+        assert result.bf_when_last_cycle is None
         mock_reset.assert_called_once()

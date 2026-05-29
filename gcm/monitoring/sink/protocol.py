@@ -22,6 +22,7 @@ class DataIdentifier(Enum):
     GENERIC = auto()
     K8S_POD = auto()
     K8S_NODE = auto()
+    SDIAG = auto()
 
 
 @dataclass

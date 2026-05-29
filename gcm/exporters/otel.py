@@ -119,7 +119,15 @@ class Otel:
         self._logger_provider = otel_log_init(
             log_resource_attributes, endpoint + "/v1/logs", timeout
         )
-        self.otel_logger = logging.getLogger("gcm")
+        # Use a dedicated, isolated logger for sink emits. Attaching the
+        # LoggingHandler to "gcm" makes EVERY `gcm.*` log record (e.g.
+        # `gcm.monitoring.dataclass_utils.logger.warning(...)`) propagate up
+        # and fire the otel handler, polluting the target Scuba table with
+        # null-data log rows. The leaf logger name + propagate=False keeps
+        # only explicit `self.otel_logger.info("", extra=...)` emits in the
+        # otel pipeline.
+        self.otel_logger = logging.getLogger("_gcm_otel_emit")
+        self.otel_logger.propagate = False
         otel_handler = LoggingHandler(
             level=logging._nameToLevel["INFO"], logger_provider=self._logger_provider
         )

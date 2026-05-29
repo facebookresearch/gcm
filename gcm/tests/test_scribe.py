@@ -153,6 +153,30 @@ def test_try_write_logs_bad(
     assert mocker.call_count == 1
 
 
+def test_scribe_error_with_acks_surfaces_reject_codes(
+    scribe_config: ScribeConfig,
+    graph_api_mocker_factory: MockerFactory,
+) -> None:
+    """Regression: try_write_logs must include the distinct reject codes in
+    the ScribeErrorWithAcks message so on-call can see why writes failed
+    (e.g. INVALID_CATEGORY, RATE_LIMITED) without re-querying the server."""
+    json_response = {
+        "count": 0,
+        "response_codes": {"0": "INVALID_CATEGORY", "1": "INVALID_CATEGORY"},
+    }
+    graph_api_mocker_factory(json_response)
+
+    with pytest.raises(ScribeErrorWithAcks) as exc_info:
+        try_write_logs(
+            scribe_config,
+            [scribe_log(message="m1"), scribe_log(message="m2")],
+            1,
+        )
+
+    assert "reject codes: ['INVALID_CATEGORY']" in str(exc_info.value)
+    assert exc_info.value.acks == [False, False]
+
+
 class TestScribeConfig:
     @staticmethod
     def test_loads_value() -> None:

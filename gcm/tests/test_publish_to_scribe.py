@@ -1,13 +1,17 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
+from dataclasses import dataclass
 from typing import cast
 from unittest.mock import create_autospec, MagicMock
 
 import pytest
 import requests
 
+from gcm.exporters.graph_api import GraphAPI
 from gcm.monitoring.meta_utils.scribe import ScribeConfig, ScribeError, write_messages
 from gcm.monitoring.meta_utils.scuba import ScubaMessage
+from gcm.monitoring.sink.protocol import DataIdentifier, DataType, SinkAdditionalParams
+from gcm.schemas.log import Log
 from gcm.tests.fakes import FakeClock
 
 
@@ -107,3 +111,56 @@ class TestPublishToScribe:
 
         assert session_stub.post.call_count == num_tries
         assert response_stub.json.call_count == num_tries
+
+
+@dataclass
+class _DummyMsg:
+    value: int = 1
+
+
+class TestGraphAPISdiagRouting:
+    """graph_api._write_log must route by DataIdentifier to the matching
+    *_scribe_category. SDIAG -> sdiag_scribe_category, not the generic or
+    node category. Regression guard for the D95971502 dual-publish wiring."""
+
+    @staticmethod
+    def test_sdiag_routes_to_sdiag_scribe_category() -> None:
+        scribe_write = MagicMock()
+        api = GraphAPI(
+            app_secret="x|y",
+            scribe_category="cat_default",
+            node_scribe_category="cat_node",
+            sdiag_scribe_category="cat_sdiag",
+            scribe_write=scribe_write,
+        )
+        api.write(
+            Log(ts=100, message=[_DummyMsg()]),
+            SinkAdditionalParams(
+                data_type=DataType.LOG,
+                data_identifier=DataIdentifier.SDIAG,
+            ),
+        )
+
+        assert scribe_write.call_count == 1
+        call_args = scribe_write.call_args
+        # First positional arg is the scribe category.
+        assert call_args.args[0] == "cat_sdiag"
+
+    @staticmethod
+    def test_sdiag_without_category_raises_assertion() -> None:
+        scribe_write = MagicMock()
+        api = GraphAPI(
+            app_secret="x|y",
+            scribe_category=None,
+            sdiag_scribe_category=None,
+            scribe_write=scribe_write,
+        )
+        with pytest.raises(AssertionError, match="scribe_category"):
+            api.write(
+                Log(ts=100, message=[_DummyMsg()]),
+                SinkAdditionalParams(
+                    data_type=DataType.LOG,
+                    data_identifier=DataIdentifier.SDIAG,
+                ),
+            )
+        assert scribe_write.call_count == 0
