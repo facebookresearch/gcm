@@ -1,7 +1,7 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 receivers:
-  examplereceiver:
+  nop:
 
 processors:
   slurm:
@@ -13,14 +13,14 @@ processors:
     query_slurmctld: false
 
 exporters:
-  exampleexporter:
+  nop:
 
 service:
   pipelines:
     traces:
       receivers:
-      - examplereceiver
+      - nop
       processors:
       - slurm
       exporters:
-      - exampleexporter
+      - nop
