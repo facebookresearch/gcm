@@ -12,7 +12,12 @@ from zoneinfo import ZoneInfo
 import pytest
 from click.testing import CliRunner
 
-from gcm.monitoring.cli.slurm_monitor import CliObjectImpl, collect_sdiag, main
+from gcm.monitoring.cli.slurm_monitor import (
+    CliObjectImpl,
+    collect_sdiag,
+    get_slurm_log,
+    main,
+)
 from gcm.monitoring.clock import AwareDatetime, PT
 from gcm.monitoring.slurm.sinfo import (
     compute_allocated_resources,
@@ -35,7 +40,7 @@ from gcm.schemas.slurm.sinfo import Sinfo
 from gcm.schemas.slurm.sinfo_cpus_gpus import SinfoCpusGpus
 from gcm.schemas.slurm.sinfo_node import SinfoNode
 from gcm.schemas.slurm.sinfo_node_states import SinfoNodeStates
-from gcm.schemas.slurm.slurm_log import SLURMLogAccountMetrics
+from gcm.schemas.slurm.slurm_log import SLURMLog, SLURMLogAccountMetrics
 from typeguard import typechecked
 
 PT_TIMEZONE = PT
@@ -5460,6 +5465,47 @@ def _make_sdiag() -> Sdiag:
         schedule_cycle_last=42,
         bf_active=False,
     )
+
+
+class TestGetSlurmLog:
+    """get_slurm_log builds a SLURMLog by unpacking **asdict(sdiag) alongside an
+    explicit cluster= kwarg. Since Sdiag carries a `cluster` field (added in
+    D95971502), the unpack must drop it so it does not collide with the explicit
+    kwarg. Regression for: SLURMLog() got multiple values for keyword argument
+    'cluster'."""
+
+    def test_builds_slurm_log_without_cluster_kwarg_collision(self) -> None:
+        from unittest.mock import patch
+
+        start = AwareDatetime(dt.datetime(2026, 1, 1, tzinfo=UTC_TIMEZONE))
+        end = AwareDatetime(dt.datetime(2026, 1, 1, 0, 5, tzinfo=UTC_TIMEZONE))
+
+        # No jobs => skip the job-stat branch and go straight to the SLURMLog
+        # construction that previously raised on the duplicate cluster kwarg.
+        with patch(
+            "gcm.monitoring.cli.slurm_monitor.parse_slurm_jobs", return_value=[]
+        ):
+            out = list(
+                get_slurm_log(
+                    sinfo=Sinfo(nodes=[]),
+                    sdiag=_make_sdiag(),
+                    start_time=start,
+                    end_time=end,
+                    cluster="shared-aws-use2-1",
+                    derived_cluster="shared-aws-use2-1",
+                    logger=logging.getLogger("test"),
+                )
+            )
+
+        slurm_logs = [row for row in out if isinstance(row, SLURMLog)]
+        self_log = slurm_logs[0]
+        assert len(slurm_logs) == 1
+        # The explicit cluster kwarg wins; Sdiag.cluster (None here) is dropped.
+        assert self_log.cluster == "shared-aws-use2-1"
+        assert self_log.derived_cluster == "shared-aws-use2-1"
+        # Other Sdiag fields still propagate through the **asdict(sdiag) unpack.
+        assert self_log.schedule_cycle_last == 42
+        assert self_log.server_thread_count == 1
 
 
 class TestCollectSdiag:
