@@ -206,37 +206,41 @@ def get_slurm_log(
             if avg_time_job_suspended:
                 job_suspended_mean, job_suspended_variance = avg_time_job_suspended
 
-    slurm_log = SLURMLog(
-        cluster=cluster,
-        derived_cluster=derived_cluster,
-        active_users=active_users,
-        running_and_pending_users=running_and_pending_users,
-        runaway_jobs=runaway_jobs,
-        avg_cpus_alloc_per_job=avg_cpus_alloc_per_job,
-        avg_gpus_alloc_per_job=avg_gpus_alloc_per_job,
-        jobs_per_user_mean=jobs_per_user_mean,
-        jobs_per_user_variance=jobs_per_user_variance,
-        job_runtime_mean=job_runtime_mean,
-        job_runtime_variance=job_runtime_variance,
-        job_suspended_mean=job_suspended_mean,
-        job_suspended_variance=job_suspended_variance,
-        job_wait_time_mean=job_wait_time_mean,
-        job_wait_time_variance=job_wait_time_variance,
-        jobs_pending=jobs_pending,
-        gpus_pending=gpus_pending,
-        nodes_pending=node_pending,
-        jobs_failed=jobs_failed,
-        jobs_running=jobs_running,
-        jobs_without_user=jobs_without_user,
-        jobs_dist_training_percent=jobs_dist_training_percent,
-        total_cpus_alloc=total_cpus_alloc,
-        total_gpus_alloc=total_gpus_alloc,
-        total_nodes_alloc=total_nodes_alloc,
-        total_down_nodes=total_down_nodes,
+    slurm_log_kwargs = {
+        "derived_cluster": derived_cluster,
+        "active_users": active_users,
+        "running_and_pending_users": running_and_pending_users,
+        "runaway_jobs": runaway_jobs,
+        "avg_cpus_alloc_per_job": avg_cpus_alloc_per_job,
+        "avg_gpus_alloc_per_job": avg_gpus_alloc_per_job,
+        "jobs_per_user_mean": jobs_per_user_mean,
+        "jobs_per_user_variance": jobs_per_user_variance,
+        "job_runtime_mean": job_runtime_mean,
+        "job_runtime_variance": job_runtime_variance,
+        "job_suspended_mean": job_suspended_mean,
+        "job_suspended_variance": job_suspended_variance,
+        "job_wait_time_mean": job_wait_time_mean,
+        "job_wait_time_variance": job_wait_time_variance,
+        "jobs_pending": jobs_pending,
+        "gpus_pending": gpus_pending,
+        "nodes_pending": node_pending,
+        "jobs_failed": jobs_failed,
+        "jobs_running": jobs_running,
+        "jobs_without_user": jobs_without_user,
+        "jobs_dist_training_percent": jobs_dist_training_percent,
+        "total_cpus_alloc": total_cpus_alloc,
+        "total_gpus_alloc": total_gpus_alloc,
+        "total_nodes_alloc": total_nodes_alloc,
+        "total_down_nodes": total_down_nodes,
         **asdict(total_cpus_gpus),
         **asdict(node_states),
         **asdict(sdiag),
-    )
+        # Sdiag carries a `cluster` field (added in D95971502) that is only
+        # populated on the standalone sdiag log path.
+        # add cluster last to keep the canonical value
+        "cluster": cluster,
+    }
+    slurm_log = SLURMLog(**slurm_log_kwargs)
     yield slurm_log
 
 
