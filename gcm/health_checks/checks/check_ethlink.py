@@ -2,6 +2,7 @@
 # All rights reserved.
 import json
 import os
+import subprocess
 from dataclasses import dataclass
 from typing import Any, Collection, Dict, List, Optional, Protocol
 
@@ -238,8 +239,68 @@ class EthLinkCheckImpl:
                 return {
                     field[0]: field[1] for field in map(lambda x: x.split("="), lines)
                 }
-        else:
+        return self._get_intf_ifcfg_from_nmcli(ifname)
+
+    @staticmethod
+    def _get_intf_ifcfg_from_nmcli(ifname: str) -> Optional[Dict[str, str]]:
+        """
+        CentOS 10+ fallback: synthesize an ifcfg-equivalent dict from nmcli when
+        /etc/sysconfig/network-scripts/ifcfg-* is unavailable (ifcfg-rh plugin
+        is dropped on CentOS 10).
+        """
+        device_fields = [
+            "GENERAL.HWADDR",
+            "GENERAL.DEVICE",
+            "GENERAL.TYPE",
+            "GENERAL.MTU",
+            "GENERAL.STATE",
+            "GENERAL.CONNECTION",
+        ]
+        try:
+            device_out = subprocess.check_output(
+                [
+                    "nmcli",
+                    "-t",
+                    "-e",
+                    "no",
+                    "-f",
+                    ",".join(device_fields),
+                    "device",
+                    "show",
+                    ifname,
+                ],
+                stderr=subprocess.DEVNULL,
+                timeout=30,
+            ).decode()
+        except (
+            subprocess.CalledProcessError,
+            FileNotFoundError,
+            subprocess.TimeoutExpired,
+        ):
             return None
+
+        device_props: Dict[str, str] = {}
+        for line in device_out.splitlines():
+            key, sep, value = line.partition(":")
+            if sep:
+                device_props[key.strip()] = value.strip()
+
+        if not device_props.get("GENERAL.HWADDR"):
+            return None
+
+        nmcli_type = device_props.get("GENERAL.TYPE", "")
+        # nmcli prints "--" for an unmanaged/inactive connection; treat it as empty.
+        connection = device_props.get("GENERAL.CONNECTION", "")
+        if connection == "--":
+            connection = ""
+        return {
+            "HWADDR": device_props["GENERAL.HWADDR"],
+            "DEVICE": device_props.get("GENERAL.DEVICE", ifname),
+            "NAME": connection or ifname,
+            "TYPE": nmcli_type.capitalize() if nmcli_type else "",
+            "MTU": device_props.get("GENERAL.MTU", ""),
+            "STATE": device_props.get("GENERAL.STATE", ""),
+        }
 
     def query_link_speed(self, ifname: str) -> Optional[str]:
         """

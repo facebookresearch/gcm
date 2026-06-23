@@ -2,15 +2,17 @@
 # All rights reserved.
 import json
 import logging
+import subprocess
 from dataclasses import dataclass, field
 from importlib import resources
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
 
-from gcm.health_checks.checks.check_ethlink import check_ethlink
+from gcm.health_checks.checks.check_ethlink import check_ethlink, EthLinkCheckImpl
 from gcm.health_checks.types import ExitCode
 from gcm.tests.data import health_checks
 
@@ -132,3 +134,97 @@ def test_check_ethlink(
 
     assert result.exit_code == expected[0].value
     assert expected[1] in caplog.text
+
+
+NMCLI_CHECK_OUTPUT_PATH = (
+    "gcm.health_checks.checks.check_ethlink.subprocess.check_output"
+)
+
+SAMPLE_NMCLI_DEVICE_OUTPUT = (
+    "GENERAL.HWADDR:10:70:FD:88:B7:D0\n"
+    "GENERAL.DEVICE:enp161s0\n"
+    "GENERAL.TYPE:ethernet\n"
+    "GENERAL.MTU:9192\n"
+    "GENERAL.STATE:100 (connected)\n"
+    "GENERAL.CONNECTION:enp161s0\n"
+)
+
+
+def test_nmcli_fallback_happy_path() -> None:
+    with patch(
+        NMCLI_CHECK_OUTPUT_PATH, return_value=SAMPLE_NMCLI_DEVICE_OUTPUT.encode()
+    ):
+        result = EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("enp161s0")
+    assert result == {
+        "HWADDR": "10:70:FD:88:B7:D0",
+        "DEVICE": "enp161s0",
+        "NAME": "enp161s0",
+        "TYPE": "Ethernet",
+        "MTU": "9192",
+        "STATE": "100 (connected)",
+    }
+
+
+def test_nmcli_fallback_invokes_subprocess_with_timeout() -> None:
+    with patch(
+        NMCLI_CHECK_OUTPUT_PATH,
+        return_value=SAMPLE_NMCLI_DEVICE_OUTPUT.encode(),
+    ) as mock_check_output:
+        EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("enp161s0")
+    mock_check_output.assert_called_once()
+    args, kwargs = mock_check_output.call_args
+    assert args[0][0] == "nmcli"
+    assert args[0][-3:] == ["device", "show", "enp161s0"]
+    assert kwargs["timeout"] == 30
+    assert kwargs["stderr"] == subprocess.DEVNULL
+
+
+def test_nmcli_fallback_missing_hwaddr_returns_none() -> None:
+    output = "GENERAL.HWADDR:\nGENERAL.DEVICE:enp161s0\nGENERAL.TYPE:ethernet\n"
+    with patch(NMCLI_CHECK_OUTPUT_PATH, return_value=output.encode()):
+        assert EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("enp161s0") is None
+
+
+def test_nmcli_fallback_command_not_found_returns_none() -> None:
+    with patch(NMCLI_CHECK_OUTPUT_PATH, side_effect=FileNotFoundError()):
+        assert EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("enp161s0") is None
+
+
+def test_nmcli_fallback_command_fails_returns_none() -> None:
+    with patch(
+        NMCLI_CHECK_OUTPUT_PATH,
+        side_effect=subprocess.CalledProcessError(returncode=1, cmd="nmcli"),
+    ):
+        assert EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("enp161s0") is None
+
+
+def test_nmcli_fallback_command_times_out_returns_none() -> None:
+    with patch(
+        NMCLI_CHECK_OUTPUT_PATH,
+        side_effect=subprocess.TimeoutExpired(cmd="nmcli", timeout=30),
+    ):
+        assert EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("enp161s0") is None
+
+
+@pytest.mark.parametrize("connection_value", ["--", ""])
+def test_nmcli_fallback_unmanaged_connection_falls_back_to_ifname(
+    connection_value: str,
+) -> None:
+    output = (
+        "GENERAL.HWADDR:AA:BB:CC:DD:EE:FF\n"
+        "GENERAL.DEVICE:eth0\n"
+        "GENERAL.TYPE:ethernet\n"
+        "GENERAL.MTU:1500\n"
+        "GENERAL.STATE:30 (disconnected)\n"
+        f"GENERAL.CONNECTION:{connection_value}\n"
+    )
+    with patch(NMCLI_CHECK_OUTPUT_PATH, return_value=output.encode()):
+        result = EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("eth0")
+    assert result == {
+        "HWADDR": "AA:BB:CC:DD:EE:FF",
+        "DEVICE": "eth0",
+        "NAME": "eth0",
+        "TYPE": "Ethernet",
+        "MTU": "1500",
+        "STATE": "30 (disconnected)",
+    }
