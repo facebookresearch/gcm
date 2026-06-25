@@ -4,17 +4,23 @@ import json
 import logging
 import subprocess
 from dataclasses import dataclass, field
-from importlib import resources
+from importlib import import_module, resources
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from unittest.mock import patch
 
 import pytest
 from click.testing import CliRunner
-
 from gcm.health_checks.checks.check_ethlink import check_ethlink, EthLinkCheckImpl
 from gcm.health_checks.types import ExitCode
 from gcm.tests.data import health_checks
+
+# Resolve the module via sys.modules (import_module) rather than `import … as`,
+# because `gcm.health_checks.checks.__init__` rebinds the `check_ethlink`
+# attribute on the package to the Click Command of the same name. `import … as`
+# does a getattr-style lookup at the end and would yield the Command, not the
+# module.
+_ethlink_mod = import_module("gcm.health_checks.checks.check_ethlink")
 
 
 @dataclass
@@ -136,10 +142,6 @@ def test_check_ethlink(
     assert expected[1] in caplog.text
 
 
-NMCLI_CHECK_OUTPUT_PATH = (
-    "gcm.health_checks.checks.check_ethlink.subprocess.check_output"
-)
-
 SAMPLE_NMCLI_DEVICE_OUTPUT = (
     "GENERAL.HWADDR:10:70:FD:88:B7:D0\n"
     "GENERAL.DEVICE:enp161s0\n"
@@ -151,8 +153,8 @@ SAMPLE_NMCLI_DEVICE_OUTPUT = (
 
 
 def test_nmcli_fallback_happy_path() -> None:
-    with patch(
-        NMCLI_CHECK_OUTPUT_PATH, return_value=SAMPLE_NMCLI_DEVICE_OUTPUT.encode()
+    with patch.object(
+        _ethlink_mod, "check_output", return_value=SAMPLE_NMCLI_DEVICE_OUTPUT.encode()
     ):
         result = EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("enp161s0")
     assert result == {
@@ -166,8 +168,9 @@ def test_nmcli_fallback_happy_path() -> None:
 
 
 def test_nmcli_fallback_invokes_subprocess_with_timeout() -> None:
-    with patch(
-        NMCLI_CHECK_OUTPUT_PATH,
+    with patch.object(
+        _ethlink_mod,
+        "check_output",
         return_value=SAMPLE_NMCLI_DEVICE_OUTPUT.encode(),
     ) as mock_check_output:
         EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("enp161s0")
@@ -181,26 +184,28 @@ def test_nmcli_fallback_invokes_subprocess_with_timeout() -> None:
 
 def test_nmcli_fallback_missing_hwaddr_returns_none() -> None:
     output = "GENERAL.HWADDR:\nGENERAL.DEVICE:enp161s0\nGENERAL.TYPE:ethernet\n"
-    with patch(NMCLI_CHECK_OUTPUT_PATH, return_value=output.encode()):
+    with patch.object(_ethlink_mod, "check_output", return_value=output.encode()):
         assert EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("enp161s0") is None
 
 
 def test_nmcli_fallback_command_not_found_returns_none() -> None:
-    with patch(NMCLI_CHECK_OUTPUT_PATH, side_effect=FileNotFoundError()):
+    with patch.object(_ethlink_mod, "check_output", side_effect=FileNotFoundError()):
         assert EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("enp161s0") is None
 
 
 def test_nmcli_fallback_command_fails_returns_none() -> None:
-    with patch(
-        NMCLI_CHECK_OUTPUT_PATH,
+    with patch.object(
+        _ethlink_mod,
+        "check_output",
         side_effect=subprocess.CalledProcessError(returncode=1, cmd="nmcli"),
     ):
         assert EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("enp161s0") is None
 
 
 def test_nmcli_fallback_command_times_out_returns_none() -> None:
-    with patch(
-        NMCLI_CHECK_OUTPUT_PATH,
+    with patch.object(
+        _ethlink_mod,
+        "check_output",
         side_effect=subprocess.TimeoutExpired(cmd="nmcli", timeout=30),
     ):
         assert EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("enp161s0") is None
@@ -218,7 +223,7 @@ def test_nmcli_fallback_unmanaged_connection_falls_back_to_ifname(
         "GENERAL.STATE:30 (disconnected)\n"
         f"GENERAL.CONNECTION:{connection_value}\n"
     )
-    with patch(NMCLI_CHECK_OUTPUT_PATH, return_value=output.encode()):
+    with patch.object(_ethlink_mod, "check_output", return_value=output.encode()):
         result = EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("eth0")
     assert result == {
         "HWADDR": "AA:BB:CC:DD:EE:FF",
