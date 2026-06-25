@@ -2,8 +2,8 @@
 # All rights reserved.
 import json
 import os
-import subprocess
 from dataclasses import dataclass
+from subprocess import CalledProcessError, check_output, DEVNULL, TimeoutExpired
 from typing import Any, Collection, Dict, List, Optional, Protocol
 
 import click
@@ -138,10 +138,21 @@ def check_link_state(
     """
     eth_manifest = EthManifest(devices=node_manifest["eth"])
     for device, intf_spec in eth_manifest.devices.items():
-        # We can assume this is nonempty because _check_cfg_macaddr checks that we don't have missing netlink interfaces
-        intf_state = list(
-            filter(lambda x: x["ifname"] == intf_spec.netdev, netlink_info)
-        )[0]
+        if intf_spec.phys is None or not intf_spec.phys:
+            continue
+        intf_state = next(
+            (x for x in netlink_info if x["ifname"] == intf_spec.netdev),
+            None,
+        )
+        if intf_state is None:
+            check.check_status = ExitCode.CRITICAL
+            check.short_out = (
+                f"Missing netlink interface {device} ({intf_spec.netdev})!"
+            )
+            check.long_out.append(
+                f"{device} ({intf_spec.netdev}) is in the manifest but absent from `ip -j addr`"
+            )
+            continue
 
         if intf_state["operstate"] != "UP":
             check.check_status = ExitCode.CRITICAL
@@ -257,7 +268,7 @@ class EthLinkCheckImpl:
             "GENERAL.CONNECTION",
         ]
         try:
-            device_out = subprocess.check_output(
+            device_out = check_output(
                 [
                     "nmcli",
                     "-t",
@@ -269,13 +280,13 @@ class EthLinkCheckImpl:
                     "show",
                     ifname,
                 ],
-                stderr=subprocess.DEVNULL,
+                stderr=DEVNULL,
                 timeout=30,
             ).decode()
         except (
-            subprocess.CalledProcessError,
+            CalledProcessError,
             FileNotFoundError,
-            subprocess.TimeoutExpired,
+            TimeoutExpired,
         ):
             return None
 
