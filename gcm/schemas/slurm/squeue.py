@@ -1,5 +1,7 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
+import logging
+
 from dataclasses import dataclass, field, fields
 
 from gcm.monitoring.clock import time_to_time_aware
@@ -13,6 +15,24 @@ from gcm.monitoring.slurm.parsing import (
 )
 from gcm.schemas.dataclass import parsed_field
 from gcm.schemas.slurm.derived_cluster import DerivedCluster
+
+logger = logging.getLogger(__name__)
+
+_MAX_NODELIST_ENTRIES = 1000
+
+
+def _truncated_nodelist(s: str) -> list[str] | None:
+    """Parse a Slurm nodelist, truncating to _MAX_NODELIST_ENTRIES with '...' marker."""
+    parsed, _ = nodelist()(s)
+    if parsed is None:
+        return None
+    if len(parsed) > _MAX_NODELIST_ENTRIES:
+        logger.warning(
+            f"Truncating NODELIST from {len(parsed)} to {_MAX_NODELIST_ENTRIES} entries "
+            f"(first: {parsed[0]}, last: {parsed[-1]})"
+        )
+        return parsed[:_MAX_NODELIST_ENTRIES] + ["..."]
+    return parsed
 
 
 @dataclass(kw_only=True)
@@ -39,10 +59,10 @@ class JobData(DerivedCluster):
     NODES: int | None = parsed_field(parser=maybe_int, field_name="NUMNODES")
     TIME_LEFT: str = parsed_field(parser=str, field_name="TIMELEFT")
     TIME_USED: str = parsed_field(parser=str, field_name="TIMEUSED")
-    NODELIST: list[str] | None = parsed_field(parser=lambda s: nodelist()(s)[0])
+    NODELIST: list[str] | None = parsed_field(parser=_truncated_nodelist)
     DEPENDENCY: str = parsed_field(parser=str)
     EXC_NODES: list[str] | None = parsed_field(
-        parser=lambda s: nodelist()(s)[0], field_name="EXCNODES"
+        parser=_truncated_nodelist, field_name="EXCNODES"
     )
     START_TIME: str = parsed_field(parser=time_to_time_aware, field_name="STARTTIME")
     SUBMIT_TIME: str = parsed_field(parser=time_to_time_aware, field_name="SUBMITTIME")
@@ -75,7 +95,7 @@ class JobData(DerivedCluster):
     REQUEUE: str = parsed_field(parser=str)
     FEATURE: str = parsed_field(parser=str)
     RESTARTCNT: int = parsed_field(parser=int)
-    SCHEDNODES: list[str] | None = parsed_field(parser=lambda s: nodelist()(s)[0])
+    SCHEDNODES: list[str] | None = parsed_field(parser=_truncated_nodelist)
     LAST_SCHED_EVAL: str = parsed_field(
         parser=time_to_time_aware, field_name="LASTSCHEDEVAL"
     )

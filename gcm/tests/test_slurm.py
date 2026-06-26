@@ -15,7 +15,7 @@ from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
 
 from gcm.schemas.slurm.sinfo import Sinfo
 from gcm.schemas.slurm.sinfo_node import SinfoNode
-from gcm.schemas.slurm.squeue import JobData
+from gcm.schemas.slurm.squeue import _truncated_nodelist, JobData
 from gcm.tests import data
 
 TEST_CLUSTER = "test_cluster"
@@ -653,3 +653,40 @@ class TestSlurmCliClient:
         assert result.job_states_ts is None
         assert result.bf_when_last_cycle is None
         mock_reset.assert_called_once()
+
+
+class TestTruncatedNodelist:
+    """Tests for the _truncated_nodelist helper that caps oversized nodelists."""
+
+    def test_normal_nodelist_unchanged(self) -> None:
+        """Nodelists with <= 1000 entries pass through unchanged."""
+        # A small nodelist: "node[001-010]" expands to 10 entries
+        result = _truncated_nodelist("node[001-010]")
+        assert result is not None
+        assert len(result) == 10
+        assert result[0] == "node001"
+        assert result[-1] == "node010"
+        # No "..." marker
+        assert "..." not in result
+
+    def test_large_nodelist_truncated(self) -> None:
+        """Nodelists with > 1000 entries are truncated to 1000 + '...' marker."""
+        # A large nodelist: "h200-[0001-2000]" expands to 2000 entries
+        result = _truncated_nodelist("h200-[0001-2000]")
+        assert result is not None
+        assert len(result) == 1001  # 1000 entries + "..."
+        assert result[0] == "h200-0001"
+        assert result[999] == "h200-1000"
+        assert result[-1] == "..."
+
+    def test_exactly_1000_entries_unchanged(self) -> None:
+        """Nodelists with exactly 1000 entries are not truncated."""
+        result = _truncated_nodelist("n[0001-1000]")
+        assert result is not None
+        assert len(result) == 1000
+        assert "..." not in result
+
+    def test_empty_nodelist_returns_none(self) -> None:
+        """Empty/unparseable nodelists return None."""
+        result = _truncated_nodelist("")
+        assert result is None
