@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import time
 from dataclasses import asdict, dataclass
 from typing import Callable, List, Mapping, Optional, TYPE_CHECKING, TypedDict, Union
@@ -117,8 +118,18 @@ def write(
 
 def get_payload(config: ODSConfig, data: List[ODSData]) -> ODSPayload:
     datapoints = []
+    dropped = 0
     for ods_data in data:
         for key, value in ods_data.metrics.items():
+            # Non-finite values (NaN/Inf) serialize to bare `NaN`/`Infinity` tokens,
+            # which are invalid JSON. The ODS Graph API endpoint rejects the entire
+            # request with `400 (#100) param datapoints must be an array`, dropping
+            # every datapoint in the batch (not just the offending one). Skip them so
+            # a single bad metric (e.g. a mean/variance computed over zero samples)
+            # can't take down all of the cluster's metrics.
+            if isinstance(value, float) and not math.isfinite(value):
+                dropped += 1
+                continue
             datapoints.append(
                 {
                     "entity": ods_data.entity,
@@ -128,12 +139,19 @@ def get_payload(config: ODSConfig, data: List[ODSData]) -> ODSPayload:
                 }
             )
 
+    if dropped:
+        logger.warning(
+            f"Dropped {dropped} non-finite (NaN/Inf) datapoint(s) before ODS write "
+            f"for category {config.category_id}."
+        )
     logger.debug(
         f"Payload of {len(datapoints)} datapoints for ODS category {config.category_id}."
     )
     return {
         "access_token": config.secret_key,
-        "datapoints": json.dumps(datapoints),
+        # allow_nan=False guards against any non-finite value slipping through above:
+        # it raises locally instead of emitting invalid JSON that the API would 400 on.
+        "datapoints": json.dumps(datapoints, allow_nan=False),
         "category_id": config.category_id,
     }
 

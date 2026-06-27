@@ -7,8 +7,10 @@ from typing import Any, Callable, Dict, List
 import pytest
 import requests
 
+import json
+
 from gcm.monitoring.clock import ClockImpl
-from gcm.monitoring.meta_utils.ods import ODSConfig, ODSData, write
+from gcm.monitoring.meta_utils.ods import get_payload, ODSConfig, ODSData, write
 from pytest_mock import MockerFixture
 from requests_mock import Mocker as RequestsMocker
 
@@ -108,6 +110,84 @@ def test_write_raises(
     assert requests_mock.call_count == num_retries + 1
     assert will_retry.call_count == num_retries
     will_retry.assert_has_calls(mocker.call(i) for i in range(1, num_retries + 1))
+
+
+class TestGetPayload:
+    @staticmethod
+    def test_includes_finite_values(ods_config: ODSConfig) -> None:
+        data = [
+            ODSData(
+                entity="fake_entity",
+                time=TEST_TIME,
+                metrics={"bar": 42, "baz": 100.0},
+            )
+        ]
+
+        payload = get_payload(ods_config, data)
+        datapoints = json.loads(payload["datapoints"])
+
+        assert len(datapoints) == 2
+        assert {dp["key"] for dp in datapoints} == {"bar", "baz"}
+
+    @staticmethod
+    def test_drops_non_finite_values(ods_config: ODSConfig) -> None:
+        data = [
+            ODSData(
+                entity="fake_entity",
+                time=TEST_TIME,
+                metrics={
+                    "good": 1.0,
+                    "nan": float("nan"),
+                    "inf": float("inf"),
+                    "neg_inf": float("-inf"),
+                    "also_good": 7,
+                },
+            )
+        ]
+
+        # json.loads rejects bare NaN/Infinity tokens, so a successful parse also
+        # proves the serialized payload is valid JSON (what the ODS API requires).
+        payload = get_payload(ods_config, data)
+        datapoints = json.loads(payload["datapoints"])
+
+        assert {dp["key"] for dp in datapoints} == {"good", "also_good"}
+
+    @staticmethod
+    def test_non_finite_values_do_not_raise(ods_config: ODSConfig) -> None:
+        data = [
+            ODSData(
+                entity="fake_entity",
+                time=TEST_TIME,
+                metrics={"nan": float("nan")},
+            )
+        ]
+
+        payload = get_payload(ods_config, data)
+
+        assert json.loads(payload["datapoints"]) == []
+
+
+def test_write_with_non_finite_values_sends_valid_json(
+    requests_mock: RequestsMocker,
+    mocker: MockerFixture,
+    ods_config: ODSConfig,
+) -> None:
+    data = [
+        ODSData(
+            entity="fake_entity",
+            time=TEST_TIME,
+            metrics={"good": 1.0, "nan": float("nan")},
+        )
+    ]
+    requests_mock.post(ods_config.endpoint)
+    will_retry = mocker.MagicMock()
+
+    write(data, ods_config, will_retry=will_retry)
+
+    assert requests_mock.call_count == 1
+    assert not will_retry.called
+    sent = json.loads(requests_mock.last_request.json()["datapoints"])
+    assert {dp["key"] for dp in sent} == {"good"}
 
 
 class TestODSConfig:
