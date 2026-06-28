@@ -1,13 +1,12 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
+import json
 import os
 from pathlib import Path
 from typing import Any, Callable, Dict, List
 
 import pytest
 import requests
-
-import json
 
 from gcm.monitoring.clock import ClockImpl
 from gcm.monitoring.meta_utils.ods import get_payload, ODSConfig, ODSData, write
@@ -186,6 +185,7 @@ def test_write_with_non_finite_values_sends_valid_json(
 
     assert requests_mock.call_count == 1
     assert not will_retry.called
+    assert requests_mock.last_request is not None
     sent = json.loads(requests_mock.last_request.json()["datapoints"])
     assert {dp["key"] for dp in sent} == {"good"}
 
