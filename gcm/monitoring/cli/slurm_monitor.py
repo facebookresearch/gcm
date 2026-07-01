@@ -366,6 +366,13 @@ def collect_sdiag(
     yield replace(sdiag, cluster=cluster)
 
 
+def _sdiag_log_routable(sink: str, sink_opts: Collection[str]) -> bool:
+    """Whether the sink can route the sdiag LOG stream (graph_api needs a category)."""
+    return sink != "graph_api" or any(
+        opt.split("=", 1)[0].strip() == "sdiag_scribe_category" for opt in sink_opts
+    )
+
+
 @click_default_cmd(
     context_settings={
         "obj": _default_obj,
@@ -418,6 +425,8 @@ def main(
     ) -> Generator[Sdiag, None, None]:
         return collect_sdiag(obj=obj, cluster=cluster, logger=logger)
 
+    sdiag_log_routable = _sdiag_log_routable(sink, sink_opts)
+
     run_data_collection_loop(
         logger_name=LOGGER_NAME,
         log_folder=log_folder,
@@ -436,15 +445,21 @@ def main(
                     heterogeneous_cluster_v1=heterogeneous_cluster_v1,
                 ),
             ),
-            # Task B: Sdiag -> LOG -> scribe (perfpipe_fair_sdiag_v2) ->
-            # Scuba (perfpipe_fair_sdiag_v2) via graph_api._write_log. Reads cached
-            # sdiag from Task A.
-            (
-                collect_sdiag_callable,
-                SinkAdditionalParams(
-                    data_type=DataType.LOG,
-                    data_identifier=DataIdentifier.SDIAG,
-                ),
+            # Task B: Sdiag -> LOG -> scribe (perfpipe_fair_sdiag_v2) -> Scuba
+            # via graph_api._write_log. Reads cached sdiag from Task A. Registered
+            # only when the sink can route it.
+            *(
+                [
+                    (
+                        collect_sdiag_callable,
+                        SinkAdditionalParams(
+                            data_type=DataType.LOG,
+                            data_identifier=DataIdentifier.SDIAG,
+                        ),
+                    )
+                ]
+                if sdiag_log_routable
+                else []
             ),
         ],
         sink=sink,

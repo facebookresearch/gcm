@@ -13,6 +13,7 @@ import pytest
 from click.testing import CliRunner
 
 from gcm.monitoring.cli.slurm_monitor import (
+    _sdiag_log_routable,
     CliObjectImpl,
     collect_sdiag,
     get_slurm_log,
@@ -5586,3 +5587,22 @@ class TestCollectSdiag:
             )
             == []
         )
+
+
+class TestSdiagLogRoutable:
+    """graph_api needs sdiag_scribe_category to route the sdiag LOG stream."""
+
+    @staticmethod
+    def test_graph_api_without_category_not_routable() -> None:
+        assert not _sdiag_log_routable("graph_api", ["ods_entity=cluster"])
+
+    @staticmethod
+    def test_graph_api_with_category_routable() -> None:
+        assert _sdiag_log_routable(
+            "graph_api",
+            ["ods_entity=cluster", "sdiag_scribe_category=perfpipe_fair_sdiag_v2"],
+        )
+
+    @staticmethod
+    def test_non_graph_api_sink_routable() -> None:
+        assert _sdiag_log_routable("otel", [])
