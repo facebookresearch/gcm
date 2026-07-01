@@ -2,6 +2,7 @@
 # All rights reserved.
 import json
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List
 
@@ -9,7 +10,13 @@ import pytest
 import requests
 
 from gcm.monitoring.clock import ClockImpl
-from gcm.monitoring.meta_utils.ods import get_payload, ODSConfig, ODSData, write
+from gcm.monitoring.meta_utils.ods import (
+    get_ods_data,
+    get_payload,
+    ODSConfig,
+    ODSData,
+    write,
+)
 from pytest_mock import MockerFixture
 from requests_mock import Mocker as RequestsMocker
 
@@ -188,6 +195,41 @@ def test_write_with_non_finite_values_sends_valid_json(
     assert requests_mock.last_request is not None
     sent = json.loads(requests_mock.last_request.json()["datapoints"])
     assert {dp["key"] for dp in sent} == {"good"}
+
+
+@dataclass
+class _SampleMetrics:
+    count: int = 5
+    bf_active: bool = True
+    rpcs_by_user_json: str = "[]"
+
+
+class TestGetODSData:
+    @staticmethod
+    def test_coerces_bool_to_int() -> None:
+        # bf_active is a bool. ODS metric values must be numbers: a JSON
+        # true/false is rejected with HTTP 400, which drops the whole batch.
+        # So coerce it to 0/1.
+        active = get_ods_data(
+            entity="e", data=_SampleMetrics(bf_active=True), unixtime=TEST_TIME
+        ).metrics
+        assert active["gcm.bf_active"] == 1
+        assert type(active["gcm.bf_active"]) is int
+
+        inactive = get_ods_data(
+            entity="e", data=_SampleMetrics(bf_active=False), unixtime=TEST_TIME
+        ).metrics
+        assert inactive["gcm.bf_active"] == 0
+
+    @staticmethod
+    def test_drops_non_numeric() -> None:
+        # Non-numeric fields (e.g. the rpcs_by_user_json string) are not ODS
+        # metrics and must be dropped, never sent to ODS.
+        metrics = get_ods_data(
+            entity="e", data=_SampleMetrics(), unixtime=TEST_TIME
+        ).metrics
+        assert metrics["gcm.count"] == 5
+        assert "gcm.rpcs_by_user_json" not in metrics
 
 
 class TestODSConfig:

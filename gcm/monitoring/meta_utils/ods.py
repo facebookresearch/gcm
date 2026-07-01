@@ -156,6 +156,12 @@ def get_payload(config: ODSConfig, data: List[ODSData]) -> ODSPayload:
     }
 
 
+def _as_ods_number(value: Union[int, float]) -> Union[int, float]:
+    # bool is a subclass of int; coerce to 0/1 so ODS gets a JSON number, not
+    # true/false, which it rejects with a 400 that drops the whole batch.
+    return int(value) if isinstance(value, bool) else value
+
+
 def get_ods_data(
     entity: str,
     data: DataclassInstance,
@@ -168,12 +174,12 @@ def get_ods_data(
         entity=entity,
         time=unixtime,
         metrics={
-            metrics_prefix + metric: value
+            metrics_prefix + metric: _as_ods_number(value)
             for metric, value in asdict(data, dict_factory=flatten_dict_factory).items()
             if isinstance(value, (int, float))
         }
         | {
-            new_metrics_prefix + metric: value
+            new_metrics_prefix + metric: _as_ods_number(value)
             for metric, value in asdict(data, dict_factory=flatten_dict_factory).items()
             if isinstance(value, (int, float))
         },
