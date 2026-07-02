@@ -1,5 +1,6 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
+import logging
 from dataclasses import dataclass
 from typing import cast
 from unittest.mock import create_autospec, MagicMock
@@ -147,7 +148,12 @@ class TestGraphAPISdiagRouting:
         assert call_args.args[0] == "cat_sdiag"
 
     @staticmethod
-    def test_sdiag_without_category_raises_assertion() -> None:
+    def test_sdiag_without_category_skips_write(
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        # No sdiag_scribe_category configured: the exporter must skip the LOG
+        # write (warn-and-return) rather than fail, and warn only once per
+        # stream, not on every cycle.
         scribe_write = MagicMock()
         api = GraphAPI(
             app_secret="x|y",
@@ -155,12 +161,19 @@ class TestGraphAPISdiagRouting:
             sdiag_scribe_category=None,
             scribe_write=scribe_write,
         )
-        with pytest.raises(AssertionError, match="scribe_category"):
-            api.write(
-                Log(ts=100, message=[_DummyMsg()]),
-                SinkAdditionalParams(
-                    data_type=DataType.LOG,
-                    data_identifier=DataIdentifier.SDIAG,
-                ),
-            )
+        params = SinkAdditionalParams(
+            data_type=DataType.LOG,
+            data_identifier=DataIdentifier.SDIAG,
+        )
+        with caplog.at_level(logging.WARNING, logger="gcm.exporters.graph_api"):
+            for _ in range(3):
+                api.write(Log(ts=100, message=[_DummyMsg()]), params)
+
         assert scribe_write.call_count == 0
+        skips = [
+            r
+            for r in caplog.records
+            if "no scribe_category" in r.getMessage() and r.levelno == logging.WARNING
+        ]
+        assert len(skips) == 1
+        assert "SDIAG" in skips[0].getMessage()

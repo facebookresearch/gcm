@@ -13,7 +13,6 @@ import pytest
 from click.testing import CliRunner
 
 from gcm.monitoring.cli.slurm_monitor import (
-    _sdiag_log_routable,
     CliObjectImpl,
     collect_sdiag,
     get_slurm_log,
@@ -5589,20 +5588,31 @@ class TestCollectSdiag:
         )
 
 
-class TestSdiagLogRoutable:
-    """graph_api needs sdiag_scribe_category to route the sdiag LOG stream."""
+class TestSdiagLogTaskRegistration:
+    """The sdiag LOG task is registered unconditionally; the exporter (not the
+    main loop) decides whether it can route the stream. Regression guard for
+    removing the _sdiag_log_routable gate from main."""
 
     @staticmethod
-    def test_graph_api_without_category_not_routable() -> None:
-        assert not _sdiag_log_routable("graph_api", ["ods_entity=cluster"])
+    def test_sdiag_log_task_registered_even_without_scribe_category() -> None:
+        from unittest.mock import patch
 
-    @staticmethod
-    def test_graph_api_with_category_routable() -> None:
-        assert _sdiag_log_routable(
-            "graph_api",
-            ["ods_entity=cluster", "sdiag_scribe_category=perfpipe_fair_sdiag_v2"],
-        )
+        from gcm.monitoring.sink.protocol import DataIdentifier, DataType
 
-    @staticmethod
-    def test_non_graph_api_sink_routable() -> None:
-        assert _sdiag_log_routable("otel", [])
+        runner = CliRunner(mix_stderr=False)
+        # graph_api sink with no sdiag_scribe_category: previously the sdiag LOG
+        # task would have been skipped in main; now it is always registered.
+        with patch("gcm.monitoring.cli.slurm_monitor.run_data_collection_loop") as loop:
+            result = runner.invoke(
+                main,
+                ["--sink", "graph_api", "--once", "--cluster", "cluster_name"],
+            )
+
+        assert result.exit_code == 0, result.output
+        tasks = loop.call_args.kwargs["data_collection_tasks"]
+        identifiers = [params.data_identifier for _, params in tasks]
+        types = [params.data_type for _, params in tasks]
+        assert DataIdentifier.SDIAG in identifiers
+        # The SLURMLog METRIC task and the sdiag LOG task are both present.
+        assert DataType.METRIC in types
+        assert DataType.LOG in types

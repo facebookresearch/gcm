@@ -69,6 +69,7 @@ class GraphAPI:
             DataIdentifier.SDIAG: sdiag_scribe_category,
         }
         self.scribe_write = scribe_write
+        self._log_skip_warned: set[Optional[DataIdentifier]] = set()
         if ods_entity is None:
             self._ods_entity = socket.gethostname()
         else:
@@ -158,7 +159,18 @@ class GraphAPI:
                 )
             category = self.data_identifier_to_scribe_map[data_identifier]
 
-        assert category is not None, "scribe_category argument is missing"
+        if category is None:
+            # No scribe_category configured for this stream (e.g. a cluster
+            # without sdiag_scribe_category).
+            stream = additional_params.data_identifier
+            if stream not in self._log_skip_warned:
+                self._log_skip_warned.add(stream)
+                logger.warning(
+                    "graph_api sink has no scribe_category for LOG stream %s; "
+                    "skipping its writes.",
+                    stream.name if stream else "default",
+                )
+            return
         # converting messages to ScubaMessage before sending them through GraphAPI:
         # https://www.internalfb.com/intern/wiki/Scuba/Quick_Start_Guide/Data_Types/
         scribe_messages = list(map(to_scuba_message, data.message))
