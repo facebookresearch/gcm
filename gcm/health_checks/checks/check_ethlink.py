@@ -304,14 +304,66 @@ class EthLinkCheckImpl:
         connection = device_props.get("GENERAL.CONNECTION", "")
         if connection == "--":
             connection = ""
+
+        # For bond slaves, GENERAL.HWADDR reports the CURRENT MAC (inherited
+        # from the bond master via cloned-mac-address), not the permanent NIC
+        # MAC. Prefer the connection profile's 802-3-ethernet.mac-address,
+        # which is the binding MAC NetworkManager uses to pin the profile to
+        # a specific NIC — matches ethtool -P for both bonded and unbonded
+        # interfaces, and preserves the semantics of the CentOS 9 ifcfg HWADDR=
+        # field. Fall back to GENERAL.HWADDR if the connection lookup fails or
+        # the profile has no binding MAC set.
+        binding_mac = EthLinkCheckImpl._get_nmcli_connection_binding_mac(connection)
+        hwaddr = binding_mac or device_props["GENERAL.HWADDR"]
+
         return {
-            "HWADDR": device_props["GENERAL.HWADDR"],
+            "HWADDR": hwaddr,
             "DEVICE": device_props.get("GENERAL.DEVICE", ifname),
             "NAME": connection or ifname,
             "TYPE": nmcli_type.capitalize() if nmcli_type else "",
             "MTU": device_props.get("GENERAL.MTU", ""),
             "STATE": device_props.get("GENERAL.STATE", ""),
         }
+
+    @staticmethod
+    def _get_nmcli_connection_binding_mac(connection: str) -> Optional[str]:
+        """
+        Return the 802-3-ethernet.mac-address (binding MAC) from an nmcli
+        connection profile, or None if the connection is empty/unavailable or
+        the profile has no binding MAC set.
+        """
+        if not connection:
+            return None
+        try:
+            conn_out = check_output(
+                [
+                    "nmcli",
+                    "-t",
+                    "-e",
+                    "no",
+                    "-f",
+                    "802-3-ethernet.mac-address",
+                    "connection",
+                    "show",
+                    connection,
+                ],
+                stderr=DEVNULL,
+                timeout=30,
+            ).decode()
+        except (
+            CalledProcessError,
+            FileNotFoundError,
+            TimeoutExpired,
+        ):
+            return None
+
+        for line in conn_out.splitlines():
+            key, sep, value = line.partition(":")
+            if sep and key.strip() == "802-3-ethernet.mac-address":
+                value = value.strip()
+                if value and value != "--":
+                    return value
+        return None
 
     def query_link_speed(self, ifname: str) -> Optional[str]:
         """

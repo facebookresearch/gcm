@@ -152,9 +152,43 @@ SAMPLE_NMCLI_DEVICE_OUTPUT = (
 )
 
 
+def _nmcli_side_effect(
+    device_out: Optional[bytes] = None,
+    connection_out: Optional[bytes] = None,
+    device_side_effect: Optional[BaseException] = None,
+    connection_side_effect: Optional[BaseException] = None,
+) -> Any:
+    """
+    Build a check_output side_effect that routes based on whether the argv
+    contains `device show` (returns/raises device_*) or `connection show`
+    (returns/raises connection_*).
+    """
+
+    def _impl(argv: List[str], *args: Any, **kwargs: Any) -> bytes:
+        if "device" in argv and "show" in argv:
+            if device_side_effect is not None:
+                raise device_side_effect
+            assert device_out is not None
+            return device_out
+        if "connection" in argv and "show" in argv:
+            if connection_side_effect is not None:
+                raise connection_side_effect
+            assert connection_out is not None
+            return connection_out
+        raise AssertionError(f"unexpected nmcli invocation: {argv!r}")
+
+    return _impl
+
+
 def test_nmcli_fallback_happy_path() -> None:
+    connection_out = "802-3-ethernet.mac-address:10:70:FD:88:B7:D0\n".encode()
     with patch.object(
-        _ethlink_mod, "check_output", return_value=SAMPLE_NMCLI_DEVICE_OUTPUT.encode()
+        _ethlink_mod,
+        "check_output",
+        side_effect=_nmcli_side_effect(
+            device_out=SAMPLE_NMCLI_DEVICE_OUTPUT.encode(),
+            connection_out=connection_out,
+        ),
     ):
         result = EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("enp161s0")
     assert result == {
@@ -168,18 +202,104 @@ def test_nmcli_fallback_happy_path() -> None:
 
 
 def test_nmcli_fallback_invokes_subprocess_with_timeout() -> None:
+    connection_out = "802-3-ethernet.mac-address:10:70:FD:88:B7:D0\n".encode()
     with patch.object(
         _ethlink_mod,
         "check_output",
-        return_value=SAMPLE_NMCLI_DEVICE_OUTPUT.encode(),
+        side_effect=_nmcli_side_effect(
+            device_out=SAMPLE_NMCLI_DEVICE_OUTPUT.encode(),
+            connection_out=connection_out,
+        ),
     ) as mock_check_output:
         EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("enp161s0")
-    mock_check_output.assert_called_once()
-    args, kwargs = mock_check_output.call_args
-    assert args[0][0] == "nmcli"
-    assert args[0][-3:] == ["device", "show", "enp161s0"]
-    assert kwargs["timeout"] == 30
-    assert kwargs["stderr"] == subprocess.DEVNULL
+    calls = mock_check_output.call_args_list
+    assert len(calls) == 2
+    device_args, device_kwargs = calls[0]
+    assert device_args[0][0] == "nmcli"
+    assert device_args[0][-3:] == ["device", "show", "enp161s0"]
+    assert device_kwargs["timeout"] == 30
+    assert device_kwargs["stderr"] == subprocess.DEVNULL
+    conn_args, conn_kwargs = calls[1]
+    assert conn_args[0][0] == "nmcli"
+    assert conn_args[0][-3:] == ["connection", "show", "enp161s0"]
+    assert "802-3-ethernet.mac-address" in conn_args[0]
+    assert conn_kwargs["timeout"] == 30
+    assert conn_kwargs["stderr"] == subprocess.DEVNULL
+
+
+def test_nmcli_fallback_bond_slave_uses_connection_binding_mac() -> None:
+    """
+    On a bond slave, `nmcli device show` reports the bond-inherited MAC as
+    GENERAL.HWADDR, but the connection profile's 802-3-ethernet.mac-address
+    still holds the real permanent NIC MAC. The check must compare against
+    the binding MAC so bond slaves do not spuriously fail.
+    """
+    device_out = (
+        "GENERAL.HWADDR:FA:CE:B0:0C:19:83\n"  # bond master's cloned MAC
+        "GENERAL.DEVICE:enp97s0f0np0\n"
+        "GENERAL.TYPE:ethernet\n"
+        "GENERAL.MTU:9192\n"
+        "GENERAL.STATE:100 (connected)\n"
+        "GENERAL.CONNECTION:enp97s0f0np0\n"
+    ).encode()
+    connection_out = "802-3-ethernet.mac-address:10:70:FD:BD:7D:5C\n".encode()
+    with patch.object(
+        _ethlink_mod,
+        "check_output",
+        side_effect=_nmcli_side_effect(
+            device_out=device_out,
+            connection_out=connection_out,
+        ),
+    ):
+        result = EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("enp97s0f0np0")
+    assert result is not None
+    assert result["HWADDR"] == "10:70:FD:BD:7D:5C"
+
+
+def test_nmcli_fallback_connection_missing_binding_mac_falls_back_to_device() -> None:
+    connection_out = "802-3-ethernet.mac-address:\n".encode()
+    with patch.object(
+        _ethlink_mod,
+        "check_output",
+        side_effect=_nmcli_side_effect(
+            device_out=SAMPLE_NMCLI_DEVICE_OUTPUT.encode(),
+            connection_out=connection_out,
+        ),
+    ):
+        result = EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("enp161s0")
+    assert result is not None
+    assert result["HWADDR"] == "10:70:FD:88:B7:D0"
+
+
+def test_nmcli_fallback_connection_show_fails_falls_back_to_device() -> None:
+    with patch.object(
+        _ethlink_mod,
+        "check_output",
+        side_effect=_nmcli_side_effect(
+            device_out=SAMPLE_NMCLI_DEVICE_OUTPUT.encode(),
+            connection_side_effect=subprocess.CalledProcessError(
+                returncode=10, cmd="nmcli"
+            ),
+        ),
+    ):
+        result = EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("enp161s0")
+    assert result is not None
+    assert result["HWADDR"] == "10:70:FD:88:B7:D0"
+
+
+def test_nmcli_fallback_connection_returns_placeholder_falls_back() -> None:
+    connection_out = "802-3-ethernet.mac-address:--\n".encode()
+    with patch.object(
+        _ethlink_mod,
+        "check_output",
+        side_effect=_nmcli_side_effect(
+            device_out=SAMPLE_NMCLI_DEVICE_OUTPUT.encode(),
+            connection_out=connection_out,
+        ),
+    ):
+        result = EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("enp161s0")
+    assert result is not None
+    assert result["HWADDR"] == "10:70:FD:88:B7:D0"
 
 
 def test_nmcli_fallback_missing_hwaddr_returns_none() -> None:
@@ -223,7 +343,12 @@ def test_nmcli_fallback_unmanaged_connection_falls_back_to_ifname(
         "GENERAL.STATE:30 (disconnected)\n"
         f"GENERAL.CONNECTION:{connection_value}\n"
     )
-    with patch.object(_ethlink_mod, "check_output", return_value=output.encode()):
+    # With no active connection name, we cannot look up a connection profile,
+    # so HWADDR must fall back to GENERAL.HWADDR — check_output should be
+    # called exactly once (device show only, no connection show).
+    with patch.object(
+        _ethlink_mod, "check_output", return_value=output.encode()
+    ) as mock_check_output:
         result = EthLinkCheckImpl._get_intf_ifcfg_from_nmcli("eth0")
     assert result == {
         "HWADDR": "AA:BB:CC:DD:EE:FF",
@@ -233,3 +358,4 @@ def test_nmcli_fallback_unmanaged_connection_falls_back_to_ifname(
         "MTU": "1500",
         "STATE": "30 (disconnected)",
     }
+    assert mock_check_output.call_count == 1
