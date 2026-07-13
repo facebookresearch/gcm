@@ -11,7 +11,6 @@ from functools import reduce
 from typing import Any, DefaultDict, Dict, Generator, Optional
 
 from gcm.monitoring.clock import AwareDatetime, tz_aware_fromisoformat
-
 from gcm.monitoring.slurm.constants import (
     FAILED_JOB_STATES,
     NODE_DOWN_STATES,
@@ -295,10 +294,12 @@ def compute_per_account_slurm_log(
 
 
 def get_slurm_version() -> tuple[int, ...]:
-    cmd = ["sinfo", "-V"]
-    slurm_version = subprocess.check_output(cmd, text=True, timeout=10)
-    version = tuple(int(v) for v in slurm_version.strip().split(" ")[1].split("."))
-    return version
+    # Delegate to clusterscope's parser, which handles SchedMD pre-release and
+    # zero-padded versions (e.g. "26.05.2-0pre1"); avoids a second fragile
+    # int()-split of `sinfo -V` here.
+    import clusterscope
+
+    return clusterscope.slurm_version()
 
 
 @log_error
