@@ -281,9 +281,9 @@ def print_tb(verbose: bool) -> None:
         return
 
     exc_info = sys.exc_info()
-    assert all(i is not None for i in exc_info), (
-        "Can only be called in an exception handler"
-    )
+    assert all(
+        i is not None for i in exc_info
+    ), "Can only be called in an exception handler"
     traceback.print_exception(*exc_info)
 
 
