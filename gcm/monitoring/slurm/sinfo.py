@@ -2,7 +2,6 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 import logging
-import subprocess
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
@@ -294,9 +293,6 @@ def compute_per_account_slurm_log(
 
 
 def get_slurm_version() -> tuple[int, ...]:
-    # Delegate to clusterscope's parser, which handles SchedMD pre-release and
-    # zero-padded versions (e.g. "26.05.2-0pre1"); avoids a second fragile
-    # int()-split of `sinfo -V` here.
     import clusterscope
 
     return clusterscope.slurm_version()
