@@ -49,24 +49,47 @@ def auth_tester(
 
 
 @pytest.mark.parametrize(
-    "auth_tester, expected",
+    "auth_tester, expected_arg, expected",
     [
+        # CentOS 9 long-form output matches long-form expected
         (
             CompletedProcess(args=[], returncode=0, stdout="PS\n"),
-            (
-                ExitCode.OK,
-                "Password status as expected: PS",
-            ),
+            "PS",
+            (ExitCode.OK, "Password status as expected: PS"),
         ),
+        # CentOS 10 short-form output matches long-form expected (alias)
+        (
+            CompletedProcess(args=[], returncode=0, stdout="P\n"),
+            "PS",
+            (ExitCode.OK, "Password status as expected: PS"),
+        ),
+        # CentOS 10 short-form locked matches long-form locked expected (alias)
         (
             CompletedProcess(args=[], returncode=0, stdout="L\n"),
-            (
-                ExitCode.CRITICAL,
-                "Password status L not as expected, PS",
-            ),
+            "LK",
+            (ExitCode.OK, "Password status as expected: LK"),
+        ),
+        # CentOS 9 long-form locked still works
+        (
+            CompletedProcess(args=[], returncode=0, stdout="LK\n"),
+            "LK",
+            (ExitCode.OK, "Password status as expected: LK"),
+        ),
+        # Genuine mismatch: no-password when password expected → CRITICAL
+        (
+            CompletedProcess(args=[], returncode=0, stdout="NP\n"),
+            "PS",
+            (ExitCode.CRITICAL, "'NP'"),
+        ),
+        # Locked when password expected → CRITICAL (both forms)
+        (
+            CompletedProcess(args=[], returncode=0, stdout="L\n"),
+            "PS",
+            (ExitCode.CRITICAL, "'L'"),
         ),
         (
             CompletedProcess(args=[], returncode=2, stdout="Error"),
+            "PS",
             (
                 ExitCode.WARN,
                 "passwd command FAILED to execute. error_code: 2 output: Error",
@@ -79,6 +102,7 @@ def test_pass_status(
     caplog: pytest.LogCaptureFixture,
     tmp_path: Path,
     auth_tester: FakeAuthenticationCheckImpl,
+    expected_arg: str,
     expected: Tuple[ExitCode, str],
 ) -> None:
     runner = CliRunner(mix_stderr=False)
@@ -86,7 +110,7 @@ def test_pass_status(
 
     result = runner.invoke(
         password_status,
-        f"fair_cluster prolog --log-folder={tmp_path} --sink=do_nothing -u userA -s PS",
+        f"fair_cluster prolog --log-folder={tmp_path} --sink=do_nothing -u userA -s {expected_arg}",
         obj=auth_tester,
     )
 

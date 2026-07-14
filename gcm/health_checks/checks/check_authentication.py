@@ -74,6 +74,19 @@ class AuthenticationCheckImpl:
         return shell_command(cmd, timeout_secs)
 
 
+# Shadow-utils changed the second field of `passwd -S` from the long form
+# (PS = "password set with hash-algo", LK = "locked") to a single letter
+# (P, L) in the CentOS 10 base image. Accept both forms so this check
+# works on both OSes without per-host --status overrides.
+_STATUS_ALIASES = {
+    "PS": {"PS", "P"},
+    "P": {"PS", "P"},
+    "LK": {"LK", "L"},
+    "L": {"LK", "L"},
+    "NP": {"NP"},
+}
+
+
 def process_pass_status(
     output: str, error_code: int, expected_state: str
 ) -> Tuple[ExitCode, str]:
@@ -83,12 +96,14 @@ def process_pass_status(
             f"passwd command FAILED to execute. error_code: {error_code} output: {output}\n",
         )
 
-    if output.strip() == expected_state:
+    observed = output.strip()
+    accepted = _STATUS_ALIASES.get(expected_state, {expected_state})
+    if observed in accepted:
         return ExitCode.OK, f"Password status as expected: {expected_state}"
     else:
         return (
             ExitCode.CRITICAL,
-            f"Password status {output.strip()} not as expected, {expected_state}",
+            f"Password status {observed!r} not in accepted forms {sorted(accepted)!r} for expected {expected_state!r}",
         )
 
 
