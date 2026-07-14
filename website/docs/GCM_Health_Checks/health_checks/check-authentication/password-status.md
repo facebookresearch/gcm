@@ -23,10 +23,19 @@ Checks if a user's password status matches expected configuration using `passwd 
 | `--heterogeneous-cluster-v1` | Flag | False | Enable heterogeneous cluster support |
 
 ## Password Status Codes
-- **PS**: Password set
-- **LK**: Password locked
-- **NP**: No password
-- **L**: Password locked (alternative format)
+
+`passwd -S` prints the second field as a short status token. The set of tokens
+changed between shadow-utils versions: CentOS Stream 9 and earlier print the
+long form (`PS`, `LK`), while CentOS Stream 10 (newer shadow-utils) print the
+single-letter form (`P`, `L`). The check accepts both forms for each state, so
+passing `--status PS` matches a `P` output and vice versa. This avoids per-host
+`--status` overrides during the CentOS 10 rollout.
+
+| Expected (`--status`) | Meaning | Accepted `passwd -S` outputs |
+|--|--|--|
+| `PS` (or `P`) | Password set | `PS`, `P` |
+| `LK` (or `L`) | Password locked | `LK`, `L` |
+| `NP` | No password | `NP` |
 
 ## Exit Conditions
 
