@@ -173,12 +173,15 @@ class Otel:
                 metric_name = field.name
                 metric_value = getattr(message, metric_name)
 
+                if isinstance(metric_value, bool):
+                    metric_value = int(metric_value)
+                if not isinstance(metric_value, int | float):
+                    logger.warning(
+                        f"Unsupported data type for OTel logging: {type(metric_value)}, ignoring metric {metric_name}"
+                    )
+                    continue
+
                 if metric_name not in self.metrics_instruments:
-                    if not isinstance(metric_value, int | float):
-                        logger.warning(
-                            f"Unsupported data type for OTel logging: {type(metric_value)}, ignoring metric {metric_name}"
-                        )
-                        continue
                     self.metrics_instruments[metric_name] = self.meter.create_gauge(
                         metric_name, description=metric_name
                     )

@@ -490,6 +490,8 @@ class TestSLURMParsing:
         [
             ("gpu:volta:8(S:0-1)", 8),
             ("gpu:pascal:2", 2),
+            ("gpu:nvidia_gb200:2(S:0-1)", 2),
+            ("gpu:nvidia_gb300:4(S:0-1)", 4),
             ("N/A", 0),
             ("gpu:8", 8),
             ("(null)", 0),
