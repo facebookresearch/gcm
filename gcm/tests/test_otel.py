@@ -3,6 +3,7 @@
 import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
+from unittest.mock import MagicMock
 
 from gcm.monitoring.sink.protocol import DataType, SinkAdditionalParams
 from gcm.schemas.log import Log
@@ -14,6 +15,16 @@ if TYPE_CHECKING:
 @dataclass
 class _OtelDummyMsg:
     field_a: int = 7
+
+
+@dataclass
+class _OtelBooleanMetricMsg:
+    healthy: bool = True
+
+
+@dataclass
+class _OtelOptionalMetricMsg:
+    value: int | None
 
 
 class _CaptureHandler(logging.Handler):
@@ -73,6 +84,40 @@ class TestOtelLoggerBehavior:
             assert extra.get("time") == 42
         finally:
             otel.otel_logger.removeHandler(capture)
+            otel.shutdown()
+
+    def test_boolean_metric_is_exported_as_integer(self) -> None:
+        otel = self._make_otel()
+        gauge = MagicMock()
+        otel.meter = MagicMock()
+        otel.meter.create_gauge.return_value = gauge
+        try:
+            otel.write(
+                Log(ts=42, message=[_OtelBooleanMetricMsg(healthy=True)]),
+                SinkAdditionalParams(data_type=DataType.METRIC),
+            )
+            gauge.set.assert_called_once_with(amount=1)
+        finally:
+            otel.shutdown()
+
+    def test_invalid_metric_value_is_skipped_after_instrument_creation(self) -> None:
+        otel = self._make_otel()
+        gauge = MagicMock()
+        otel.meter = MagicMock()
+        otel.meter.create_gauge.return_value = gauge
+        try:
+            otel.write(
+                Log(
+                    ts=42,
+                    message=[
+                        _OtelOptionalMetricMsg(value=7),
+                        _OtelOptionalMetricMsg(value=None),
+                    ],
+                ),
+                SinkAdditionalParams(data_type=DataType.METRIC),
+            )
+            gauge.set.assert_called_once_with(amount=7)
+        finally:
             otel.shutdown()
 
 

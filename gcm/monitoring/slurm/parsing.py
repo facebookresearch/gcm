@@ -152,7 +152,7 @@ def convert_memory_to_mb(value: str) -> int:
 
 
 def parse_gres(v: str) -> int:
-    """Parse a GRES string of the form: gpu:{pascal|volta}:<number>[(<stuff>)]
+    """Parse a GRES string of the form: gpu:<type>:<number>[(<stuff>)]
 
     Examples:
 
@@ -177,14 +177,15 @@ def parse_gres(v: str) -> int:
                         at_least_zero(
                             chain(
                                 [
-                                    # GPU type, e.g. 'pascal', 'volta', or 'H100'.  Match
-                                    # anything beginning with an ascii letter.
+                                    # GPU type, e.g. 'volta', 'H100', or
+                                    # 'nvidia_gb300'.
                                     at_least_one(
                                         first_of(
                                             [
                                                 begins_with(c)
                                                 for c in string.ascii_letters
                                                 + string.digits
+                                                + "_"
                                             ]
                                         )
                                     ),
