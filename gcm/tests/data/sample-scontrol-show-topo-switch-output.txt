@@ -1,0 +1,4 @@
+SwitchName=cpu Level=0 LinkSpeed=1 Nodes=cpu-000-109,cpu-002-219,cpu-003-040
+SwitchName=h100 Level=0 LinkSpeed=1 Nodes=h100-008-154,h100-236-009
+SwitchName=spine-use2-az3-0 Level=1 LinkSpeed=1 Nodes=h100-008-154,h100-236-009 Switches=h100
+SwitchName=data-transfer Level=0 LinkSpeed=1 Nodes=

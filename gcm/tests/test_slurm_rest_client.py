@@ -216,6 +216,13 @@ class TestSlurmRestClient:
         with pytest.raises(NotImplementedError, match="scontrol_config"):
             client.scontrol_config()
 
+    def test_scontrol_topology_not_implemented(self) -> None:
+        session = create_autospec(requests.Session, instance=True)
+        client = self._make_client(session)
+
+        with pytest.raises(NotImplementedError, match="scontrol_topology"):
+            client.scontrol_topology()
+
     def test_auth_token_header(self) -> None:
         session = create_autospec(requests.Session, instance=True)
         session.headers = {}
