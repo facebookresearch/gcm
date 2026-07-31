@@ -125,6 +125,9 @@ class SlurmClient(Protocol):
     def scontrol_config(self) -> Iterable[str]:
         """Get lines of scontrol config information."""
 
+    def scontrol_topology(self) -> Iterable[str]:
+        """Get lines of scontrol topology information."""
+
     def count_runaway_jobs(self) -> int:
         """Return the count of runaway jobs"""
 
@@ -503,6 +506,9 @@ class SlurmCliClient(SlurmClient):
 
     def scontrol_config(self) -> Iterable[str]:
         return _gen_lines(self.__popen(["scontrol", "show", "config"]))
+
+    def scontrol_topology(self) -> Iterable[str]:
+        return _gen_lines(self.__popen(["scontrol", "show", "topo"]))
 
     def count_runaway_jobs(self) -> int:
         p = subprocess.Popen(

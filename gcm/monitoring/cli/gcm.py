@@ -19,6 +19,7 @@ from gcm.monitoring.cli import (
     sacctmgr_user,
     scontrol,
     scontrol_config,
+    scontrol_topology,
     slurm_job_monitor,
     slurm_monitor,
     sprio,
@@ -48,6 +49,7 @@ main.add_command(slurm_monitor.main, name="slurm_monitor")
 main.add_command(sacct_backfill.main, name="sacct_backfill")
 main.add_command(scontrol.main, name="scontrol")
 main.add_command(scontrol_config.main, name="scontrol_config")
+main.add_command(scontrol_topology.main, name="scontrol_topology")
 main.add_command(sprio.main, name="sprio")
 main.add_command(sshare.main, name="sshare")
 main.add_command(storage.main, name="storage")

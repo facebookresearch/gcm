@@ -247,6 +247,12 @@ class SlurmRestClient(SlurmClient):
             "not slurmctld config. Use SlurmCliClient"
         )
 
+    def scontrol_topology(self) -> NoReturn:
+        raise NotImplementedError(
+            "scontrol_topology is not available via Slurm REST API; "
+            "use SlurmCliClient"
+        )
+
     def count_runaway_jobs(self) -> NoReturn:
         raise NotImplementedError(
             "count_runaway_jobs is not available via Slurm REST API; "

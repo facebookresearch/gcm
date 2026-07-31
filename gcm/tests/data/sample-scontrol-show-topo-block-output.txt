@@ -1,0 +1,3 @@
+BlockName=block_DH1-062-US-EAST-04B BlockIndex=0 Nodes=g3-129-[057,059,063] BlockSize=18
+BlockName=block_DH1-064-US-EAST-04B BlockIndex=1 Nodes=g3-129-[127,129,131] BlockSize=18
+BlockName=block_DH1-067-US-EAST-04B BlockIndex=3 Nodes=g3-129-[235,237],g3-130-[001,003] BlockSize=18
