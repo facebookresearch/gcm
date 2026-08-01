@@ -1,6 +1,7 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 import logging
+import re
 import subprocess
 from dataclasses import dataclass
 from typing import Optional, Protocol, runtime_checkable, Tuple
@@ -21,9 +22,15 @@ class CliObject(Protocol):
     def get_members_raw(self, groups: Tuple[str, ...]) -> str: ...
 
 
+VALID_GROUP_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
+
+
 @dataclass
 class CliObjectImpl:
     def get_members_raw(self, groups: Tuple[str, ...]) -> str:
+        for group in groups:
+            if not VALID_GROUP_RE.match(group):
+                raise ValueError(f"Invalid group name: {group}")
         return subprocess.check_output(["getent", "group", *groups], text=True)
 
 
