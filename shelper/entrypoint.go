@@ -33,7 +33,12 @@ func GetGPU2Slurm(cfg *Config) (map[string]SlurmMetadata, []string, error) {
 		if slurmNodeName := os.Getenv("SLURMD_NODENAME"); slurmNodeName != "" {
 			hostname = slurmNodeName
 		}
-		_, jobIDs, err = GetJob2Pid()
+		// Enumerate this node's jobs through slurmctld rather than
+		// `scontrol listpids`: listpids needs a node-local slurmd (its spool
+		// socket), which does not exist when the collector runs in a
+		// separate container or Pod. squeue -w also reports allocated jobs
+		// that have not started a step yet, which still hold GPUs.
+		jobIDs, err = GetSlurmJobIDsSqueueForHost(hostname)
 		if err != nil {
 			return GPU2Slurm, jobIDs, err
 		}
