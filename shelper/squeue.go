@@ -17,11 +17,6 @@ func GetSlurmJobIDsSqueue() ([]string, error) {
 	return GetSlurmJobIDsSqueueForHost(hostname)
 }
 
-// GetSlurmJobIDsSqueueForHost queries slurmctld for the job ids of all jobs
-// running on the given host. Unlike `scontrol listpids`, this does not need a
-// node-local slurmd, so callers that already know the Slurm node name (for
-// example from SLURMD_NODENAME on Kubernetes, where the OS hostname differs
-// from Slurm's NodeList) can run in a separate container or Pod.
 func GetSlurmJobIDsSqueueForHost(hostname string) ([]string, error) {
 	jobIDs := []string{}
 
