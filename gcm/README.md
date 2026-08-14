@@ -22,6 +22,7 @@ Collects cluster statistics from the [Slurm](https://slurm.schedmd.com/documenta
 - `gcm slurm_job_monitor --sink=stdout --once` - Job queue and node state information according to `squeue` and `sinfo`
 - `gcm scontrol --sink=stdout --once` - Slurm control plane monitoring
 - `gcm scontrol_config --sink=stdout --once` - Slurm configuration file monitoring
+- `gcm scontrol_topology --sink=stdout --once` - Slurm block and switch topology monitoring
 - `gcm storage --help` - Storage system monitoring (not used in Meta production)
 - `gcm nvml_monitor --sink=stdout --once` - GPU telemetry collection (not used in Meta production)
 

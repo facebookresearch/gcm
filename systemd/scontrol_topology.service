@@ -1,0 +1,16 @@
+[Unit]
+Description=Collect Slurm topology
+After=network.target
+
+[Service]
+Type=simple
+User=cluster_monitor
+Environment="PATH=/usr/local/bin:/public/slurm/20.11.3/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/slurm/bin"
+LogsDirectory=scontrol_topology_logs
+ExecStart=/usr/bin/gcm scontrol_topology
+Restart=on-failure
+RestartSec=300
+Slice=hc_resources.slice
+
+[Install]
+WantedBy=multi-user.target

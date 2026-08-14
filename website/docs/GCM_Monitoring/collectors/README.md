@@ -14,6 +14,7 @@ This directory contains documentation for all GCM monitoring collectors. Collect
 - **[sacctmgr_user](sacctmgr_user.md)** - Collects user account information and associations
 - **[scontrol](scontrol.md)** - Collects partition configuration
 - **[scontrol_config](scontrol_config.md)** - Collects cluster-wide configuration
+- **[scontrol_topology](scontrol_topology.md)** - Collects block and switch topology
 - **[slurm_job_monitor](slurm_job_monitor.md)** - Real-time node and job monitoring
 - **[slurm_monitor](slurm_monitor.md)** - Comprehensive cluster-wide metrics aggregation
 - **[sprio](sprio.md)** - Collects job priority factors for pending jobs
@@ -53,7 +54,7 @@ Most collectors use `run_data_collection_loop()` which provides:
 Data payloads use typed dataclasses for validation:
 - `DevicePlusJobMetrics`, `HostMetrics` (nvml_monitor)
 - `Sacct`, `SacctmgrQosPayload`, `SacctmgrUserPayload` (SLURM accounting)
-- `Scontrol`, `ScontrolConfig` (SLURM control)
+- `Scontrol`, `ScontrolConfig`, `ScontrolTopology` (SLURM control)
 - `NodeData`, `SLURMLog` (SLURM monitoring)
 
 ## Adding a New Collector

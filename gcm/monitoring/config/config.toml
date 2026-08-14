@@ -61,3 +61,11 @@ sink="otel"
 sink_opts = [
   "metric_resource_attributes={'key1': 'val1'}",
 ]
+
+[gcm.scontrol_topology]
+log_folder = "/var/log"
+interval = 60
+sink = "otel"
+sink_opts = [
+  "log_resource_attributes={'key1': 'val1'}",
+]
