@@ -2,7 +2,7 @@
 
 ## Overview
 
-Collects Slurm topology from `scontrol show topo` every 60 seconds. Run one
+Collects Slurm topology from `scontrol show topo` once per hour. Run one
 instance per cluster, on the same controller-side host as `scontrol.service`.
 
 The collector supports block topology (`BlockName`, `BlockIndex`, and
@@ -74,7 +74,7 @@ rows.
 | `--log-folder` | Path | `sacct_running_logs` | Parent directory for collector logs |
 | `--stdout` | Flag | False | Write collector logs to standard output |
 | `--heterogeneous-cluster-v1` | Flag | False | Compute a derived cluster identifier |
-| `--interval` | Integer | 60 | Seconds between collection cycles |
+| `--interval` | Integer | 3600 | Seconds between collection cycles |
 | `--once` | Flag | False | Collect once and exit |
 | `--retries` | Integer | 2 | Maximum sink write retries |
 | `--dry-run` | Flag | False | Publish records to standard output |

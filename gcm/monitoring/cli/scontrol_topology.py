@@ -142,7 +142,7 @@ def collect_scontrol_topology(
 @log_folder_option
 @stdout_option
 @heterogeneous_cluster_v1_option
-@interval_option(default=60)
+@interval_option(default=3600)
 @once_option
 @retries_option
 @dry_run_option
