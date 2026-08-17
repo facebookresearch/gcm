@@ -24,6 +24,7 @@ override_dh_auto_install:
 	cp systemd/slurm_job_monitor.service ${SYSTEMD_OUT}
 	cp systemd/slurm_monitor.service ${SYSTEMD_OUT}
 	cp systemd/scontrol.service ${SYSTEMD_OUT}
+	cp systemd/scontrol_topology.service ${SYSTEMD_OUT}
 	cp systemd/storage.service ${SYSTEMD_OUT}
 
 	mkdir -p ${GCM_HC_LIB}
