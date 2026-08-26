@@ -19,7 +19,7 @@ The Graph API exporter is a Meta-specific sink that writes monitoring data and h
 | `pure_scribe_category` | `PURE` | `sacct_publish` |
 | `sdiag_scribe_category` | `SDIAG` | `slurm_monitor` (sdiag dual-publish) |
 
-`sdiag_scribe_category` is the LOG-path target for the `slurm_monitor` collector's dual-publish; the METRIC-path ODS write is unaffected. If a collector emits `DataIdentifier.SDIAG` and `sdiag_scribe_category` is unset, `graph_api._write_log` raises `AssertionError("scribe_category argument is missing")` rather than silently dropping the row.
+`sdiag_scribe_category` is the LOG-path target for the `slurm_monitor` collector's dual-publish; the METRIC-path ODS write is unaffected. If a collector emits `DataIdentifier.SDIAG` and `sdiag_scribe_category` is unset, `graph_api._write_log` logs a warning naming the missing LOG stream (e.g. `SDIAG`) and skips its writes, warning once per stream rather than silently dropping the row.
 
 ## Adding a new scribe category (Meta-internal)
 
