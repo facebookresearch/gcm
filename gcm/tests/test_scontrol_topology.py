@@ -78,18 +78,15 @@ def test_cli_block_topology(tmp_path: Path) -> None:
     assert parsed[0]["BlockName"] == "block_DH1-062-US-EAST-04B"
     assert parsed[0]["BlockIndex"] == 0
     assert parsed[0]["BlockSize"] == 18
-    assert parsed[0]["Nodes"] == ["g3-129-057", "g3-129-059", "g3-129-063"]
+    assert parsed[0]["Nodes"] == "g3-129-057,g3-129-059,g3-129-063"
     assert parsed[0]["node_count"] == 3
     assert "SwitchName" not in parsed[0]
+    # The node list must land as one column, not one column per element.
+    assert "Nodes.0" not in parsed[0]
 
     assert parsed[2]["BlockName"] == "block_DH1-067-US-EAST-04B"
     assert parsed[2]["BlockIndex"] == 3
-    assert parsed[2]["Nodes"] == [
-        "g3-129-235",
-        "g3-129-237",
-        "g3-130-001",
-        "g3-130-003",
-    ]
+    assert parsed[2]["Nodes"] == "g3-129-235,g3-129-237,g3-130-001,g3-130-003"
     assert parsed[2]["node_count"] == 4
 
 
@@ -114,12 +111,13 @@ def test_cli_switch_topology(tmp_path: Path) -> None:
     assert parsed[0]["SwitchName"] == "cpu"
     assert parsed[0]["Level"] == 0
     assert parsed[0]["LinkSpeed"] == 1
-    assert parsed[0]["Nodes"] == ["cpu-000-109", "cpu-002-219", "cpu-003-040"]
+    assert parsed[0]["Nodes"] == "cpu-000-109,cpu-002-219,cpu-003-040"
     assert parsed[0]["node_count"] == 3
     assert "BlockName" not in parsed[0]
+    assert "Nodes.0" not in parsed[0]
 
     assert parsed[1]["SwitchName"] == "h100"
-    assert parsed[1]["Nodes"] == ["h100-008-154", "h100-236-009"]
+    assert parsed[1]["Nodes"] == "h100-008-154,h100-236-009"
     assert parsed[1]["node_count"] == 2
 
     assert parsed[2]["SwitchName"] == "spine-use2-az3-0"
@@ -128,3 +126,4 @@ def test_cli_switch_topology(tmp_path: Path) -> None:
 
     assert parsed[3]["SwitchName"] == "data-transfer"
     assert parsed[3]["node_count"] == 0
+    assert "Nodes" not in parsed[3]

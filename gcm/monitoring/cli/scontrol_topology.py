@@ -128,7 +128,7 @@ def collect_scontrol_topology(
         )
 
         topo = instantiate_dataclass(ScontrolTopology, message, logger=logger)
-        topo.Nodes = expanded
+        topo.Nodes = ",".join(expanded) if expanded else None
         topo.node_count = node_count
 
         yield topo
