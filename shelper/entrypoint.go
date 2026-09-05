@@ -33,7 +33,7 @@ func GetGPU2Slurm(cfg *Config) (map[string]SlurmMetadata, []string, error) {
 		if slurmNodeName := os.Getenv("SLURMD_NODENAME"); slurmNodeName != "" {
 			hostname = slurmNodeName
 		}
-		_, jobIDs, err = GetJob2Pid()
+		jobIDs, err = GetSlurmJobIDsSqueueForHost(hostname)
 		if err != nil {
 			return GPU2Slurm, jobIDs, err
 		}
