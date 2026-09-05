@@ -1,0 +1,2 @@
+Switch  41 "S-0011223344550001"      # "switch0001" base port 0 lid 1433 lmc 0
+Switch  41 "S-0011223344550002"      # "switch0002" base port 0 lid 1434 lmc 0

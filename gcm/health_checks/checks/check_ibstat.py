@@ -8,7 +8,12 @@ from typing import Collection, List, Optional, Protocol, Tuple
 import click
 from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
 from gcm.health_checks.checks.check_ib_counters import check_ib_counters
+from gcm.health_checks.checks.check_ib_port_errors import check_ib_port_errors
 from gcm.health_checks.checks.check_iblink import check_iblink
+from gcm.health_checks.checks.check_mlxcables import check_mlxcables
+from gcm.health_checks.checks.check_mlxlink import check_mlxlink
+from gcm.health_checks.checks.check_sm_status import check_sm_status
+from gcm.health_checks.checks.check_ufm_health import check_ufm_health
 from gcm.health_checks.click import (
     common_arguments,
     telemetry_argument,
@@ -38,6 +43,11 @@ def check_ib() -> None:
 
 check_ib.add_command(check_ib_counters)
 check_ib.add_command(check_iblink)
+check_ib.add_command(check_mlxcables)
+check_ib.add_command(check_mlxlink)
+check_ib.add_command(check_sm_status)
+check_ib.add_command(check_ib_port_errors)
+check_ib.add_command(check_ufm_health)
 
 
 class IBStat(CheckEnv, Protocol):
