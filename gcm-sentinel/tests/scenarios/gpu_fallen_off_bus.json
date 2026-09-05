@@ -1,0 +1,75 @@
+{
+  "name": "GPU Fallen Off Bus",
+  "description": "GPU 5 is no longer visible to nvidia-smi, likely a PCIe or hardware failure.",
+  "node_name": "gpu-node-12",
+  "condition_type": "NPDSmiDisconnectedProblem",
+  "reason": "NPDSmiDisconnectedProblem",
+  "message": "nvidia-smi reports only 7/8 GPUs visible. GPU index 5 not responding.",
+  "prometheus_responses": {
+    "DCGM_FI_DEV_GPU_TEMP": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {"metric": {"gpu": "0", "instance": "gpu-node-12:9400"}, "value": [1700000000, "62"]},
+          {"metric": {"gpu": "1", "instance": "gpu-node-12:9400"}, "value": [1700000000, "64"]},
+          {"metric": {"gpu": "2", "instance": "gpu-node-12:9400"}, "value": [1700000000, "63"]},
+          {"metric": {"gpu": "3", "instance": "gpu-node-12:9400"}, "value": [1700000000, "61"]},
+          {"metric": {"gpu": "4", "instance": "gpu-node-12:9400"}, "value": [1700000000, "65"]},
+          {"metric": {"gpu": "6", "instance": "gpu-node-12:9400"}, "value": [1700000000, "64"]},
+          {"metric": {"gpu": "7", "instance": "gpu-node-12:9400"}, "value": [1700000000, "63"]}
+        ]
+      }
+    },
+    "DCGM_FI_DEV_POWER_USAGE": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {"metric": {"gpu": "0", "instance": "gpu-node-12:9400"}, "value": [1700000000, "310"]},
+          {"metric": {"gpu": "1", "instance": "gpu-node-12:9400"}, "value": [1700000000, "305"]}
+        ]
+      }
+    },
+    "DCGM_FI_DEV_XID_ERRORS": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {"metric": {"gpu": "4", "instance": "gpu-node-12:9400"}, "value": [1700000000, "79"]}
+        ]
+      }
+    }
+  },
+  "node_info": {
+    "name": "gpu-node-12",
+    "labels": {"node.kubernetes.io/instance-type": "p5en.48xlarge", "kubernetes.io/hostname": "gpu-node-12"},
+    "taints": [],
+    "conditions": [
+      {"type": "Ready", "status": "True", "reason": "KubeletReady", "message": "kubelet is ready"},
+      {"type": "NPDSmiDisconnectedProblem", "status": "True", "reason": "NPDSmiDisconnectedProblem", "message": "nvidia-smi reports only 7/8 GPUs visible. GPU index 5 not responding."}
+    ],
+    "allocatable": {"nvidia.com/gpu": "7", "cpu": "192", "memory": "2097152Mi"},
+    "capacity": {"nvidia.com/gpu": "8", "cpu": "192", "memory": "2097152Mi"},
+    "pods": [
+      {"name": "training-job-worker-0", "namespace": "default", "phase": "Running"}
+    ],
+    "pod_count": 8
+  },
+  "gcm_health": {
+    "node": "gpu-node-12",
+    "npd_metrics": {
+      "problem_gauge": [
+        {"metric": {"reason": "NPDSmiDisconnectedProblem", "instance": "gpu-node-12:20257"}, "value": [1700000000, "1"]}
+      ],
+      "problem_counter": [
+        {"metric": {"reason": "NPDSmiDisconnectedProblem", "instance": "gpu-node-12:20257"}, "value": [1700000000, "1"]}
+      ]
+    },
+    "conditions": [
+      {"type": "NPDSmiDisconnectedProblem", "status": "True", "reason": "NPDSmiDisconnectedProblem", "message": "nvidia-smi reports only 7/8 GPUs visible"}
+    ]
+  },
+  "expected_severity": "critical",
+  "expected_action": "drain"
+}

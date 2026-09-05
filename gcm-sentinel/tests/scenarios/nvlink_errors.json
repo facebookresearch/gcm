@@ -1,0 +1,74 @@
+{
+  "name": "NVLink Errors",
+  "description": "NVLink CRC errors accumulating between GPU 2 and GPU 6, degrading inter-GPU bandwidth.",
+  "node_name": "gpu-node-21",
+  "condition_type": "NPDDcgmiNvlinkStatusProblem",
+  "reason": "NPDDcgmiNvlinkStatusProblem",
+  "message": "NVLink errors detected: link 2->6 has elevated CRC error rate",
+  "prometheus_responses": {
+    "DCGM_FI_DEV_NVLINK_CRC_FLIT_ERROR_COUNT_TOTAL": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {"metric": {"gpu": "2", "instance": "gpu-node-21:9400", "nvlink": "0"}, "value": [1700000000, "54231"]},
+          {"metric": {"gpu": "6", "instance": "gpu-node-21:9400", "nvlink": "0"}, "value": [1700000000, "54198"]},
+          {"metric": {"gpu": "0", "instance": "gpu-node-21:9400", "nvlink": "0"}, "value": [1700000000, "3"]},
+          {"metric": {"gpu": "1", "instance": "gpu-node-21:9400", "nvlink": "0"}, "value": [1700000000, "0"]}
+        ]
+      }
+    },
+    "DCGM_FI_DEV_NVLINK_BANDWIDTH_TOTAL": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {"metric": {"gpu": "2", "instance": "gpu-node-21:9400"}, "value": [1700000000, "12000000"]},
+          {"metric": {"gpu": "6", "instance": "gpu-node-21:9400"}, "value": [1700000000, "12500000"]},
+          {"metric": {"gpu": "0", "instance": "gpu-node-21:9400"}, "value": [1700000000, "48000000"]}
+        ]
+      }
+    },
+    "DCGM_FI_DEV_GPU_TEMP": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {"metric": {"gpu": "2", "instance": "gpu-node-21:9400"}, "value": [1700000000, "71"]},
+          {"metric": {"gpu": "6", "instance": "gpu-node-21:9400"}, "value": [1700000000, "73"]}
+        ]
+      }
+    }
+  },
+  "node_info": {
+    "name": "gpu-node-21",
+    "labels": {"node.kubernetes.io/instance-type": "p5en.48xlarge", "kubernetes.io/hostname": "gpu-node-21"},
+    "taints": [],
+    "conditions": [
+      {"type": "Ready", "status": "True", "reason": "KubeletReady", "message": "kubelet is ready"},
+      {"type": "NPDDcgmiNvlinkStatusProblem", "status": "True", "reason": "NPDDcgmiNvlinkStatusProblem", "message": "NVLink errors detected: link 2->6 has elevated CRC error rate"}
+    ],
+    "allocatable": {"nvidia.com/gpu": "8", "cpu": "192", "memory": "2097152Mi"},
+    "capacity": {"nvidia.com/gpu": "8", "cpu": "192", "memory": "2097152Mi"},
+    "pods": [
+      {"name": "nccl-test-worker-1", "namespace": "default", "phase": "Running"}
+    ],
+    "pod_count": 10
+  },
+  "gcm_health": {
+    "node": "gpu-node-21",
+    "npd_metrics": {
+      "problem_gauge": [
+        {"metric": {"reason": "NPDDcgmiNvlinkStatusProblem", "instance": "gpu-node-21:20257"}, "value": [1700000000, "1"]}
+      ],
+      "problem_counter": [
+        {"metric": {"reason": "NPDDcgmiNvlinkStatusProblem", "instance": "gpu-node-21:20257"}, "value": [1700000000, "2"]}
+      ]
+    },
+    "conditions": [
+      {"type": "NPDDcgmiNvlinkStatusProblem", "status": "True", "reason": "NPDDcgmiNvlinkStatusProblem", "message": "NVLink errors detected"}
+    ]
+  },
+  "expected_severity": "warning",
+  "expected_action": "cordon"
+}

@@ -1,0 +1,89 @@
+{
+  "name": "HBM Memory Degradation",
+  "description": "GPU 3 on the node shows HBM (High Bandwidth Memory) ECC errors accumulating, indicating memory degradation.",
+  "node_name": "gpu-node-07",
+  "condition_type": "NPDSmiEccProblem",
+  "reason": "NPDSmiEccProblem",
+  "message": "ECC errors detected: gpu3 has 142 volatile uncorrectable ECC errors",
+  "prometheus_responses": {
+    "DCGM_FI_DEV_ECC_DBE_VOL_TOTAL": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {"metric": {"gpu": "3", "instance": "gpu-node-07:9400", "UUID": "GPU-abc-003"}, "value": [1700000000, "142"]},
+          {"metric": {"gpu": "0", "instance": "gpu-node-07:9400", "UUID": "GPU-abc-000"}, "value": [1700000000, "0"]},
+          {"metric": {"gpu": "1", "instance": "gpu-node-07:9400", "UUID": "GPU-abc-001"}, "value": [1700000000, "0"]},
+          {"metric": {"gpu": "2", "instance": "gpu-node-07:9400", "UUID": "GPU-abc-002"}, "value": [1700000000, "0"]},
+          {"metric": {"gpu": "4", "instance": "gpu-node-07:9400", "UUID": "GPU-abc-004"}, "value": [1700000000, "0"]},
+          {"metric": {"gpu": "5", "instance": "gpu-node-07:9400", "UUID": "GPU-abc-005"}, "value": [1700000000, "0"]},
+          {"metric": {"gpu": "6", "instance": "gpu-node-07:9400", "UUID": "GPU-abc-006"}, "value": [1700000000, "0"]},
+          {"metric": {"gpu": "7", "instance": "gpu-node-07:9400", "UUID": "GPU-abc-007"}, "value": [1700000000, "0"]}
+        ]
+      }
+    },
+    "DCGM_FI_DEV_ECC_SBE_VOL_TOTAL": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {"metric": {"gpu": "3", "instance": "gpu-node-07:9400"}, "value": [1700000000, "8947"]},
+          {"metric": {"gpu": "0", "instance": "gpu-node-07:9400"}, "value": [1700000000, "12"]},
+          {"metric": {"gpu": "1", "instance": "gpu-node-07:9400"}, "value": [1700000000, "5"]}
+        ]
+      }
+    },
+    "DCGM_FI_DEV_GPU_TEMP": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {"metric": {"gpu": "3", "instance": "gpu-node-07:9400"}, "value": [1700000000, "78"]},
+          {"metric": {"gpu": "0", "instance": "gpu-node-07:9400"}, "value": [1700000000, "65"]}
+        ]
+      }
+    },
+    "DCGM_FI_DEV_RETIRED_DBE": {
+      "status": "success",
+      "data": {
+        "resultType": "vector",
+        "result": [
+          {"metric": {"gpu": "3", "instance": "gpu-node-07:9400"}, "value": [1700000000, "7"]}
+        ]
+      }
+    }
+  },
+  "node_info": {
+    "name": "gpu-node-07",
+    "labels": {"node.kubernetes.io/instance-type": "p5en.48xlarge", "kubernetes.io/hostname": "gpu-node-07"},
+    "taints": [],
+    "conditions": [
+      {"type": "Ready", "status": "True", "reason": "KubeletReady", "message": "kubelet is ready"},
+      {"type": "NPDSmiEccProblem", "status": "True", "reason": "NPDSmiEccProblem", "message": "ECC errors detected: gpu3 has 142 volatile uncorrectable ECC errors"},
+      {"type": "NPDXidErrorsProblem", "status": "False", "reason": "NPDXidErrorsProblem", "message": "No XID errors"}
+    ],
+    "allocatable": {"nvidia.com/gpu": "8", "cpu": "192", "memory": "2097152Mi"},
+    "capacity": {"nvidia.com/gpu": "8", "cpu": "192", "memory": "2097152Mi"},
+    "pods": [
+      {"name": "training-job-worker-3", "namespace": "default", "phase": "Running"},
+      {"name": "dcgm-exporter-xyz", "namespace": "monitoring", "phase": "Running"}
+    ],
+    "pod_count": 12
+  },
+  "gcm_health": {
+    "node": "gpu-node-07",
+    "npd_metrics": {
+      "problem_gauge": [
+        {"metric": {"reason": "NPDSmiEccProblem", "instance": "gpu-node-07:20257"}, "value": [1700000000, "1"]}
+      ],
+      "problem_counter": [
+        {"metric": {"reason": "NPDSmiEccProblem", "instance": "gpu-node-07:20257"}, "value": [1700000000, "3"]}
+      ]
+    },
+    "conditions": [
+      {"type": "NPDSmiEccProblem", "status": "True", "reason": "NPDSmiEccProblem", "message": "ECC errors detected: gpu3 has 142 volatile uncorrectable ECC errors"}
+    ]
+  },
+  "expected_severity": "critical",
+  "expected_action": "drain"
+}
