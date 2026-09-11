@@ -19,6 +19,10 @@ from typing import (
 )
 
 from gcm.exporters import registry
+from gcm.health_checks.check_utils.kubernetes_job_metadata import (
+    get_kubernetes_job_metadata,
+    KubernetesJobMetadata,
+)
 from gcm.health_checks.types import CHECK_TYPE, ExitCode
 
 from gcm.monitoring.clock import ClockImpl
@@ -41,6 +45,7 @@ def get_telemetry_record(
     start_time: float = 0.0,
     end_time: float = 0.0,
     job_id: int = 0,
+    kubernetes_job_metadata: Optional[KubernetesJobMetadata] = None,
 ) -> HealthCheckLog:
     return HealthCheckLog(
         node=node,
@@ -54,6 +59,31 @@ def get_telemetry_record(
         job_id=job_id,
         start_time=start_time,
         end_time=end_time,
+        active_job_ids=(
+            kubernetes_job_metadata.active_job_ids
+            if kubernetes_job_metadata is not None
+            else None
+        ),
+        active_users=(
+            kubernetes_job_metadata.active_users
+            if kubernetes_job_metadata is not None
+            else None
+        ),
+        active_org_ids=(
+            kubernetes_job_metadata.active_org_ids
+            if kubernetes_job_metadata is not None
+            else None
+        ),
+        active_project_ids=(
+            kubernetes_job_metadata.active_project_ids
+            if kubernetes_job_metadata is not None
+            else None
+        ),
+        active_pod_names=(
+            kubernetes_job_metadata.active_pod_names
+            if kubernetes_job_metadata is not None
+            else None
+        ),
     )
 
 
@@ -70,6 +100,9 @@ class TelemetryContext(ContextManager["TelemetryContext"]):
     get_exit_code_msg: Callable[[], Tuple[ExitCode, str]]
     gpu_node_id: Optional[str]
     job_id: Optional[int] = None
+    kubernetes_job_metadata_getter: Callable[[str], Optional[KubernetesJobMetadata]] = (
+        get_kubernetes_job_metadata
+    )
     telem_registry: Dict[str, Factory[SinkImpl]] = field(
         default_factory=lambda: registry
     )
@@ -97,6 +130,12 @@ class TelemetryContext(ContextManager["TelemetryContext"]):
                     )
                     msg = msg + "\nSLURM_JOB_ID is not set for prolog/epilog check."
 
+        kubernetes_job_metadata = None
+        try:
+            kubernetes_job_metadata = self.kubernetes_job_metadata_getter(self.node)
+        except Exception:
+            self.logger.exception("Failed to collect Kubernetes job metadata.")
+
         record = get_telemetry_record(
             cluster=self.cluster,
             derived_cluster=self.derived_cluster,
@@ -109,6 +148,7 @@ class TelemetryContext(ContextManager["TelemetryContext"]):
             start_time=self.start_time,
             end_time=self.end_time,
             job_id=self.job_id,
+            kubernetes_job_metadata=kubernetes_job_metadata,
         )
         # Get writer from telemetry
         sink_impl = self.telem_registry[self.sink](

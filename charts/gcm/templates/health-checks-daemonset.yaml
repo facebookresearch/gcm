@@ -67,6 +67,22 @@ spec:
               value: "all"
             - name: LC_ALL
               value: "C.UTF-8"
+            {{- if .Values.healthChecks.jobMetadata.enabled }}
+            - name: GCM_KUBERNETES_JOB_METADATA_ENABLED
+              value: "true"
+            - name: GCM_KUBERNETES_JOB_NAMESPACE
+              value: {{ .Values.healthChecks.jobMetadata.namespace | quote }}
+            - name: GCM_KUBERNETES_JOB_LABEL_SELECTOR
+              value: {{ .Values.healthChecks.jobMetadata.labelSelector | quote }}
+            - name: GCM_KUBERNETES_JOB_ID_LABEL
+              value: {{ .Values.healthChecks.jobMetadata.jobIdLabel | quote }}
+            - name: GCM_KUBERNETES_USER_LABEL
+              value: {{ .Values.healthChecks.jobMetadata.userLabel | quote }}
+            - name: GCM_KUBERNETES_ORG_ID_LABEL
+              value: {{ .Values.healthChecks.jobMetadata.orgIdLabel | quote }}
+            - name: GCM_KUBERNETES_PROJECT_ID_LABEL
+              value: {{ .Values.healthChecks.jobMetadata.projectIdLabel | quote }}
+            {{- end }}
             {{- with .Values.healthChecks.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

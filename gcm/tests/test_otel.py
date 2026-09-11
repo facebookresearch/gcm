@@ -27,6 +27,11 @@ class _OtelOptionalMetricMsg:
     value: int | None
 
 
+@dataclass
+class _OtelListMsg:
+    values: list[str]
+
+
 class _CaptureHandler(logging.Handler):
     """Attached to Otel.otel_logger to record what the OTLP handler would
     receive without sending real network traffic. Behavioral substitute for
@@ -82,6 +87,20 @@ class TestOtelLoggerBehavior:
             extra = capture.records[0].__dict__
             assert extra.get("field_a") == 7
             assert extra.get("time") == 42
+        finally:
+            otel.otel_logger.removeHandler(capture)
+            otel.shutdown()
+
+    def test_list_attribute_is_preserved(self) -> None:
+        otel = self._make_otel()
+        capture = _CaptureHandler()
+        otel.otel_logger.addHandler(capture)
+        try:
+            otel.write(
+                Log(ts=42, message=[_OtelListMsg(values=["job-a", "job-b"])]),
+                SinkAdditionalParams(data_type=DataType.LOG),
+            )
+            assert capture.records[0].__dict__["values"] == ["job-a", "job-b"]
         finally:
             otel.otel_logger.removeHandler(capture)
             otel.shutdown()

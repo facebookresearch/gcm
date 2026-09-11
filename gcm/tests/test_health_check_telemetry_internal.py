@@ -11,7 +11,8 @@ import pytest
 from click import Path
 from click.testing import CliRunner
 from gcm.exporters.graph_api import GraphAPI
-from gcm.health_checks.check_utils.telem import TelemetryContext
+from gcm.health_checks.check_utils.kubernetes_job_metadata import KubernetesJobMetadata
+from gcm.health_checks.check_utils.telem import get_telemetry_record, TelemetryContext
 from gcm.health_checks.types import ExitCode
 from gcm.monitoring.meta_utils.scribe import ScribeConfig, write_messages
 from gcm.monitoring.meta_utils.scuba import ScubaMessage
@@ -23,6 +24,31 @@ from gcm.schemas.health_check.health_check_name import HealthCheckName
 from gcm.schemas.health_check.log import HealthCheckLog
 from gcm.schemas.log import Log
 from gcm.tests.config import Config
+
+
+def test_health_check_record_includes_kubernetes_job_metadata() -> None:
+    record = get_telemetry_record(
+        cluster="cluster",
+        derived_cluster="cluster",
+        type="app",
+        health_check="check xid",
+        node="gpu-1",
+        gpu_node_id="gpu-node-id",
+        exit_code=ExitCode.WARN,
+        kubernetes_job_metadata=KubernetesJobMetadata(
+            active_job_ids=["job-abc"],
+            active_users=["alice"],
+            active_org_ids=["org-ac"],
+            active_project_ids=["project-gpu"],
+            active_pod_names=["job-abc-worker-0"],
+        ),
+    )
+
+    assert record.active_job_ids == ["job-abc"]
+    assert record.active_users == ["alice"]
+    assert record.active_org_ids == ["org-ac"]
+    assert record.active_project_ids == ["project-gpu"]
+    assert record.active_pod_names == ["job-abc-worker-0"]
 
 
 def test_push_to_scribe(config: Config) -> None:

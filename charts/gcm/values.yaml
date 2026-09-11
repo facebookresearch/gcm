@@ -118,6 +118,15 @@ healthChecks:
   #     - name: OTEL_EXPORTER_OTLP_ENDPOINT
   #       value: "http://otel-collector:4318"
   extraEnv: []
+  # Add metadata from active Kubernetes job pods on the checked node to health logs.
+  jobMetadata:
+    enabled: false
+    namespace: ""
+    labelSelector: ""
+    jobIdLabel: ""
+    userLabel: ""
+    orgIdLabel: ""
+    projectIdLabel: ""
   # Prometheus metrics
   prometheus:
     port: 20257

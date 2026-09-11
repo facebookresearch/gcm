@@ -2,6 +2,9 @@
 Copyright (c) Meta Platforms, Inc. and affiliates.
 All rights reserved.
 */}}
+{{- if and .Values.healthChecks.jobMetadata.enabled (or (empty .Values.healthChecks.jobMetadata.namespace) (empty .Values.healthChecks.jobMetadata.jobIdLabel)) }}
+{{- fail "healthChecks.jobMetadata requires namespace and jobIdLabel" }}
+{{- end }}
 {{- if .Values.healthChecks.enabled -}}
 apiVersion: v1
 kind: ServiceAccount
@@ -44,4 +47,36 @@ subjects:
   - kind: ServiceAccount
     name: {{ include "gcm.fullname" . }}-health-checks
     namespace: {{ .Release.Namespace }}
+{{- if .Values.healthChecks.jobMetadata.enabled }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "gcm.fullname" . }}-health-checks-job-metadata
+  namespace: {{ .Values.healthChecks.jobMetadata.namespace }}
+  labels:
+    {{- include "gcm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: health-checks
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "gcm.fullname" . }}-health-checks-job-metadata
+  namespace: {{ .Values.healthChecks.jobMetadata.namespace }}
+  labels:
+    {{- include "gcm.labels" . | nindent 4 }}
+    app.kubernetes.io/component: health-checks
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "gcm.fullname" . }}-health-checks-job-metadata
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "gcm.fullname" . }}-health-checks
+    namespace: {{ .Release.Namespace }}
+{{- end }}
 {{- end }}

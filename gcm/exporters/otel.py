@@ -7,7 +7,7 @@ from typing import Any, cast, Dict, Optional
 
 from gcm.exporters import register
 
-from gcm.monitoring.dataclass_utils import flatten_dict_factory
+from gcm.monitoring.dataclass_utils import flatten_dict_factory_with_lists
 from gcm.monitoring.sink.protocol import DataType, SinkAdditionalParams
 from gcm.schemas.log import Log
 
@@ -192,6 +192,6 @@ class Otel:
 
     def _write_log(self, data: Log) -> None:
         for message in data.message:
-            msg = asdict(message, dict_factory=flatten_dict_factory)
+            msg = asdict(message, dict_factory=flatten_dict_factory_with_lists)
             msg["time"] = data.ts
             self.otel_logger.info("", extra=msg)

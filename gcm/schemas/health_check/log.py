@@ -20,3 +20,8 @@ class HealthCheckLog:
     job_id: Optional[int]
     start_time: Optional[float]
     end_time: Optional[float]
+    active_job_ids: Optional[list[str]] = None
+    active_users: Optional[list[str]] = None
+    active_org_ids: Optional[list[str]] = None
+    active_project_ids: Optional[list[str]] = None
+    active_pod_names: Optional[list[str]] = None
