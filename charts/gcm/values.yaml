@@ -65,6 +65,9 @@ monitoring:
     - key: "nvidia.com/gpu"
       operator: Exists
   affinity: {}
+  # RuntimeClass for the pods.
+  # See https://kubernetes.io/docs/concepts/containers/runtime-class/
+  runtimeClassName: nvidia
 
 # -- Health checks (NPD-GCM DaemonSet) configuration
 healthChecks:
@@ -127,6 +130,9 @@ healthChecks:
     - key: "nvidia.com/gpu"
       operator: Exists
   affinity: {}
+  # RuntimeClass for the pods.
+  # See https://kubernetes.io/docs/concepts/containers/runtime-class/
+  runtimeClassName: nvidia
   resources:
     limits:
       cpu: "1"
