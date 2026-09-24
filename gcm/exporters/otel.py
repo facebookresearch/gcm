@@ -6,11 +6,12 @@ from dataclasses import asdict, fields
 from typing import Any, cast, Dict, Optional
 
 from gcm.exporters import register
-
-from gcm.monitoring.dataclass_utils import flatten_dict_factory
+from gcm.monitoring.dataclass_utils import (
+    flatten_dict_factory,
+    flatten_dict_factory_with_lists,
+)
 from gcm.monitoring.sink.protocol import DataType, SinkAdditionalParams
 from gcm.schemas.log import Log
-
 from omegaconf import DictConfig, OmegaConf
 from opentelemetry._logs import set_logger_provider
 from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
@@ -18,15 +19,12 @@ from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExp
 from opentelemetry.metrics import _Gauge
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
-
 from opentelemetry.sdk.metrics import Meter, MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-
 from opentelemetry.sdk.resources import (  # type: ignore[attr-defined]
     Resource,
     SERVICE_NAME,
 )
-
 from typing_extensions import Never
 
 logger = logging.getLogger(__name__)
@@ -131,6 +129,7 @@ class Otel:
         otel_logs_endpoint: Optional[str] = None,
         otel_metrics_endpoint: Optional[str] = None,
         otel_timeout: Optional[int] = None,
+        allow_expanded_lists: bool = False,
     ):
         endpoint = get_otel_endpoint(otel_endpoint)
         logs_endpoint = get_otel_logs_endpoint(otel_logs_endpoint, endpoint)
@@ -162,6 +161,7 @@ class Otel:
             metric_resource_attributes, metrics_endpoint, timeout
         )
         self.metrics_instruments: dict[str, _Gauge] = {}
+        self._allow_expanded_lists = allow_expanded_lists
 
     def shutdown(self) -> None:
         self._logger_provider.shutdown()
@@ -216,6 +216,13 @@ class Otel:
 
     def _write_log(self, data: Log) -> None:
         for message in data.message:
-            msg = asdict(message, dict_factory=flatten_dict_factory)
-            msg["time"] = data.ts
-            self.otel_logger.info("", extra=msg)
+            if self._allow_expanded_lists:
+                msg_with_lists = asdict(
+                    message, dict_factory=flatten_dict_factory_with_lists
+                )
+                msg_with_lists["time"] = data.ts
+                self.otel_logger.info("", extra=msg_with_lists)
+            else:
+                msg = asdict(message, dict_factory=flatten_dict_factory)
+                msg["time"] = data.ts
+                self.otel_logger.info("", extra=msg)

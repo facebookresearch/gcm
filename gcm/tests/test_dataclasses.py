@@ -6,8 +6,12 @@ from dataclasses import asdict, dataclass, field
 from typing import Dict, Optional, TYPE_CHECKING
 
 import pytest
-
-from gcm.monitoring.dataclass_utils import flatten_dict_factory, Flattened, max_fields
+from gcm.monitoring.dataclass_utils import (
+    flatten_dict_factory,
+    flatten_dict_factory_with_lists,
+    Flattened,
+    max_fields,
+)
 from gcm.monitoring.meta_utils.scuba import ScubaMessage, to_scuba_message
 from pydantic import BaseModel
 from typeguard import typechecked
@@ -425,3 +429,12 @@ class TestNestedDictList:
 def test_asdict_recursive(data: DataclassInstance, expected: Flattened) -> None:
     actual = asdict(data, dict_factory=flatten_dict_factory)
     assert actual == expected
+
+
+def test_flatten_dict_factory_with_lists_preserves_top_level_lists() -> None:
+    actual = asdict(
+        TestList(a=["first", "second"]),
+        dict_factory=flatten_dict_factory_with_lists,
+    )
+
+    assert actual == {"a": ["first", "second"]}

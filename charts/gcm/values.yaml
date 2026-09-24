@@ -136,6 +136,17 @@ healthChecks:
   #           name: otel-credentials
   #           key: headers
   extraEnv: []
+  # Add selected labels and annotations from active pods on the checked node.
+  kubernetesMetadata:
+    enabled: false
+    # Keys are matched against both pod labels and annotations.
+    # Example: ["example.com/job-id", "example.com/owner"]
+    # The same keys appear under labels or annotations in each JSON-encoded
+    # pod_metadata item, for example:
+    # pod_metadata = [
+    #   '{"annotations":{},"labels":{"example.com/job-id":"job-123","example.com/owner":"alice"},"name":"trainer-0","namespace":"jobs"}'
+    # ]
+    keys: []
   # Prometheus metrics
   prometheus:
     port: 20257
