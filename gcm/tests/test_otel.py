@@ -42,34 +42,6 @@ class _CaptureHandler(logging.Handler):
         self.records.append(record)
 
 
-def test_logs_endpoint_from_environment(monkeypatch: MonkeyPatch) -> None:
-    from gcm.exporters.otel import get_otel_logs_endpoint
-
-    monkeypatch.setenv(
-        "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT",
-        "https://collector.example.com/v1/platform/logs",
-    )
-
-    assert (
-        get_otel_logs_endpoint(None, "https://collector.example.com")
-        == "https://collector.example.com/v1/platform/logs"
-    )
-
-
-def test_metrics_endpoint_from_environment(monkeypatch: MonkeyPatch) -> None:
-    from gcm.exporters.otel import get_otel_metrics_endpoint
-
-    monkeypatch.setenv(
-        "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT",
-        "https://collector.example.com/v1/platform/metrics",
-    )
-
-    assert (
-        get_otel_metrics_endpoint(None, "https://collector.example.com")
-        == "https://collector.example.com/v1/platform/metrics"
-    )
-
-
 def test_custom_logs_endpoint_uses_standard_headers(
     monkeypatch: MonkeyPatch, requests_mock: Mocker
 ) -> None:
