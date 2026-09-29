@@ -28,3 +28,18 @@ class KubernetesClient(Protocol):
 
         If an error occurs during execution, RuntimeError should be raised.
         """
+
+
+def get_pod_node_mapping(
+    client: KubernetesClient,
+    namespace: str = "",
+    label_selector: str = "",
+) -> dict[str, str]:
+    return {
+        pod.name: pod.node_name
+        for pod in client.list_pods(
+            namespace=namespace,
+            label_selector=label_selector,
+        )
+        if pod.name is not None and pod.node_name is not None
+    }

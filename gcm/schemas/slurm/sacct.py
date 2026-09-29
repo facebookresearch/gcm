@@ -20,6 +20,8 @@ class SacctPayload(DerivedCluster):
     time: int
     end_ds: str
     cluster: str
+    sc_host: Optional[str] = None
+    sc_node_hosts: Optional[str] = None
     # Keys documented here: https://slurm.schedmd.com/sacct.html#lbAF
     sacct: dict[Hashable, str]
 

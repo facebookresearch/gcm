@@ -40,6 +40,8 @@ Published with `DataType.LOG`:
     # Enriched Fields
     "cluster": str,                          # Cluster name
     "derived_cluster": str,                  # Sub-cluster (same as cluster if not `--heterogeneous-cluster-v1`)
+    "sc_host": str | None,                   # Kubernetes host for a single-node job
+    "sc_node_hosts": str | None,             # JSON Slurm-node-to-Kubernetes-node map
     "time": int,                             # Collection timestamp (Unix epoch)
     "end_ds": str,                           # Date string in Pacific Time (YYYY-MM-DD)
 }
@@ -68,6 +70,9 @@ Published with `DataType.LOG`:
 | `--sacct-timezone` | String | System timezone | Timezone of sacct timestamps |
 | `--sacct-output-io-errors` | Choice | `strict` | UTF-8 decoding: `strict`, `ignore`, `replace`. Occasionally, user-defined sacct fields (e.g. comment, job name) are not valid utf-8, so we allow the user to choose what should be done in this case |
 | `--ignore-line-errors` | Flag | False | Skip lines with field count mismatches |
+| `--resolve-kubernetes-hosts` | Flag | False | Resolve single-node Slurm pod names to Kubernetes host names |
+| `--kubernetes-namespace` | String | Required when enabled | Kubernetes namespace containing Slurm compute pods |
+| `--kubernetes-label-selector` | String | All pods | Label selector identifying Slurm compute pods |
 
 ## Usage Examples
 
@@ -107,3 +112,33 @@ gcm sacct_publish sacct.txt \
 gcm sacct_backfill new \
   --publish-cmd "gcm sacct_publish --sink graph_api --sink-opts scribe_category=jobs"
 ```
+
+### Kubernetes host enrichment
+
+`sacct_publish` can resolve the Slurm compute pods in `sacct.NodeList` to their
+Kubernetes nodes. It publishes every resolved pair as a JSON object in
+the string column `sc_node_hosts`. When `NodeList` contains exactly one node, it
+also publishes that node as `sc_host`:
+
+```bash
+gcm sacct_publish sacct.txt \
+  --resolve-kubernetes-hosts \
+  --kubernetes-namespace tenant-slurm \
+  --kubernetes-label-selector app.kubernetes.io/component=compute \
+  --sink graph_api \
+  --sink-opts scribe_category=perfpipe_fair_sacct
+```
+
+For example, `g3-130-[015,021]` may produce:
+
+```json
+{"g3-130-015": "sf8gg2h4", "g3-130-021": "sf8gg2h9"}
+```
+
+This requires the `kubernetes` optional dependency and read-only permission to
+list pods in the configured namespace. Multi-node records leave `sc_host` unset
+so that the scalar value is never ambiguous. Missing pods are omitted from the
+JSON map. Kubernetes client or API failures time out after five seconds and do
+not prevent the original `sacct` records from being published. Because
+resolution uses a current pod snapshot, deleted historical pods cannot be
+enriched.

@@ -1,6 +1,7 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 import io
+import json
 import logging
 import sys
 import traceback
@@ -20,7 +21,6 @@ from typing import (
 import click
 import clusterscope
 from gcm.exporters import registry
-
 from gcm.monitoring.click import (
     chunk_size_option,
     click_default_cmd,
@@ -42,17 +42,19 @@ from gcm.monitoring.clock import (
     time_to_time_aware,
     tz_aware_fromisoformat,
 )
+from gcm.monitoring.kubernetes.client import get_pod_node_mapping, KubernetesClient
 from gcm.monitoring.sink.protocol import DataType, SinkAdditionalParams, SinkImpl
 from gcm.monitoring.sink.utils import Factory, HasRegistry
 from gcm.monitoring.slurm.constants import SLURM_CLI_DELIMITER
-
 from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
+from gcm.monitoring.slurm.nodelist_parsers import nodelist
 from gcm.monitoring.utils.monitor import run_data_collection_loop
 from gcm.schemas.slurm.sacct import SacctPayload
 from typeguard import typechecked
 from typing_extensions import Literal
 
 LOGGER_NAME = "sacct_publish"
+KUBERNETES_REQUEST_TIMEOUT_SECONDS = 5.0
 
 logger: logging.Logger = logging.getLogger(
     LOGGER_NAME
@@ -66,6 +68,8 @@ class CliObject(HasRegistry[SinkImpl], Protocol):
 
     def cluster(self) -> str: ...
 
+    def create_kubernetes_client(self) -> KubernetesClient: ...
+
 
 @dataclass
 class CliObjectImpl:
@@ -74,6 +78,14 @@ class CliObjectImpl:
 
     def cluster(self) -> str:
         return clusterscope.cluster()
+
+    def create_kubernetes_client(self) -> KubernetesClient:
+        from gcm.monitoring.kubernetes.api_client import KubernetesApiClient
+
+        return KubernetesApiClient(
+            in_cluster=True,
+            request_timeout_seconds=KUBERNETES_REQUEST_TIMEOUT_SECONDS,
+        )
 
 
 _default_obj: CliObject = CliObjectImpl()
@@ -144,6 +156,24 @@ def print_tb(verbose: bool) -> None:
         "If omitted, uses current system's timezone."
     ),
 )
+@click.option(
+    "--resolve-kubernetes-hosts",
+    is_flag=True,
+    help="Populate sc_host by resolving single-node Slurm records through Kubernetes.",
+)
+@click.option(
+    "--kubernetes-namespace",
+    default="",
+    help=(
+        "Kubernetes namespace containing Slurm compute pods. "
+        "Required with --resolve-kubernetes-hosts."
+    ),
+)
+@click.option(
+    "--kubernetes-label-selector",
+    default="",
+    help="Kubernetes label selector for Slurm compute pods.",
+)
 @click.pass_obj
 @typechecked
 def main(
@@ -163,6 +193,9 @@ def main(
     sacct_output_io_errors: Literal["strict", "ignore", "replace"],
     delimiter: str,
     sacct_timezone: Optional[tzinfo],
+    resolve_kubernetes_hosts: bool,
+    kubernetes_namespace: str,
+    kubernetes_label_selector: str,
 ) -> None:
     """Take the output of sacct SACCT_OUTPUT in the "parsable2" format and write it
     to a sink
@@ -178,6 +211,28 @@ def main(
     fields = sacct_output.readline().strip().split(delimiter)
     # TODO: remove log time from `SacctPayload` dataclass, `Log` dataclass already has log time
     log_time = obj.clock.unixtime()
+    pod_node_mapping: Mapping[str, str] = {}
+    if resolve_kubernetes_hosts:
+        if not kubernetes_namespace:
+            raise click.UsageError(
+                "--kubernetes-namespace is required with " "--resolve-kubernetes-hosts"
+            )
+        try:
+            pod_node_mapping = get_pod_node_mapping(
+                obj.create_kubernetes_client(),
+                namespace=kubernetes_namespace,
+                label_selector=kubernetes_label_selector,
+            )
+            if not pod_node_mapping:
+                logger.warning(
+                    "Kubernetes pod query returned no mapped pods; "
+                    "publishing without sc_host"
+                )
+        except Exception:
+            logger.warning(
+                "Failed to resolve Kubernetes hosts; publishing without sc_host",
+                exc_info=True,
+            )
 
     def sacct_generator_callable(
         cluster: str, interval: int, logger: logging.Logger
@@ -192,6 +247,7 @@ def main(
             log_time=log_time,
             heterogeneous_cluster_v1=heterogeneous_cluster_v1,
             logger=logger,
+            pod_node_mapping=pod_node_mapping,
         )
 
     run_data_collection_loop(
@@ -231,6 +287,7 @@ def generate_sacct_records(
     log_time: int,
     heterogeneous_cluster_v1: bool,
     logger: logging.Logger,
+    pod_node_mapping: Mapping[str, str],
 ) -> Generator[SacctPayload, None, None]:
     i, record_count = 0, 0
     # Start from 2 because we read the header and line numbers start from 1
@@ -244,6 +301,7 @@ def generate_sacct_records(
                 sacct_timezone,
                 log_time,
                 heterogeneous_cluster_v1,
+                pod_node_mapping,
             )
             record_count += 1
         except ValueError as error:
@@ -262,6 +320,7 @@ def to_payload(
     sacct_timezone: Optional[tzinfo],
     log_time: int,
     heterogeneous_cluster_v1: bool,
+    pod_node_mapping: Mapping[str, str],
 ) -> SacctPayload:
     """Convert a line of sacct output to a message payload."""
     values = sacct_line.strip().split(delimiter)
@@ -283,10 +342,49 @@ def to_payload(
     # ds should always be Pacific time (affected by Daylight savings)
     # more info: https://www.internalfb.com/intern/wiki/Dataswarm/Write_Pipeline/Hourly_Partitions/#background
     end_ds = end_time.astimezone(PT).strftime("%Y-%m-%d")
+    node_host_map = resolve_sc_node_host_map(sacct_data, pod_node_mapping)
     return SacctPayload(
         time=log_time,
         end_ds=end_ds,
         cluster=cluster,
         derived_cluster=derived_cluster,
+        sc_host=resolve_sc_host(sacct_data, pod_node_mapping),
+        sc_node_hosts=(
+            json.dumps(node_host_map, sort_keys=True) if node_host_map else None
+        ),
         sacct=sacct_data,
     )
+
+
+def resolve_sc_host(
+    sacct_data: Mapping[Hashable, str],
+    pod_node_mapping: Mapping[str, str],
+) -> Optional[str]:
+    if not pod_node_mapping:
+        return None
+
+    node_list = sacct_data.get("NodeList")
+    if not isinstance(node_list, str):
+        return None
+
+    return pod_node_mapping.get(node_list)
+
+
+def resolve_sc_node_host_map(
+    sacct_data: Mapping[Hashable, str],
+    pod_node_mapping: Mapping[str, str],
+) -> dict[str, str]:
+    if not pod_node_mapping:
+        return {}
+
+    node_list = sacct_data.get("NodeList")
+    if not isinstance(node_list, str):
+        return {}
+
+    nodes, unparsed = nodelist()(node_list)
+    if nodes is None or unparsed:
+        return {}
+
+    return {
+        node: host for node in nodes if (host := pod_node_mapping.get(node)) is not None
+    }

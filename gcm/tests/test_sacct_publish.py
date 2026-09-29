@@ -1,22 +1,31 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 import json
+import logging
 from dataclasses import asdict
 from datetime import datetime
 from importlib.resources import as_file, files
 from pathlib import Path
-from typing import Any, Iterable, List
-from unittest.mock import create_autospec
+from typing import Any, cast, Iterable, List
+from unittest.mock import create_autospec, MagicMock, patch
 
 import pytest
 from _pytest.logging import LogCaptureFixture
 from click.testing import CliRunner
 from gcm.exporters.graph_api import GraphAPI
 from gcm.exporters.stdout import Stdout
-
-from gcm.monitoring.cli.sacct_publish import CliObject, main as sacct_publish_main
+from gcm.monitoring.cli.sacct_publish import (
+    CliObject,
+    CliObjectImpl,
+    KUBERNETES_REQUEST_TIMEOUT_SECONDS,
+    main as sacct_publish_main,
+    resolve_sc_host,
+    resolve_sc_node_host_map,
+)
 from gcm.monitoring.clock import ClockImpl, PT
+from gcm.monitoring.kubernetes.fake_client import KubernetesFakeClient
 from gcm.monitoring.sink.protocol import SinkAdditionalParams
+from gcm.schemas.kubernetes.pod import KubernetesPodRow
 from gcm.schemas.log import Log
 from gcm.tests import data
 
@@ -72,10 +81,273 @@ def stub_obj() -> CliObject:
     }
     stub.clock.unixtime = lambda: TEST_TIME
     stub.cluster.return_value = "cluster_name"
+    stub.create_kubernetes_client.return_value = KubernetesFakeClient()
     return stub
 
 
 class TestSacctPublish:
+    @staticmethod
+    def test_kubernetes_resolution_is_disabled_by_default(stub_obj: CliObject) -> None:
+        runner = CliRunner()
+
+        with as_file(files(data).joinpath("sample-sacct-output.txt")) as path:
+            result = runner.invoke(
+                sacct_publish_main,
+                ["-n", str(path), "--delimiter", "|"],
+                catch_exceptions=False,
+                obj=stub_obj,
+            )
+
+        assert result.exit_code == 0, result.stdout
+        cast(MagicMock, stub_obj.create_kubernetes_client).assert_not_called()
+
+    @staticmethod
+    @patch("gcm.monitoring.kubernetes.api_client.KubernetesApiClient")
+    def test_kubernetes_client_has_bounded_timeout(
+        kubernetes_api_client: MagicMock,
+    ) -> None:
+        CliObjectImpl().create_kubernetes_client()
+
+        kubernetes_api_client.assert_called_once_with(
+            in_cluster=True,
+            request_timeout_seconds=KUBERNETES_REQUEST_TIMEOUT_SECONDS,
+        )
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "node_list, expected",
+        [
+            ("g3-130-015", "sf8gg2h4"),
+            ("g3-130-[015,021]", None),
+            ("None assigned", None),
+            ("unknown-node", None),
+        ],
+    )
+    def test_resolve_sc_host(node_list: str, expected: str | None) -> None:
+        assert (
+            resolve_sc_host(
+                {"NodeList": node_list},
+                {"g3-130-015": "sf8gg2h4"},
+            )
+            == expected
+        )
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "node_list, pod_node_mapping, expected",
+        [
+            (
+                "g3-130-015",
+                {"g3-130-015": "sf8gg2h4"},
+                {"g3-130-015": "sf8gg2h4"},
+            ),
+            (
+                "g3-130-[015,021]",
+                {
+                    "g3-130-015": "sf8gg2h4",
+                    "g3-130-021": "sf8gg2h9",
+                },
+                {
+                    "g3-130-015": "sf8gg2h4",
+                    "g3-130-021": "sf8gg2h9",
+                },
+            ),
+            (
+                "g3-130-[015,021],g3-131-001",
+                {
+                    "g3-130-015": "sf8gg2h4",
+                    "g3-130-021": "sf8gg2h9",
+                    "g3-131-001": "sf8gg3h1",
+                },
+                {
+                    "g3-130-015": "sf8gg2h4",
+                    "g3-130-021": "sf8gg2h9",
+                    "g3-131-001": "sf8gg3h1",
+                },
+            ),
+            (
+                "g3-130-[015,021]",
+                {"g3-130-015": "sf8gg2h4"},
+                {"g3-130-015": "sf8gg2h4"},
+            ),
+            ("None assigned", {"g3-130-015": "sf8gg2h4"}, {}),
+            ("unknown-node", {"g3-130-015": "sf8gg2h4"}, {}),
+        ],
+    )
+    def test_resolve_sc_node_host_map(
+        node_list: str,
+        pod_node_mapping: dict[str, str],
+        expected: dict[str, str],
+    ) -> None:
+        assert (
+            resolve_sc_node_host_map(
+                {"NodeList": node_list},
+                pod_node_mapping,
+            )
+            == expected
+        )
+
+    @staticmethod
+    def test_resolves_kubernetes_host(stub_obj: CliObject) -> None:
+        runner = CliRunner()
+        create_kubernetes_client = cast(MagicMock, stub_obj.create_kubernetes_client)
+        create_kubernetes_client.return_value = KubernetesFakeClient(
+            pods=[
+                KubernetesPodRow(
+                    name="node077",
+                    namespace="tenant-slurm",
+                    node_name="physical-host-1",
+                )
+            ]
+        )
+
+        with as_file(files(data).joinpath("sample-sacct-output.txt")) as path:
+            result = runner.invoke(
+                sacct_publish_main,
+                [
+                    "-n",
+                    "--resolve-kubernetes-hosts",
+                    "--kubernetes-namespace",
+                    "tenant-slurm",
+                    "--kubernetes-label-selector",
+                    "app.kubernetes.io/component=compute",
+                    str(path),
+                    "--delimiter",
+                    "|",
+                ],
+                catch_exceptions=False,
+                obj=stub_obj,
+            )
+
+        assert result.exit_code == 0, result.stdout
+        payload = json.loads(result.stdout.splitlines()[0])
+        message = json.loads(payload["message"])
+        assert message["sc_host"] == "physical-host-1"
+        assert message["sc_node_hosts"] == json.dumps({"node077": "physical-host-1"})
+        create_kubernetes_client.assert_called_once_with()
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "error",
+        [RuntimeError("API unavailable"), ValueError("Invalid client configuration")],
+    )
+    def test_kubernetes_host_resolution_failure_is_nonfatal(
+        stub_obj: CliObject,
+        caplog: LogCaptureFixture,
+        error: Exception,
+    ) -> None:
+        runner = CliRunner()
+        create_kubernetes_client = cast(MagicMock, stub_obj.create_kubernetes_client)
+        create_kubernetes_client.side_effect = error
+
+        with as_file(files(data).joinpath("sample-sacct-output.txt")) as path:
+            result = runner.invoke(
+                sacct_publish_main,
+                [
+                    "-n",
+                    "--resolve-kubernetes-hosts",
+                    "--kubernetes-namespace",
+                    "tenant-slurm",
+                    str(path),
+                    "--delimiter",
+                    "|",
+                ],
+                catch_exceptions=False,
+                obj=stub_obj,
+            )
+
+        assert result.exit_code == 0, result.stdout
+        payload = json.loads(result.stdout.splitlines()[0])
+        message = json.loads(payload["message"])
+        assert message["sc_host"] is None
+        assert message["sc_node_hosts"] is None
+        assert any(record.levelno == logging.WARNING for record in caplog.records)
+
+    @staticmethod
+    def test_kubernetes_pod_list_failure_is_nonfatal(
+        stub_obj: CliObject,
+        caplog: LogCaptureFixture,
+    ) -> None:
+        runner = CliRunner()
+        kubernetes_client = create_autospec(KubernetesFakeClient, instance=True)
+        kubernetes_client.list_pods.side_effect = RuntimeError("API unavailable")
+        create_kubernetes_client = cast(MagicMock, stub_obj.create_kubernetes_client)
+        create_kubernetes_client.return_value = kubernetes_client
+
+        with as_file(files(data).joinpath("sample-sacct-output.txt")) as path:
+            result = runner.invoke(
+                sacct_publish_main,
+                [
+                    "-n",
+                    "--resolve-kubernetes-hosts",
+                    "--kubernetes-namespace",
+                    "tenant-slurm",
+                    str(path),
+                    "--delimiter",
+                    "|",
+                ],
+                catch_exceptions=False,
+                obj=stub_obj,
+            )
+
+        assert result.exit_code == 0, result.stdout
+        payload = json.loads(result.stdout.splitlines()[0])
+        message = json.loads(payload["message"])
+        assert message["sc_host"] is None
+        assert any(record.levelno == logging.WARNING for record in caplog.records)
+
+    @staticmethod
+    def test_empty_kubernetes_mapping_is_nonfatal(
+        stub_obj: CliObject,
+        caplog: LogCaptureFixture,
+    ) -> None:
+        runner = CliRunner()
+
+        with as_file(files(data).joinpath("sample-sacct-output.txt")) as path:
+            result = runner.invoke(
+                sacct_publish_main,
+                [
+                    "-n",
+                    "--resolve-kubernetes-hosts",
+                    "--kubernetes-namespace",
+                    "tenant-slurm",
+                    str(path),
+                    "--delimiter",
+                    "|",
+                ],
+                catch_exceptions=False,
+                obj=stub_obj,
+            )
+
+        assert result.exit_code == 0, result.stdout
+        payload = json.loads(result.stdout.splitlines()[0])
+        message = json.loads(payload["message"])
+        assert message["sc_host"] is None
+        assert any(record.levelno == logging.WARNING for record in caplog.records)
+
+    @staticmethod
+    def test_kubernetes_host_resolution_requires_namespace(
+        stub_obj: CliObject,
+    ) -> None:
+        runner = CliRunner()
+
+        with as_file(files(data).joinpath("sample-sacct-output.txt")) as path:
+            result = runner.invoke(
+                sacct_publish_main,
+                [
+                    "-n",
+                    "--resolve-kubernetes-hosts",
+                    str(path),
+                    "--delimiter",
+                    "|",
+                ],
+                obj=stub_obj,
+            )
+
+        assert result.exit_code != 0
+        assert "--kubernetes-namespace is required" in result.output
+        cast(MagicMock, stub_obj.create_kubernetes_client).assert_not_called()
+
     @staticmethod
     @pytest.mark.parametrize(
         "opts, expected_sink",

@@ -20,7 +20,14 @@ class KubernetesApiClient(KubernetesClient):
     Requires the ``kubernetes`` package: ``pip install kubernetes``.
     """
 
-    def __init__(self, *, in_cluster: bool = True) -> None:
+    _request_timeout_seconds: float | None = None
+
+    def __init__(
+        self,
+        *,
+        in_cluster: bool = True,
+        request_timeout_seconds: float | None = None,
+    ) -> None:
         try:
             import kubernetes  # type: ignore[import-not-found]  # noqa: F401
         except ImportError:
@@ -37,6 +44,7 @@ class KubernetesApiClient(KubernetesClient):
             config.load_kube_config()
 
         self._core_api = client.CoreV1Api()
+        self._request_timeout_seconds = request_timeout_seconds
 
     def list_pods(
         self, namespace: str = "", label_selector: str = ""
@@ -46,10 +54,12 @@ class KubernetesApiClient(KubernetesClient):
                 response = self._core_api.list_namespaced_pod(
                     namespace=namespace,
                     label_selector=label_selector,
+                    _request_timeout=self._request_timeout_seconds,
                 )
             else:
                 response = self._core_api.list_pod_for_all_namespaces(
                     label_selector=label_selector,
+                    _request_timeout=self._request_timeout_seconds,
                 )
         except Exception as e:
             raise RuntimeError(f"Failed to list pods: {e}") from e
@@ -83,7 +93,9 @@ class KubernetesApiClient(KubernetesClient):
 
     def list_node_conditions(self) -> Iterable[KubernetesNodeConditionRow]:
         try:
-            response = self._core_api.list_node()
+            response = self._core_api.list_node(
+                _request_timeout=self._request_timeout_seconds
+            )
         except Exception as e:
             raise RuntimeError(f"Failed to list nodes: {e}") from e
 
