@@ -92,9 +92,13 @@ RUN DCGM_MAJOR="${DCGM_VERSION%%.*}" && \
         DCGM_REPO="ubuntu2004"; \
         DCGM_APT_VER="1:${DCGM_VERSION%%-*}"; \
     fi && \
+    case "$(dpkg --print-architecture)" in \
+        amd64) DCGM_ARCH=x86_64 ;; \
+        arm64) DCGM_ARCH=sbsa ;; \
+    esac && \
     apt-get update && \
     apt-get install -y --no-install-recommends curl && \
-    echo "deb [trusted=yes] https://developer.download.nvidia.com/compute/cuda/repos/${DCGM_REPO}/x86_64/ /" \
+    echo "deb [trusted=yes] https://developer.download.nvidia.com/compute/cuda/repos/${DCGM_REPO}/${DCGM_ARCH}/ /" \
         > /etc/apt/sources.list.d/cuda.list && \
     apt-get -o Acquire::Retries=5 update && \
     apt-get install -y --no-install-recommends "${DCGM_PKG}=${DCGM_APT_VER}" && \
@@ -114,8 +118,8 @@ RUN apt-get update && \
 # Create unversioned libnvidia-ml.so symlink for gni_lib (GPU Node ID).
 # The NVIDIA container runtime injects libnvidia-ml.so.1 but not the
 # unversioned .so, which cffi/dlopen-based libraries need.
-RUN ln -sf /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1 \
-           /usr/lib/x86_64-linux-gnu/libnvidia-ml.so
+RUN ln -sf "/usr/lib/$(uname -m)-linux-gnu/libnvidia-ml.so.1" \
+           "/usr/lib/$(uname -m)-linux-gnu/libnvidia-ml.so"
 
 # Copy installed Python packages from builder
 COPY --from=builder /install /usr/local
