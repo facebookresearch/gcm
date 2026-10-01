@@ -20,14 +20,12 @@ from unittest.mock import create_autospec
 
 import pytest
 from gcm.exporters.graph_api import GraphAPI
-from gcm.monitoring.cli.slurm_job_monitor import as_messages
 from gcm.monitoring.clock import ClockImpl
 from gcm.monitoring.sink.protocol import DataIdentifier, DataType, SinkAdditionalParams
 from gcm.monitoring.slurm.client import SlurmCliClient
 
 from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
 from gcm.schemas.log import Log
-from gcm.schemas.slurm.sinfo_node import NodeData
 from gcm.tests import data
 from gcm.tests.config import Config
 from gcm.tests.conftest import report_url
@@ -52,7 +50,7 @@ class TestPublishSLURMJobMonitor:
         fake_proc.__enter__.return_value = fake_proc
         fake_proc.wait.return_value = 0
 
-        with resources.path(data, "sample-sinfo-output.txt") as p:
+        with resources.path(data, "sample-sinfo-output.json") as p:
             with p.open() as f:
                 fake_proc.stdout = f
                 c = SlurmCliClient(popen=lambda cmd: fake_popen(cmd))
@@ -67,10 +65,7 @@ class TestPublishSLURMJobMonitor:
                 )
                 node_data = Log(
                     ts=int(TEST_UNIXTIME),
-                    message=as_messages(
-                        schema=NodeData,
-                        delimiter="|",
-                        lines=c.sinfo(),
+                    message=c.sinfo(
                         attributes=attributes,
                         derived_cluster_fetcher=derived_cluster_fetcher,
                         logger=logging.getLogger(),
@@ -102,7 +97,7 @@ class TestPublishSLURMJobMonitor:
         fake_proc.__enter__.return_value = fake_proc
         fake_proc.wait.return_value = 0
 
-        with resources.path(data, "sample-sinfo-output.txt") as p:
+        with resources.path(data, "sample-sinfo-output.json") as p:
             with p.open() as f:
                 fake_proc.stdout = f
                 c = SlurmCliClient(popen=lambda cmd: fake_popen(cmd))
@@ -117,10 +112,7 @@ class TestPublishSLURMJobMonitor:
                 )
                 node_data = Log(
                     ts=int(TEST_UNIXTIME),
-                    message=as_messages(
-                        schema=NodeData,
-                        delimiter="|",
-                        lines=c.sinfo(),
+                    message=c.sinfo(
                         attributes=attributes,
                         derived_cluster_fetcher=derived_cluster_fetcher,
                         logger=logging.getLogger(),

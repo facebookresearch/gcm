@@ -39,7 +39,7 @@ The REST client supports all `SlurmClient` Protocol methods except where noted:
 | Method | REST Endpoint | Notes |
 |--------|--------------|-------|
 | `squeue()` | `GET /slurm/{version}/jobs` | Maps REST field names to CLI field names |
-| `sinfo()` | `GET /slurm/{version}/nodes` | Returns pipe-delimited lines |
+| `sinfo()` | `GET /slurm/{version}/nodes` | Returns schema-compatible `NodeData` rows |
 | `sdiag_structured()` | `GET /slurm/{version}/diag` | Returns `Sdiag` dataclass directly |
 | `sinfo_structured()` | `GET /slurm/{version}/nodes` | Returns `Sinfo` dataclass directly |
 | `sacctmgr_qos()` | `GET /slurmdb/{version}/qos` | Returns pipe-delimited lines |
@@ -58,6 +58,8 @@ The REST client supports all `SlurmClient` Protocol methods except where noted:
 ### Basic Usage
 
 ```python
+import logging
+
 from gcm.monitoring.slurm.rest_client import SlurmRestClient
 
 client = SlurmRestClient(
@@ -65,9 +67,13 @@ client = SlurmRestClient(
     token="your-jwt-token",
 )
 
-# Get node information as pipe-delimited lines
-for line in client.sinfo():
-    print(line)
+# Get node information in the same schema used by slurm_job_monitor
+for node in client.sinfo(
+    attributes={"cluster": "example", "collection_unixtime": 0},
+    derived_cluster_fetcher=lambda row: str(row["cluster"]),
+    logger=logging.getLogger(__name__),
+):
+    print(node)
 
 # Get scheduler diagnostics
 diag = client.sdiag_structured()

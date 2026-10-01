@@ -8,6 +8,7 @@ import logging
 import re
 import subprocess
 from dataclasses import fields
+from datetime import datetime, timezone
 from typing import (
     Any,
     Callable,
@@ -23,16 +24,13 @@ from typing import (
 )
 
 import clusterscope
-
 from gcm.monitoring.dataclass_utils import instantiate_dataclass
 from gcm.monitoring.slurm.constants import PENDING_RESOURCE_REASONS, SLURM_CLI_DELIMITER
-
 from gcm.monitoring.slurm.sacct import get_sacct_lines
 from gcm.monitoring.utils.shell import _gen_lines, _popen
-
 from gcm.schemas.slurm.sdiag import Sdiag
 from gcm.schemas.slurm.sinfo import Sinfo
-from gcm.schemas.slurm.sinfo_node import SinfoNode
+from gcm.schemas.slurm.sinfo_node import NodeData, SinfoNode
 from gcm.schemas.slurm.sinfo_row import SinfoRow
 from gcm.schemas.slurm.sprio import SPRIO_FORMAT_SPEC, SPRIO_HEADER
 from gcm.schemas.slurm.squeue import JOB_DATA_SLURM_FIELDS, JobData
@@ -42,6 +40,205 @@ if TYPE_CHECKING:
     from _typeshed import DataclassInstance
 
 logger = logging.getLogger(__name__)
+
+
+def _json_number(value: Any) -> int | None:
+    """Unwrap a Slurm JSON number, including NoVal objects."""
+    if value is None:
+        return None
+    if isinstance(value, dict):
+        if not value.get("set", True) or value.get("infinite", False):
+            return None
+        value = value.get("number")
+    if value is None:
+        return None
+    return int(value)
+
+
+def _json_strings(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    return [str(value)]
+
+
+def _state_suffix(states: set[str]) -> str:
+    for flag, suffix in (
+        ("MAINTENANCE", "$"),
+        ("REBOOT_ISSUED", "^"),
+        ("REBOOT_REQUESTED", "@"),
+        ("POWERING_UP", "#"),
+        ("POWERING_DOWN", "%"),
+        ("POWERED_DOWN", "~"),
+        ("POWER_DOWN", "!"),
+        ("NOT_RESPONDING", "*"),
+    ):
+        if flag in states:
+            return suffix
+    return ""
+
+
+def _base_node_state(state_list: list[str]) -> str:
+    base_states = {
+        "ALLOCATED",
+        "DOWN",
+        "ERROR",
+        "FUTURE",
+        "IDLE",
+        "MIXED",
+        "UNKNOWN",
+    }
+    for state in state_list:
+        if state.upper() in base_states:
+            return state.lower()
+    return state_list[0].lower() if state_list else "unknown"
+
+
+def _drain_or_fail_state(states: set[str], base: str, suffix: str) -> str | None:
+    if "DRAIN" in states:
+        draining = "COMPLETING" in states or base in {"allocated", "mixed"}
+        return ("draining" if draining else "drained") + suffix
+    if "FAIL" in states:
+        failing = "COMPLETING" in states or base == "allocated"
+        return ("failing" if failing else "fail") + suffix
+    return None
+
+
+def _format_node_state(value: Any) -> str:
+    """Render Slurm JSON state tokens like sinfo's long STATE column."""
+    state_list = _json_strings(value)
+    states = {state.upper() for state in state_list}
+    base = _base_node_state(state_list)
+    suffix = _state_suffix(states)
+
+    if "INVALID_REG" in states:
+        return "inval"
+    drain_or_fail_state = _drain_or_fail_state(states, base, suffix)
+    if drain_or_fail_state is not None:
+        return drain_or_fail_state
+    if "MAINTENANCE" in states and base not in {"allocated", "down", "mixed"}:
+        return "maint" + ("*" if "NOT_RESPONDING" in states else "")
+    if "REBOOT_ISSUED" in states and base not in {"allocated", "mixed"}:
+        return "reboot^"
+    if "REBOOT_REQUESTED" in states and base not in {"allocated", "mixed"}:
+        return "reboot" + ("*" if "NOT_RESPONDING" in states else "")
+    if base == "idle" and "RESERVED" in states:
+        return "reserved"
+    if base == "idle" and "PLANNED" in states:
+        return "planned"
+    if base == "allocated" and "COMPLETING" in states and not suffix:
+        return "allocated+"
+    return base + suffix
+
+
+def _format_reason_timestamp(value: Any) -> str:
+    timestamp = _json_number(value)
+    if timestamp is None or timestamp == 0:
+        return "Unknown"
+    return datetime.fromtimestamp(timestamp, tz=timezone.utc).strftime(
+        "%Y-%m-%dT%H:%M:%S"
+    )
+
+
+def _node_partitions(node: Mapping[str, Any]) -> list[str]:
+    partitions = _json_strings(node.get("partitions"))
+    if len(partitions) == 1 and "," in partitions[0]:
+        partitions = partitions[0].split(",")
+    return partitions or [""]
+
+
+def _node_data_from_nodes(
+    nodes: Iterable[Mapping[str, Any]],
+    num_rows: int,
+    derived_cluster_fetcher: Callable[[Mapping[Hashable, str | int]], str],
+    logger: logging.Logger,
+    attributes: Optional[dict[Hashable, Any]] = None,
+) -> Generator[NodeData, None, None]:
+    for node in nodes:
+        for partition in _node_partitions(node):
+            allocated = _json_number(node.get("alloc_cpus")) or 0
+            idle = _json_number(node.get("alloc_idle_cpus", node.get("idle_cpus"))) or 0
+            total = _json_number(node.get("cpus")) or 0
+            free_mem = _json_number(node.get("free_mem"))
+            real_memory = _json_number(node.get("real_memory"))
+            message: dict[Hashable, Any] = {
+                "num_rows": num_rows,
+                **(attributes or {}),
+                "NODELIST": str(node["name"]),
+                "PARTITION": partition,
+                "CPUS(A/I/O/T)": f"{allocated}/{idle}/{max(total - allocated - idle, 0)}/{total}",
+                "FREE_MEM": "" if free_mem is None else str(free_mem),
+                "MEMORY": "" if real_memory is None else str(real_memory),
+                "GRES": str(node.get("gres") or "N/A"),
+                "USER": str(node.get("owner") or "Unknown"),
+                "REASON": str(node.get("reason") or "none"),
+                "TIMESTAMP": _format_reason_timestamp(node.get("reason_changed_at")),
+                "ACTIVE_FEATURES": ",".join(_json_strings(node.get("active_features"))),
+                "STATE": _format_node_state(node.get("state")),
+                "RESERVATION": str(node.get("reservation") or ""),
+            }
+            message["derived_cluster"] = derived_cluster_fetcher(message)
+            yield instantiate_dataclass(NodeData, message, logger=logger)
+
+
+def _nodes_from_sinfo_rows(
+    rows: Iterable[Mapping[str, Any]],
+) -> Generator[dict[str, Any], None, None]:
+    for row in rows:
+        for name in row["nodes"]["nodes"]:
+            yield {
+                "name": name,
+                "partitions": [row["partition"]["name"]],
+                "alloc_cpus": row["cpus"]["allocated"],
+                "alloc_idle_cpus": row["cpus"]["idle"],
+                "cpus": row["cpus"]["total"],
+                "free_mem": row["memory"]["free"]["minimum"],
+                "real_memory": row["memory"]["minimum"],
+                "gres": row["gres"]["total"],
+                "owner": row["reason"]["user"],
+                "reason": row["reason"]["description"],
+                "reason_changed_at": row["reason"]["time"],
+                "active_features": row["features"]["active"],
+                "state": row["node"]["state"],
+                "reservation": row["reservation"],
+            }
+
+
+def node_data_from_sinfo_json(
+    data: Mapping[str, Any],
+    derived_cluster_fetcher: Callable[[Mapping[Hashable, str | int]], str],
+    logger: logging.Logger,
+    attributes: Optional[dict[Hashable, Any]] = None,
+) -> Generator[NodeData, None, None]:
+    """Yield nodes from the versioned sinfo JSON schema."""
+    rows = data.get("sinfo", [])
+    num_rows = sum(len(row["nodes"]["nodes"]) for row in rows)
+    yield from _node_data_from_nodes(
+        _nodes_from_sinfo_rows(rows),
+        num_rows,
+        attributes=attributes,
+        derived_cluster_fetcher=derived_cluster_fetcher,
+        logger=logger,
+    )
+
+
+def node_data_from_slurmrestd_json(
+    data: Mapping[str, Any],
+    derived_cluster_fetcher: Callable[[Mapping[Hashable, str | int]], str],
+    logger: logging.Logger,
+    attributes: Optional[dict[Hashable, Any]] = None,
+) -> Generator[NodeData, None, None]:
+    """Yield nodes from the slurmrestd /nodes response schema."""
+    nodes = data.get("nodes", [])
+    num_rows = sum(len(_node_partitions(node)) for node in nodes)
+    yield from _node_data_from_nodes(
+        nodes,
+        num_rows,
+        attributes=attributes,
+        derived_cluster_fetcher=derived_cluster_fetcher,
+        logger=logger,
+    )
 
 
 def add_pending_resources(message: dict[Any, Any]) -> None:
@@ -71,13 +268,13 @@ class SlurmClient(Protocol):
         If an error occurs during execution, RuntimeError should be raised.
         """
 
-    def sinfo(self) -> Iterable[str]:
-        """Get lines of node information. Each line should be pipe separated.
-        The first line defines the fieldnames. The rest are the rows.
-        Lines should not have a trailing newline.
-
-        If an error occurs during execution, RuntimeError should be raised.
-        """
+    def sinfo(
+        self,
+        derived_cluster_fetcher: Callable[[Mapping[Hashable, str | int]], str],
+        logger: logging.Logger,
+        attributes: Optional[dict[Hashable, Any]] = None,
+    ) -> Generator[NodeData, None, None]:
+        """Get node information in the stable NodeData schema."""
 
     def sdiag_structured(self) -> Sdiag:
         """Get lines of node information. Each line should be pipe separated.
@@ -195,8 +392,19 @@ class SlurmCliClient(SlurmClient):
             logger=logger,
         )
 
-    def sinfo(self) -> Iterable[str]:
-        return _gen_lines(self.__popen(["sinfo", "--all", "-N", "-o", "%all"]))
+    def sinfo(
+        self,
+        derived_cluster_fetcher: Callable[[Mapping[Hashable, str | int]], str],
+        logger: logging.Logger,
+        attributes: Optional[dict[Hashable, Any]] = None,
+    ) -> Generator[NodeData, None, None]:
+        output = "\n".join(_gen_lines(self.__popen(["sinfo", "--all", "-N", "--json"])))
+        return node_data_from_sinfo_json(
+            json.loads(output),
+            attributes=attributes,
+            derived_cluster_fetcher=derived_cluster_fetcher,
+            logger=logger,
+        )
 
     def sdiag_structured(self) -> Sdiag:
         slurm_version = clusterscope.slurm_version()

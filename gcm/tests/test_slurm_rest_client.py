@@ -29,43 +29,63 @@ class TestSlurmRestClient:
         response.json.return_value = json_data
         return response
 
-    def test_sinfo_returns_pipe_delimited_lines(self) -> None:
+    def test_sinfo_returns_node_data(self) -> None:
         session = create_autospec(requests.Session, instance=True)
         session.get.return_value = self._mock_response(
             {
                 "nodes": [
                     {
                         "name": "node01",
-                        "state": "idle",
+                        "state": ["IDLE"],
                         "cpus": 64,
-                        "memory": 256000,
+                        "alloc_cpus": 16,
+                        "alloc_idle_cpus": 48,
+                        "real_memory": 256000,
+                        "partitions": ["learn"],
                     },
                     {
                         "name": "node02",
-                        "state": "allocated",
+                        "state": ["ALLOCATED"],
                         "cpus": 128,
-                        "memory": 512000,
+                        "alloc_cpus": 128,
+                        "alloc_idle_cpus": 0,
+                        "real_memory": 512000,
+                        "partitions": ["learn"],
                     },
                 ]
             }
         )
 
         client = self._make_client(session)
-        lines = list(client.sinfo())
+        nodes = list(
+            client.sinfo(
+                attributes={"cluster": "test", "collection_unixtime": 123},
+                derived_cluster_fetcher=lambda row: str(row["cluster"]),
+                logger=logging.getLogger(),
+            )
+        )
 
-        assert len(lines) == 3
-        assert lines[0] == "name|state|cpus|memory"
-        assert lines[1] == "node01|idle|64|256000"
-        assert lines[2] == "node02|allocated|128|512000"
+        assert len(nodes) == 2
+        assert nodes[0].NODE_NAME == "node01"
+        assert nodes[0].CPUS_ALLOCATED == 16
+        assert nodes[0].CPUS_IDLE == 48
+        assert nodes[0].MEMORY == 256_000_000_000
+        assert nodes[1].NODE_NAME == "node02"
+        assert nodes[1].STATE == "allocated"
 
     def test_sinfo_empty_returns_empty(self) -> None:
         session = create_autospec(requests.Session, instance=True)
         session.get.return_value = self._mock_response({"nodes": []})
 
         client = self._make_client(session)
-        lines = list(client.sinfo())
+        nodes = list(
+            client.sinfo(
+                derived_cluster_fetcher=lambda row: "test",
+                logger=logging.getLogger(),
+            )
+        )
 
-        assert lines == []
+        assert nodes == []
 
     def _sdiag_stats(self) -> dict:
         return {
@@ -240,8 +260,12 @@ class TestSlurmRestClient:
         client = self._make_client(session)
 
         with pytest.raises(RuntimeError, match="500"):
-            # sinfo is a generator; must iterate to trigger _get()
-            list(client.sinfo())
+            list(
+                client.sinfo(
+                    derived_cluster_fetcher=lambda row: "test",
+                    logger=logging.getLogger(),
+                )
+            )
 
     def test_sinfo_structured_returns_sinfo(self) -> None:
         session = create_autospec(requests.Session, instance=True)

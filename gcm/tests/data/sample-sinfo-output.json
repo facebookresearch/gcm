@@ -1,0 +1,88 @@
+{
+  "meta": {
+    "plugin": {
+      "data_parser": "data_parser/v0.0.43"
+    },
+    "slurm": {
+      "version": {
+        "major": "25",
+        "minor": "05",
+        "micro": "1"
+      },
+      "release": "25.05.1"
+    },
+    "command": ["sinfo", "--all", "-N"]
+  },
+  "sinfo": [
+    {
+      "node": {"state": ["IDLE", "DRAIN", "NOT_RESPONDING"]},
+      "nodes": {"nodes": ["node0201"], "hostnames": []},
+      "cpus": {"allocated": 0, "idle": 0, "other": 80, "total": 80},
+      "memory": {
+        "minimum": 500000,
+        "free": {
+          "minimum": {"set": false, "infinite": false, "number": 0}
+        }
+      },
+      "features": {"active": "gen,bldg1,ib4"},
+      "gres": {"total": "gpu:gen:8"},
+      "reason": {
+        "description": "prolog: Missing NFS mounts: none | Unresponsive NFS mounts: /shared/conda_envs",
+        "time": 1654149274,
+        "user": "root"
+      },
+      "reservation": "",
+      "partition": {"name": "partition"}
+    },
+    {
+      "node": {"state": ["IDLE", "DRAIN", "NOT_RESPONDING"]},
+      "nodes": {"nodes": ["node0201"], "hostnames": []},
+      "cpus": {"allocated": 0, "idle": 0, "other": 80, "total": 80},
+      "memory": {
+        "minimum": 500000,
+        "free": {
+          "minimum": {"set": false, "infinite": false, "number": 0}
+        }
+      },
+      "features": {"active": "gen,bldg1,ib4"},
+      "gres": {"total": "gpu:gen:8"},
+      "reason": {"description": "replace", "time": 1654149274, "user": "root"},
+      "reservation": "test_reservation",
+      "partition": {"name": "partition"}
+    },
+    {
+      "node": {"state": ["ALLOCATED"]},
+      "nodes": {"nodes": ["node1537"], "hostnames": []},
+      "cpus": {"allocated": 80, "idle": 0, "other": 0, "total": 80},
+      "memory": {
+        "minimum": 500000,
+        "free": {
+          "minimum": {"set": true, "infinite": false, "number": 210288}
+        }
+      },
+      "features": {"active": "gen,bldg2,ib4"},
+      "gres": {"total": "gpu:gen:8(S:0-1)"},
+      "reason": {"description": "", "time": 0, "user": ""},
+      "reservation": "test_reservation",
+      "partition": {"name": "partition"}
+    },
+    {
+      "node": {"state": ["ALLOCATED"]},
+      "nodes": {"nodes": ["node4180"], "hostnames": []},
+      "cpus": {"allocated": 80, "idle": 0, "other": 0, "total": 80},
+      "memory": {
+        "minimum": 500000,
+        "free": {
+          "minimum": {"set": true, "infinite": false, "number": 449512}
+        }
+      },
+      "features": {"active": "gen,bldg1,ib1,gpu2"},
+      "gres": {"total": "gpu:gen:2(S:0-1)"},
+      "reason": {"description": "", "time": 0, "user": ""},
+      "reservation": "test_reservation",
+      "partition": {"name": "partition"}
+    }
+  ],
+  "errors": [],
+  "warnings": []
+}

@@ -16,11 +16,15 @@ from typing import (
 
 import requests
 from gcm.monitoring.dataclass_utils import instantiate_dataclass
-from gcm.monitoring.slurm.client import add_pending_resources, SlurmClient
+from gcm.monitoring.slurm.client import (
+    add_pending_resources,
+    node_data_from_slurmrestd_json,
+    SlurmClient,
+)
 from gcm.monitoring.slurm.constants import SLURM_CLI_DELIMITER
 from gcm.schemas.slurm.sdiag import Sdiag
 from gcm.schemas.slurm.sinfo import Sinfo
-from gcm.schemas.slurm.sinfo_node import SinfoNode
+from gcm.schemas.slurm.sinfo_node import NodeData, SinfoNode
 from gcm.schemas.slurm.squeue import JobData, REST_TO_SQUEUE_FIELD_MAP
 from gcm.schemas.slurm.sshare import SshareRow
 
@@ -100,15 +104,19 @@ class SlurmRestClient(SlurmClient):
             row["derived_cluster"] = derived_cluster_fetcher(row)
             yield instantiate_dataclass(JobData, row, logger=logger)
 
-    def sinfo(self) -> Iterable[str]:
+    def sinfo(
+        self,
+        derived_cluster_fetcher: Callable[[Mapping[Hashable, str | int]], str],
+        logger: logging.Logger,
+        attributes: Optional[dict[Hashable, Any]] = None,
+    ) -> Generator[NodeData, None, None]:
         data = self._get(f"/slurm/{self.api_version}/nodes")
-        nodes = data.get("nodes", [])
-        if not nodes:
-            return []
-        field_names = list(dict.fromkeys(k for node in nodes for k in node.keys()))
-        yield "|".join(field_names)
-        for node in nodes:
-            yield "|".join(str(node.get(f, "")) for f in field_names)
+        return node_data_from_slurmrestd_json(
+            data,
+            attributes=attributes,
+            derived_cluster_fetcher=derived_cluster_fetcher,
+            logger=logger,
+        )
 
     def sdiag_structured(self) -> Sdiag:
         data = self._get(f"/slurm/{self.api_version}/diag")

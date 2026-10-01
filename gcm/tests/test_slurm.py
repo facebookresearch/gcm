@@ -3,6 +3,7 @@
 import json
 import logging
 import subprocess
+from dataclasses import asdict, fields
 from functools import partial
 from importlib import resources
 from unittest.mock import create_autospec, MagicMock, patch
@@ -14,7 +15,7 @@ from gcm.monitoring.slurm.client import SlurmCliClient
 from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
 
 from gcm.schemas.slurm.sinfo import Sinfo
-from gcm.schemas.slurm.sinfo_node import SinfoNode
+from gcm.schemas.slurm.sinfo_node import NodeData, SinfoNode
 from gcm.schemas.slurm.squeue import _truncated_nodelist, JobData
 from gcm.tests import data
 
@@ -351,9 +352,52 @@ class TestSlurmCliClient:
         c = SlurmCliClient(popen=lambda cmd: fake_popen(cmd))
 
         with pytest.raises(RuntimeError):
-            c.sinfo()
+            c.sinfo(
+                derived_cluster_fetcher=lambda row: TEST_CLUSTER,
+                logger=logging.getLogger(),
+            )
 
         fake_popen.assert_called_once()
+
+    @staticmethod
+    def test_sinfo_json_preserves_node_data_schema_and_pipe_reason() -> None:
+        fake_popen = create_autospec(subprocess.Popen)
+        fake_proc = fake_popen.return_value
+        fake_proc.__enter__.return_value = fake_proc
+        fake_proc.wait.return_value = 0
+
+        with resources.open_text(data, "sample-sinfo-output.json") as f:
+            fake_proc.stdout = f
+            client = SlurmCliClient(popen=lambda cmd: fake_popen(cmd))
+            actual = list(
+                client.sinfo(
+                    attributes={
+                        "cluster": TEST_CLUSTER,
+                        "collection_unixtime": 123,
+                    },
+                    derived_cluster_fetcher=lambda row: f"{row['cluster']}.{row['PARTITION']}",
+                    logger=logging.getLogger(),
+                )
+            )
+
+        fake_popen.assert_called_once_with(["sinfo", "--all", "-N", "--json"])
+        assert len(actual) == 4
+        assert actual[0].num_rows == 4
+        assert actual[0].REASON == (
+            "prolog: Missing NFS mounts: none | "
+            "Unresponsive NFS mounts: /shared/conda_envs"
+        )
+        assert actual[0].NUM_GPUS == 8
+        assert actual[0].STATE == "drained*"
+        assert actual[0].PARTITION == "partition"
+        assert actual[0].derived_cluster == f"{TEST_CLUSTER}.partition"
+        assert actual[0].TIMESTAMP == "2022-06-02T05:54:34"
+        assert actual[1].CPUS_OTHER == 80
+        assert actual[2].FREE_MEM == 210_288_000_000
+        assert actual[2].TIMESTAMP == "Unknown"
+        assert actual[3].NODE_NAME == "node4180"
+        assert actual[3].FREE_MEM == 449_512_000_000
+        assert set(asdict(actual[0])) == {field.name for field in fields(NodeData)}
 
     @staticmethod
     @pytest.mark.parametrize(

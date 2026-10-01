@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-
 from functools import partial
 from typing import (
     Callable,
@@ -28,7 +27,6 @@ from typing import (
 import click
 import clusterscope
 from gcm.exporters import registry
-
 from gcm.monitoring.click import (
     chunk_size_option,
     click_default_cmd,
@@ -57,7 +55,6 @@ from gcm.monitoring.slurm.client import SlurmCliClient, SlurmClient
 from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
 from gcm.monitoring.utils.monitor import run_data_collection_loop
 from gcm.monitoring.utils.parsing.stdout import parse_delimited
-from gcm.schemas.slurm.sinfo_node import NodeData
 from typeguard import typechecked
 
 if TYPE_CHECKING:
@@ -139,10 +136,7 @@ def main(
         }
         collection_unixtime = obj.clock.unixtime()
         attributes["collection_unixtime"] = collection_unixtime
-        return as_messages(
-            schema=NodeData,
-            delimiter="|",
-            lines=obj.slurm_client.sinfo(),
+        yield from obj.slurm_client.sinfo(
             attributes=attributes,
             derived_cluster_fetcher=derived_cluster_fetcher,
             logger=logger,

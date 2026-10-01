@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import (
     Any,
     Callable,
+    Generator,
     Hashable,
     Iterable,
     List,
@@ -24,13 +25,17 @@ from unittest.mock import MagicMock
 import pytest
 from click.testing import CliRunner
 from gcm.exporters.stdout import Stdout
-
 from gcm.monitoring.cli.slurm_job_monitor import CliObject, main
 from gcm.monitoring.clock import Clock, time_to_time_aware
 from gcm.monitoring.sink.protocol import SinkImpl
 from gcm.monitoring.sink.utils import Factory
-from gcm.monitoring.slurm.client import SlurmCliClient, SlurmClient
+from gcm.monitoring.slurm.client import (
+    node_data_from_sinfo_json,
+    SlurmCliClient,
+    SlurmClient,
+)
 from gcm.monitoring.utils.parsing.stdout import parse_delimited
+from gcm.schemas.slurm.sinfo_node import NodeData
 from gcm.tests import data
 from gcm.tests.fakes import FakeClock
 from typeguard import typechecked
@@ -147,10 +152,19 @@ class FakeSlurmClient(SlurmCliClient):
             logger=logging.getLogger(),
         )
 
-    def sinfo(self) -> Iterable[str]:
-        with resources.open_text(data, "sample-sinfo-output.txt") as f:
-            for line in f:
-                yield line.rstrip("\n")
+    def sinfo(
+        self,
+        derived_cluster_fetcher: Callable[[Mapping[Hashable, str | int]], str],
+        logger: logging.Logger,
+        attributes: Optional[dict[Hashable, Any]] = None,
+    ) -> Generator[NodeData, None, None]:
+        with resources.open_text(data, "sample-sinfo-output.json") as f:
+            return node_data_from_sinfo_json(
+                json.load(f),
+                attributes=attributes,
+                derived_cluster_fetcher=derived_cluster_fetcher,
+                logger=logger,
+            )
 
 
 @dataclass
@@ -181,7 +195,10 @@ def test_cli(tmp_path: Path) -> None:
             "NODE_NAME": "node0201",
             "PARTITION": "partition",
             "USER": "root",
-            "REASON": "replace",
+            "REASON": (
+                "prolog: Missing NFS mounts: none | "
+                "Unresponsive NFS mounts: /shared/conda_envs"
+            ),
             "TIMESTAMP": "2022-06-02T05:54:34",
             "ACTIVE_FEATURES": "gen,bldg1,ib4",
             "STATE": "drained*",
@@ -538,6 +555,6 @@ def test_cli(tmp_path: Path) -> None:
     )
 
     lines = result.stdout.strip().split("\n")
-    assert len(lines) == 3
-    assert json.loads(lines[1]) == expected_node_info
-    assert json.loads(lines[2]) == expected_job_info
+    assert len(lines) == 2
+    assert json.loads(lines[0]) == expected_node_info
+    assert json.loads(lines[1]) == expected_job_info
