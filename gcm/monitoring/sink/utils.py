@@ -36,7 +36,6 @@ import click
 from gcm.monitoring.decorators import exponential_backoff, OutOfRetries, retry
 from gcm.monitoring.itertools import chunk_by_json_size, json_dumps_dataclass
 from gcm.monitoring.sink.protocol import SinkAdditionalParams, SinkImpl, SinkWrite
-
 from gcm.schemas.log import Log
 
 if TYPE_CHECKING:
@@ -370,9 +369,6 @@ def write_to_sink_with_retries(
         raise click.ClickException(
             f"Failed even after retrying {retries} times. Please try again later."
         ) from e
-    except ValueError as e:
-        print_tb(verbose)
-        raise click.UsageError(str(e)) from e
     except Exception as e:
         print_tb(verbose)
         raise click.ClickException(
