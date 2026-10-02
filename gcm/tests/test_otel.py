@@ -7,6 +7,8 @@ from unittest.mock import MagicMock
 
 from gcm.monitoring.sink.protocol import DataType, SinkAdditionalParams
 from gcm.schemas.log import Log
+from pytest import MonkeyPatch
+from requests_mock import Mocker
 
 if TYPE_CHECKING:
     from gcm.exporters.otel import Otel
@@ -38,6 +40,63 @@ class _CaptureHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         self.records.append(record)
+
+
+def test_logs_endpoint_from_environment(monkeypatch: MonkeyPatch) -> None:
+    from gcm.exporters.otel import get_otel_logs_endpoint
+
+    monkeypatch.setenv(
+        "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT",
+        "https://collector.example.com/v1/platform/logs",
+    )
+
+    assert (
+        get_otel_logs_endpoint(None, "https://collector.example.com")
+        == "https://collector.example.com/v1/platform/logs"
+    )
+
+
+def test_metrics_endpoint_from_environment(monkeypatch: MonkeyPatch) -> None:
+    from gcm.exporters.otel import get_otel_metrics_endpoint
+
+    monkeypatch.setenv(
+        "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT",
+        "https://collector.example.com/v1/platform/metrics",
+    )
+
+    assert (
+        get_otel_metrics_endpoint(None, "https://collector.example.com")
+        == "https://collector.example.com/v1/platform/metrics"
+    )
+
+
+def test_custom_logs_endpoint_uses_standard_headers(
+    monkeypatch: MonkeyPatch, requests_mock: Mocker
+) -> None:
+    from gcm.exporters.otel import Otel
+
+    endpoint = "https://collector.example.com/v1/platform/logs"
+    requests_mock.post(endpoint, content=b"")
+    monkeypatch.setenv("OTEL_EXPORTER_OTLP_LOGS_ENDPOINT", endpoint)
+    monkeypatch.setenv(
+        "OTEL_EXPORTER_OTLP_LOGS_HEADERS", "Authorization=Bearer%20test-token"
+    )
+    otel = Otel(
+        otel_endpoint="https://collector.example.com",
+        otel_timeout=1,
+    )
+
+    try:
+        otel.write(
+            Log(ts=42, message=[_OtelDummyMsg(field_a=7)]),
+            SinkAdditionalParams(data_type=DataType.LOG),
+        )
+    finally:
+        otel.shutdown()
+
+    assert requests_mock.last_request is not None
+    assert requests_mock.last_request.url == endpoint
+    assert requests_mock.last_request.headers["Authorization"] == "Bearer test-token"
 
 
 class TestOtelLoggerBehavior:

@@ -11,18 +11,34 @@ import pytest
 from click import Path
 from click.testing import CliRunner
 from gcm.exporters.graph_api import GraphAPI
-from gcm.health_checks.check_utils.telem import TelemetryContext
+from gcm.health_checks.check_utils.kubernetes_metadata import KubernetesMetadata
+from gcm.health_checks.check_utils.telem import get_telemetry_record, TelemetryContext
 from gcm.health_checks.types import ExitCode
 from gcm.monitoring.meta_utils.scribe import ScribeConfig, write_messages
 from gcm.monitoring.meta_utils.scuba import ScubaMessage
 from gcm.monitoring.sink.protocol import DataType, SinkAdditionalParams, SinkImpl
 from gcm.monitoring.sink.utils import Factory, make_register, Register
 from gcm.monitoring.utils.monitor import init_logger
-
 from gcm.schemas.health_check.health_check_name import HealthCheckName
 from gcm.schemas.health_check.log import HealthCheckLog
 from gcm.schemas.log import Log
 from gcm.tests.config import Config
+
+
+def test_health_check_record_includes_kubernetes_metadata() -> None:
+    pod = '{"labels":{"example.com/job-id":"job-abc"},"name":"worker-0","namespace":"jobs"}'
+    record = get_telemetry_record(
+        cluster="cluster",
+        derived_cluster="cluster",
+        type="app",
+        health_check="check xid",
+        node="gpu-1",
+        gpu_node_id="gpu-node-id",
+        exit_code=ExitCode.WARN,
+        kubernetes_metadata=KubernetesMetadata(pods=[pod]),
+    )
+
+    assert record.pod_metadata == [pod]
 
 
 def test_push_to_scribe(config: Config) -> None:
