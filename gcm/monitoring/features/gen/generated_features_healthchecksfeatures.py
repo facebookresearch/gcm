@@ -45,6 +45,20 @@ class FeatureValueHealthChecksFeatures:
 
         return features
 
+    def get_healthchecksfeatures_disable_check_pantheon(self) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_check_pantheon", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_check_pantheon, got {type(value).__name__} instead."
+            )
+        return value
+
     def get_healthchecksfeatures_disable_check_ssh_certs(self) -> bool:
         try:
             features = self.load_config()
