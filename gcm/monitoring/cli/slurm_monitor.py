@@ -111,7 +111,6 @@ def get_slurm_log(
     jobs_running = None
     jobs_without_user = None
 
-    # TODO(T158094822): Re-enable once `cluster_monitor` has fair cluster access
     # runaway_jobs = slurm_client.count_runaway_jobs()
     runaway_jobs = None
 
