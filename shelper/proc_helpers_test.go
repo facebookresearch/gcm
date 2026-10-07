@@ -275,9 +275,9 @@ func TestParseProcEnvStrToMap(t *testing.T) {
 			},
 		},
 		{
-			name:     "without trailing null byte",
-			env:      "VAR1=value1VAR2=value2\x00",
-			expected: map[string]string{},
+			name:     "value containing equals without trailing null byte",
+			env:      "VAR1=value1VAR2=value2",
+			expected: map[string]string{"VAR1": "value1VAR2=value2"},
 		},
 		{
 			name: "with empty string between null bytes",

@@ -40,9 +40,9 @@ func parseVarFromProcEnvStr(env string, varName string) (string, error) {
 		if line == "" {
 			continue
 		}
-		parts := strings.Split(line, "=")
+		parts := strings.SplitN(line, "=", 2)
 		if len(parts) != 2 {
-			log.Printf("Warning: proc environ line: '%s' does not conform to expected format", line)
+			continue
 		} else if parts[0] == varName {
 			return parts[1], nil
 		}
@@ -59,11 +59,9 @@ func parseProcEnvStrToMap(env string) map[string]string {
 		if line == "" {
 			continue
 		}
-		parts := strings.Split(line, "=")
+		parts := strings.SplitN(line, "=", 2)
 		if len(parts) == 2 {
 			envMap[parts[0]] = parts[1]
-		} else {
-			log.Printf("Warning: '%s' does not conform to expected format", line)
 		}
 	}
 	return envMap
