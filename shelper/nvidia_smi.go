@@ -4,16 +4,17 @@ package shelper
 
 import (
 	"bufio"
-	"fmt"
+	"context"
 	"log"
 	"os/exec"
+	"strconv"
 	"strings"
+	"time"
 )
 
-// In the future we should use `nvidia-smi --query-compute-apps=pid,gpu_uuid --format=csv,noheader` since this is a "structured" output
-// For now we rely on parsing pmon's text output because the "preferable" approach above only provides the GPU UUID, not the index.
-// Currently the logic to correlate SLURM metadata with DCGM metrics is based on the GPU index, not the UUID.
-const NvidiaSmiGetPidsCommand = "nvidia-smi pmon -c 1 | awk '{print $2}' | tail -n +3"
+// Keep both GPU index and PID: pmon may emit multiple rows for one GPU,
+// and row position is not a GPU index. DCGM uses the physical GPU index.
+const NvidiaSmiGetPidsCommand = "nvidia-smi pmon -c 1"
 
 func GetGPU2SlurmFromNvml(GPU2Slurm map[string]SlurmMetadata) {
 	output, err := executeGpuPidsCommand()
@@ -21,26 +22,38 @@ func GetGPU2SlurmFromNvml(GPU2Slurm map[string]SlurmMetadata) {
 		log.Printf("GetGPU2SlurmFromNvml error executing command to get PIDs running on the GPUs: %s\n", err)
 		return
 	}
-	log.Printf("GetGPU2SlurmFromNvml output: %s\n", output)
 	gpuToPid := parseNvidiaSmiGetPidsCommand(output)
-	// for each PID, call `parseSlurmMetadataFromProcEnv` and map the corresponding GPU to the Slurm metadata
-	for gpuID, pid := range gpuToPid {
-		if pid == "" {
-			continue
+	for gpuID, pids := range gpuToPid {
+		if metadata, ok := metadataForGPU(pids, parseSlurmMetadataFromProcEnv); ok {
+			GPU2Slurm[gpuID] = metadata
 		}
-		slurmMetadata, err := parseSlurmMetadataFromProcEnv(pid)
-		if err != nil {
-			log.Printf("GetGPU2SlurmFromNvml error parsing Slurm metadata for PID %s: %s\n", pid, err)
-			GPU2Slurm[gpuID] = SlurmMetadata{}
-			continue
-		}
-		GPU2Slurm[gpuID] = slurmMetadata
 	}
 }
 
+// A GPU can run several processes belonging to the same allocation. Only
+// attribute a GPU when every observed process agrees on its Slurm metadata.
+// Missing/disappearing processes and different jobs must not pick an arbitrary
+// owner for a whole-GPU measurement.
+func metadataForGPU(pids []string, readMetadata func(string) (SlurmMetadata, error)) (SlurmMetadata, bool) {
+	var metadata SlurmMetadata
+	for i, pid := range pids {
+		current, err := readMetadata(pid)
+		if err != nil || current.JobID == "" {
+			return SlurmMetadata{}, false
+		}
+		if i > 0 && current != metadata {
+			return SlurmMetadata{}, false
+		}
+		metadata = current
+	}
+	return metadata, len(pids) > 0
+}
+
 func executeGpuPidsCommand() (string, error) {
-	// Execute the nvidia-smi command to get PIDs running on GPUs
-	cmd := exec.Command("sh", "-c", NvidiaSmiGetPidsCommand)
+	// Do not let an unresponsive driver stall the metrics pipeline indefinitely.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "nvidia-smi", "pmon", "-c", "1")
 	outputBytes, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", err
@@ -48,24 +61,21 @@ func executeGpuPidsCommand() (string, error) {
 	return string(outputBytes), nil
 }
 
-func parseNvidiaSmiGetPidsCommand(output string) map[string]string {
-	gpuToPid := make(map[string]string)
-	// Parse the output line by line
+func parseNvidiaSmiGetPidsCommand(output string) map[string][]string {
+	gpuToPid := make(map[string][]string)
 	scanner := bufio.NewScanner(strings.NewReader(output))
-	gpuID := 0
 	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		// Extract numerical values until a non-numerical character
-		var numStr string
-		for _, char := range line {
-			if char >= '0' && char <= '9' {
-				numStr += string(char)
-			} else {
-				break
-			}
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < 2 {
+			continue
 		}
-		gpuToPid[fmt.Sprintf("%d", gpuID)] = numStr
-		gpuID++
+		gpu, gpuErr := strconv.Atoi(fields[0])
+		pid, pidErr := strconv.Atoi(fields[1])
+		if gpuErr != nil || pidErr != nil || gpu < 0 || pid <= 0 {
+			continue
+		}
+		gpuID := strconv.Itoa(gpu)
+		gpuToPid[gpuID] = append(gpuToPid[gpuID], strconv.Itoa(pid))
 	}
 
 	return gpuToPid

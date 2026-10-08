@@ -3,131 +3,75 @@
 package shelper
 
 import (
-	"bufio"
-	"fmt"
+	"errors"
 	"reflect"
-	"strings"
 	"testing"
 )
 
 func TestParseNvidiaSmiGetPidsCommand(t *testing.T) {
-	tests := []struct {
-		name     string
-		input    string
-		expected map[string]string
-	}{
-		{
-			name: "Normal output with PIDs and dashes",
-			input: `123
--
-456
--
--
--
--
--`,
-			expected: map[string]string{
-				"0": "123",
-				"1": "",
-				"2": "456",
-				"3": "",
-				"4": "",
-				"5": "",
-				"6": "",
-				"7": "",
-			},
-		},
-		{
-			name: "Output with all PIDs",
-			input: `123
-456
-789
-101
-202
-303
-404
-505`,
-			expected: map[string]string{
-				"0": "123",
-				"1": "456",
-				"2": "789",
-				"3": "101",
-				"4": "202",
-				"5": "303",
-				"6": "404",
-				"7": "505",
-			},
-		},
-		{
-			name: "Output with all dashes",
-			input: `-
--
--
--`,
-			expected: map[string]string{
-				"0": "",
-				"1": "",
-				"2": "",
-				"3": "",
-			},
-		},
-		{
-			name: "Output with non-numerical characters",
-			input: `123abc
--def
-456ghi
--jkl`,
-			expected: map[string]string{
-				"0": "123",
-				"1": "",
-				"2": "456",
-				"3": "",
-			},
-		},
-		{
-			name:     "Empty output",
-			input:    "",
-			expected: map[string]string{},
-		},
+	input := `# gpu pid type sm mem enc dec command
+# Idx # C/G % % % % name
+0 123 C 0 0 - - python
+0 124 C 0 0 - - python
+1 - - - - - - -
+3 456 C 0 0 - - python
+7 789 C 0 0 - - python
+invalid output
+2 123abc C 0 0 - - invalid
+-1 999 C 0 0 - - invalid
+2 0 C 0 0 - - invalid
+`
+	want := map[string][]string{"0": {"123", "124"}, "3": {"456"}, "7": {"789"}}
+	if got := parseNvidiaSmiGetPidsCommand(input); !reflect.DeepEqual(got, want) {
+		t.Fatalf("GPU process mapping = %v, want %v", got, want)
 	}
+	if got := parseNvidiaSmiGetPidsCommand(""); len(got) != 0 {
+		t.Fatalf("empty output mapped to %v", got)
+	}
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Create a modified version of parseNvidiaSmiGetPidsCommand that doesn't call executeGpuPidsCommand
-			result := parseNvidiaSmiGetPidsCommandForTest(tt.input)
-
-			if !reflect.DeepEqual(result, tt.expected) {
-				t.Errorf("parseNvidiaSmiGetPidsCommand() = %v, want %v", result, tt.expected)
+func TestMetadataForGPU(t *testing.T) {
+	job := SlurmMetadata{JobID: "42", JobName: "train=a", User: "alice", Account: "research", Partition: "gpu", QOS: "normal"}
+	otherJob := job
+	otherJob.JobID = "43"
+	for _, tc := range []struct {
+		name string
+		pids []string
+		want bool
+	}{
+		{"one process", []string{"1"}, true},
+		{"multiple processes same job", []string{"1", "2"}, true},
+		{"different jobs sharing GPU", []string{"1", "3"}, false},
+		{"process without Slurm metadata", []string{"1", "4"}, false},
+		{"process disappeared", []string{"1", "5"}, false},
+		{"idle GPU", nil, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, ok := metadataForGPU(tc.pids, func(pid string) (SlurmMetadata, error) {
+				switch pid {
+				case "1", "2":
+					return job, nil
+				case "3":
+					return otherJob, nil
+				case "4":
+					return SlurmMetadata{}, nil
+				default:
+					return SlurmMetadata{}, errors.New("process exited")
+				}
+			})
+			if ok != tc.want || (ok && got != job) {
+				t.Fatalf("metadata = %+v, attributed = %v; want attributed = %v", got, ok, tc.want)
 			}
 		})
 	}
 }
 
-// parseNvidiaSmiGetPidsCommandForTest is a test-friendly version of parseNvidiaSmiGetPidsCommand
-// that doesn't call executeGpuPidsCommand and instead uses the provided input
-func parseNvidiaSmiGetPidsCommandForTest(output string) map[string]string {
-	gpuToPid := make(map[string]string)
-
-	// Parse the output line by line
-	scanner := bufio.NewScanner(strings.NewReader(output))
-	gpuID := 0
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-
-		// Extract numerical values until a non-numerical character
-		var numStr string
-		for _, char := range line {
-			if char >= '0' && char <= '9' {
-				numStr += string(char)
-			} else {
-				break
-			}
-		}
-
-		// Add to map (empty string if no numerical value found)
-		gpuToPid[fmt.Sprintf("%d", gpuID)] = numStr
-		gpuID++
+func TestProcEnvironmentValuesContainingEquals(t *testing.T) {
+	env := "SLURM_JOB_ID=42\x00SLURM_JOB_NAME=train=a=b\x00MALFORMED\x00"
+	if got := parseProcEnvStrToMap(env)["SLURM_JOB_NAME"]; got != "train=a=b" {
+		t.Fatalf("job name = %q", got)
 	}
-
-	return gpuToPid
+	if got, err := parseVarFromProcEnvStr(env, "SLURM_JOB_NAME"); err != nil || got != "train=a=b" {
+		t.Fatalf("job name = %q, error = %v", got, err)
+	}
 }
