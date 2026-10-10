@@ -240,10 +240,48 @@ class TestProcessIBCounters:
             throughput={},
         )
         result = process_ib_counters([pc], warn_threshold=0, crit_threshold=100)
+        assert result.check_status == ExitCode.CRITICAL
         assert len(result.long_out) == 1
         assert "symbol_error=5" in result.long_out[0]
         assert "link_downed=2" in result.long_out[0]
         assert "port_rcv_errors" not in result.long_out[0]
+
+    def test_critical_counter_escalates(self) -> None:
+        pc = PortCounters(
+            device="mlx5_0",
+            port="1",
+            errors={"link_downed": 1},
+            throughput={},
+        )
+        result = process_ib_counters([pc], warn_threshold=0, crit_threshold=100)
+        assert result.check_status == ExitCode.CRITICAL
+
+    def test_critical_counter_custom(self) -> None:
+        pc = PortCounters(
+            device="mlx5_0",
+            port="1",
+            errors={"symbol_error": 1},
+            throughput={},
+        )
+        result = process_ib_counters(
+            [pc],
+            warn_threshold=0,
+            crit_threshold=100,
+            critical_counters=("symbol_error",),
+        )
+        assert result.check_status == ExitCode.CRITICAL
+
+    def test_critical_counter_empty_disables_escalation(self) -> None:
+        pc = PortCounters(
+            device="mlx5_0",
+            port="1",
+            errors={"link_downed": 1},
+            throughput={},
+        )
+        result = process_ib_counters(
+            [pc], warn_threshold=0, crit_threshold=100, critical_counters=()
+        )
+        assert result.check_status == ExitCode.WARN
 
     def test_multi_port_mixed_errors(self) -> None:
         clean_port = PortCounters(

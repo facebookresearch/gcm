@@ -1,0 +1,19 @@
+-------------------------------------------------------
+Port=1 Lid=0x4c14 GUID=0x0011223344660001 Device=4123 Port Name=node001/U1/B12D0F0/0/0
+-------------------------------------------------------
+symbol_error_counter_extended=0x0000000000000000
+link_error_recovery_counter_extended=0x0000000000000000
+port_rcv_errors_extended=0x0000000000000000
+-------------------------------------------------------
+Port=2 Lid=0x0599 GUID=0x0011223344550001 Device=54000 Port Name=S0011223344550001/N0011223344550001/P2
+-------------------------------------------------------
+symbol_error_counter_extended=0x0000000000000000
+link_error_recovery_counter_extended=0x0000000000000000
+port_rcv_errors_extended=0x0000000000000005
+-------------------------------------------------------
+Port=3 Lid=0x0599 GUID=0x0011223344550002 Device=54000 Port Name=S0011223344550002/N0011223344550002/P3
+-------------------------------------------------------
+symbol_error_counter_extended=0x000000000000001a
+link_error_recovery_counter_extended=0x0000000000000000
+port_rcv_errors_extended=0x0000000000000000
+-------------------------------------------------------

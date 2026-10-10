@@ -3,6 +3,8 @@
 ## Overview
 Monitors InfiniBand port error and throughput counters via sysfs, detecting runtime fabric degradation that silently hurts distributed training throughput (NCCL AllReduce, FSDP, etc.). This is the runtime complement to `check-iblink`: where `check-iblink` validates link *presence*, `check-ib-counters` detects performance-degrading conditions on active links.
 
+Certain counters (e.g. `link_downed`) are treated as critical by default — any nonzero value triggers CRITICAL status regardless of thresholds. This is configurable via `--critical-counters`.
+
 ## Requirements
 
 - **InfiniBand Drivers**: Mellanox/NVIDIA OFED or inbox kernel drivers
@@ -15,7 +17,7 @@ Monitors InfiniBand port error and throughput counters via sysfs, detecting runt
 |---------|-------------|
 | `symbol_error` | Physical layer symbol errors |
 | `link_error_recovery` | Link error recovery events |
-| `link_downed` | Link down transitions |
+| `link_downed` | Link down transitions (critical by default) |
 | `port_rcv_errors` | Malformed packets received |
 | `port_rcv_remote_physical_errors` | Remote physical receive errors |
 | `port_rcv_switch_relay_errors` | Switch relay errors on receive path |
@@ -40,6 +42,7 @@ Monitors InfiniBand port error and throughput counters via sysfs, detecting runt
 |--------|------|---------|-------------|
 | `--warn-threshold` | Integer | 0 | Total error count above which the check returns WARNING |
 | `--crit-threshold` | Integer | 100 | Total error count above which the check returns CRITICAL |
+| `--critical-counters` | String (multiple) | `link_downed` | Counter names that auto-escalate to CRITICAL when nonzero |
 | `--sink` | String | do_nothing | Telemetry sink destination |
 | `--sink-opts` | Multiple | - | Sink-specific configuration |
 | `--verbose-out` | Flag | False | Display detailed output |
@@ -56,6 +59,7 @@ Monitors InfiniBand port error and throughput counters via sysfs, detecting runt
 | **WARN (1)** | No IB ports discovered |
 | **WARN (1)** | Total errors exceed `--warn-threshold` |
 | **CRITICAL (2)** | Total errors exceed `--crit-threshold` |
+| **CRITICAL (2)** | Any `--critical-counters` counter is nonzero (default: `link_downed`) |
 
 ## Usage Examples
 
@@ -71,6 +75,16 @@ health_checks check-ib check-ib-counters \
   --crit-threshold 500 \
   --sink otel \
   --sink-opts "log_resource_attributes={'attr_1': 'value1'}" \
+  [CLUSTER] \
+  app
+```
+
+### With Custom Critical Counters
+```shell
+health_checks check-ib check-ib-counters \
+  --critical-counters link_downed \
+  --critical-counters link_error_recovery \
+  --sink stdout \
   [CLUSTER] \
   app
 ```

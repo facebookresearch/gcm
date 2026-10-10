@@ -1,0 +1,5 @@
+# NodeGUID, PortNum, NodeDesc, PeerNodeGUID, PeerPortNum,  PeerNodeDesc, {BadCond1, BadCond2, ...}, TimeStamp
+0x0011223344550001, 25, "spine-sw-03", 0x0055667788990001, 25, "leaf-sw-38", {FLAPPING}, Fri Mar 20 01:13:40 2026
+0x0055667788990002, 37, "leaf-sw-28", 0x0011223344550002, 28, "spine-sw-09", {FLAPPING}, Tue Mar 17 14:00:37 2026
+0x0011223344550002, 28, "spine-sw-09", 0x0055667788990002, 37, "leaf-sw-28", {FLAPPING}, Tue Mar 17 14:00:37 2026
+0x0055667788990001, 25, "leaf-sw-38", 0x0011223344550001, 25, "spine-sw-03", {FLAPPING}, Fri Mar 20 01:13:40 2026
