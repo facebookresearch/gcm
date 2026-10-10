@@ -42,7 +42,7 @@ dev = [
   "black>=24.3.0",
   "ufmt==2.5.0",
   "usort==1.0.5",
-  "nox==2024.04.15",
+  "nox==2026.2.9",
   "isort",
   "twine",
   "pip-tools",
