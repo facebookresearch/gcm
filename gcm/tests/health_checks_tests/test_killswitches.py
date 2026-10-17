@@ -8,7 +8,6 @@ from click.testing import CliRunner
 from gcm.health_checks.checks.check_nvidia_smi import NvidiaSmiCli
 from gcm.health_checks.cli.health_checks import health_checks as hc_main
 from gcm.health_checks.types import ExitCode
-
 from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import (
     FeatureValueHealthChecksFeatures,
 )
@@ -79,6 +78,11 @@ def _write_to_file(path: Path, data: str) -> Path:
         "check-node check-dnf-repos",
         "check-sensors",
         "check-aws-events",
+        "check-ib check-mlxcables",
+        "check-ib check-mlxlink",
+        "check-ib check-sm-status",
+        "check-ib check-ib-port-errors",
+        "check-ib check-ufm-health",
     ],
 )
 @typechecked
@@ -129,7 +133,6 @@ def test_killswitches(
         disable_dcgmi_nvlink_error = true
         disable_dcgmi_nvlink_status = true
         disable_check_ibstat = true
-        disable_check_ib_counters = true
         disable_check_ib_interfaces = true
         disable_pass_status = true
         disable_user_access_path_check = true
@@ -138,6 +141,12 @@ def test_killswitches(
         disable_check_dnf_repos = true
         disable_check_sensors = true
         disable_check_aws_events = true
+        disable_check_ib_counters = true
+        disable_check_ib_cable_ddm = true
+        disable_check_ib_module_health = true
+        disable_check_ib_sm_status = true
+        disable_check_ib_port_errors = true
+        disable_check_ib_ufm_health = true
         """,
     )
 

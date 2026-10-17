@@ -18,11 +18,7 @@ from typing import Optional, Protocol
 import click
 from gcm.health_checks.check_utils.output_utils import CheckOutput, Metric
 from gcm.health_checks.check_utils.runtime import HealthCheckRuntime
-from gcm.health_checks.click import (
-    common_arguments,
-    telemetry_argument,
-    timeout_argument,
-)
+from gcm.health_checks.click import common_arguments, telemetry_argument
 from gcm.health_checks.types import CHECK_TYPE, CheckEnv, ExitCode, LOG_LEVEL
 from gcm.monitoring.click import heterogeneous_cluster_v1_option
 from gcm.monitoring.features.gen.generated_features_healthchecksfeatures import (
@@ -59,6 +55,8 @@ THROUGHPUT_COUNTERS: list[str] = [
 # Default threshold: total error count above which we alert.
 DEFAULT_WARN_THRESHOLD: int = 0
 DEFAULT_CRIT_THRESHOLD: int = 100
+
+DEFAULT_CRITICAL_COUNTERS: tuple[str, ...] = ("link_downed",)
 
 SYSFS_IB_ROOT = "/sys/class/infiniband"
 
@@ -173,10 +171,12 @@ def process_ib_counters(
     port_counters: list[PortCounters],
     warn_threshold: int,
     crit_threshold: int,
+    critical_counters: Collection[str] = DEFAULT_CRITICAL_COUNTERS,
 ) -> CheckOutput:
     """Evaluate collected counters against thresholds.
 
     Returns a CheckOutput with per-port error details and Nagios metrics.
+    Counters listed in critical_counters auto-escalate to CRITICAL when nonzero.
     """
     check = CheckOutput("check_ib_counters")
 
@@ -185,8 +185,10 @@ def process_ib_counters(
         check.short_out = "No IB ports discovered"
         return check
 
+    critical_set = set(critical_counters)
     total_errors = 0
     ports_with_errors = 0
+    has_critical_counter = False
     port_details: list[str] = []
     per_port_metrics: list[list[Metric]] = []
 
@@ -199,6 +201,9 @@ def process_ib_counters(
             ports_with_errors += 1
             nonzero = [f"{name}={val}" for name, val in pc.errors.items() if val > 0]
             port_details.append(f"{port_label}: {'; '.join(nonzero)}")
+            for name, val in pc.errors.items():
+                if val > 0 and name in critical_set:
+                    has_critical_counter = True
 
         port_metrics: list[Metric] = []
         for name, val in pc.errors.items():
@@ -215,7 +220,7 @@ def process_ib_counters(
         per_port_metrics.append(port_metrics)
 
     # Determine overall status.
-    if total_errors > crit_threshold:
+    if has_critical_counter or total_errors > crit_threshold:
         check.check_status = ExitCode.CRITICAL
     elif total_errors > warn_threshold:
         check.check_status = ExitCode.WARN
@@ -244,7 +249,6 @@ def process_ib_counters(
 
 @click.command()
 @common_arguments
-@timeout_argument
 @telemetry_argument
 @heterogeneous_cluster_v1_option
 @click.option(
@@ -261,6 +265,14 @@ def process_ib_counters(
     show_default=True,
     help="Total error count above which the check returns CRITICAL.",
 )
+@click.option(
+    "--critical-counters",
+    type=click.STRING,
+    multiple=True,
+    default=DEFAULT_CRITICAL_COUNTERS,
+    show_default=True,
+    help="Counter names that auto-escalate to CRITICAL when nonzero.",
+)
 @click.pass_obj
 @typechecked
 def check_ib_counters(
@@ -269,19 +281,19 @@ def check_ib_counters(
     type: CHECK_TYPE,
     log_level: LOG_LEVEL,
     log_folder: str,
-    timeout: int,
     sink: str,
     sink_opts: Collection[str],
     verbose_out: bool,
     heterogeneous_cluster_v1: bool,
     warn_threshold: int,
     crit_threshold: int,
+    critical_counters: tuple[str, ...],
 ) -> None:
     """Check IB port error counters against configurable thresholds.
 
     Reads /sys/class/infiniband/*/ports/*/counters/ for error counters
-    (SymbolErrorCounter, LinkDownedCounter, PortRcvErrors, …) and
-    throughput counters (PortXmitData, PortRcvData, …).  Alerts when the
+    (symbol_error, link_downed, port_rcv_errors, …) and
+    throughput counters (port_xmit_data, port_rcv_data, …).  Alerts when the
     aggregate error count exceeds the configured thresholds.
     """
     if not obj:
@@ -305,5 +317,7 @@ def check_ib_counters(
             rt.logger.exception("Failed to collect IB counters")
             port_counters = []
 
-        output = process_ib_counters(port_counters, warn_threshold, crit_threshold)
+        output = process_ib_counters(
+            port_counters, warn_threshold, crit_threshold, critical_counters
+        )
         rt.finish(output.check_status, str(output))

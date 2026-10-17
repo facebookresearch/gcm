@@ -899,6 +899,20 @@ class FeatureValueHealthChecksFeatures:
             )
         return value
 
+    def get_healthchecksfeatures_disable_check_aws_events(self) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_check_aws_events", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_check_aws_events, got {type(value).__name__} instead."
+            )
+        return value
+
     def get_healthchecksfeatures_disable_check_ib_counters(self) -> bool:
         try:
             features = self.load_config()
@@ -913,16 +927,72 @@ class FeatureValueHealthChecksFeatures:
             )
         return value
 
-    def get_healthchecksfeatures_disable_check_aws_events(self) -> bool:
+    def get_healthchecksfeatures_disable_check_ib_cable_ddm(self) -> bool:
         try:
             features = self.load_config()
         except Exception:
             return False
         value = features.get("HealthChecksFeatures", {}).get(
-            "disable_check_aws_events", False
+            "disable_check_ib_cable_ddm", False
         )
         if not isinstance(value, bool):
             raise TypeError(
-                f"Expected bool value for HealthChecksFeatures.disable_check_aws_events, got {type(value).__name__} instead."
+                f"Expected bool value for HealthChecksFeatures.disable_check_ib_cable_ddm, got {type(value).__name__} instead."
+            )
+        return value
+
+    def get_healthchecksfeatures_disable_check_ib_module_health(self) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_check_ib_module_health", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_check_ib_module_health, got {type(value).__name__} instead."
+            )
+        return value
+
+    def get_healthchecksfeatures_disable_check_ib_sm_status(self) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_check_ib_sm_status", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_check_ib_sm_status, got {type(value).__name__} instead."
+            )
+        return value
+
+    def get_healthchecksfeatures_disable_check_ib_port_errors(self) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_check_ib_port_errors", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_check_ib_port_errors, got {type(value).__name__} instead."
+            )
+        return value
+
+    def get_healthchecksfeatures_disable_check_ib_ufm_health(self) -> bool:
+        try:
+            features = self.load_config()
+        except Exception:
+            return False
+        value = features.get("HealthChecksFeatures", {}).get(
+            "disable_check_ib_ufm_health", False
+        )
+        if not isinstance(value, bool):
+            raise TypeError(
+                f"Expected bool value for HealthChecksFeatures.disable_check_ib_ufm_health, got {type(value).__name__} instead."
             )
         return value
