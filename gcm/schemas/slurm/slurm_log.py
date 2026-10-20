@@ -23,6 +23,12 @@ class SLURMLogAccountMetrics(DerivedCluster):
 
 
 @dataclass(kw_only=True)
+class SLURMLogNodeTypeStates(SinfoNodeStates, DerivedCluster):
+    prefix: str
+    node_type: str
+
+
+@dataclass(kw_only=True)
 class SLURMLog(SinfoCpusGpus, SinfoNodeStates, Sdiag, DerivedCluster):
     cluster: str
     active_users: Optional[int]

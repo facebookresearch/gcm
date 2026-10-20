@@ -25,6 +25,7 @@ from gcm.monitoring.utils import error
 from gcm.schemas.slurm.sacct import SacctMetrics
 from gcm.schemas.slurm.sinfo import Sinfo
 from gcm.schemas.slurm.sinfo_cpus_gpus import SinfoCpusGpus
+from gcm.schemas.slurm.sinfo_node import SinfoNode
 from gcm.schemas.slurm.sinfo_node_states import SinfoNodeStates
 from gcm.schemas.slurm.slurm_log import SLURMLogAccountMetrics
 
@@ -429,3 +430,17 @@ def compute_node_states(sinfo: Sinfo) -> SinfoNodeStates:
         sinfo_states.nodes_total = (sinfo_states.nodes_total or 0) + 1
 
     return sinfo_states
+
+
+def compute_node_states_by_type(sinfo: Sinfo) -> dict[str, SinfoNodeStates]:
+    """Same as compute_node_states, split into "gpu" nodes (at least one GPU in
+    GRES) and "cpu" nodes. Types with no nodes are omitted.
+    """
+    nodes_by_type: DefaultDict[str, list[SinfoNode]] = defaultdict(list)
+    for node in sinfo.nodes:
+        node_type = "gpu" if extract_gpus_from_gres(node.gres) > 0 else "cpu"
+        nodes_by_type[node_type].append(node)
+    return {
+        node_type: compute_node_states(Sinfo(nodes=nodes))
+        for node_type, nodes in nodes_by_type.items()
+    }

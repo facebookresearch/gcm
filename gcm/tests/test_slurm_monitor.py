@@ -27,6 +27,7 @@ from gcm.monitoring.slurm.sinfo import (
     compute_jobs_without_user,
     compute_mean_and_variance,
     compute_node_states,
+    compute_node_states_by_type,
     compute_per_account_slurm_log,
     compute_resources_pending,
     compute_running_and_pending_users,
@@ -40,7 +41,11 @@ from gcm.schemas.slurm.sinfo import Sinfo
 from gcm.schemas.slurm.sinfo_cpus_gpus import SinfoCpusGpus
 from gcm.schemas.slurm.sinfo_node import SinfoNode
 from gcm.schemas.slurm.sinfo_node_states import SinfoNodeStates
-from gcm.schemas.slurm.slurm_log import SLURMLog, SLURMLogAccountMetrics
+from gcm.schemas.slurm.slurm_log import (
+    SLURMLog,
+    SLURMLogAccountMetrics,
+    SLURMLogNodeTypeStates,
+)
 from typeguard import typechecked
 
 PT_TIMEZONE = PT
@@ -4991,6 +4996,52 @@ def test_compute_node_states(
     assert node_states == expected
 
 
+def _node(
+    name: str, state: str, gres: str, partition: str = TEST_PARTITION
+) -> SinfoNode:
+    return SinfoNode(
+        name=name,
+        state=state,
+        alloc_cpus=0,
+        gres_used="(null)",
+        gres=gres,
+        total_cpus=80,
+        partition=partition,
+    )
+
+
+def test_compute_node_states_by_type() -> None:
+    sinfo = Sinfo(
+        nodes=[
+            _node("gpu1", "allocated", "gpu:h200:8"),
+            _node("gpu2", "drained*", "gpu:h200:8"),
+            # Same node listed under two partitions is counted once.
+            _node("gpu2", "drained*", "gpu:h200:8", partition="other"),
+            _node("cpu1", "idle", "(null)"),
+            _node("cpu2", "mixed", ""),
+        ]
+    )
+
+    by_type = compute_node_states_by_type(sinfo)
+
+    assert set(by_type) == {"gpu", "cpu"}
+    assert by_type["gpu"].nodes_total == 2
+    assert by_type["gpu"].nodes_allocated == 1
+    assert by_type["gpu"].nodes_drained == 1
+    assert by_type["gpu"].nodes_not_responding == 1
+    assert by_type["cpu"].nodes_total == 2
+    assert by_type["cpu"].nodes_idle == 1
+    assert by_type["cpu"].nodes_mixed == 1
+    assert by_type["cpu"].nodes_drained == 0
+
+
+def test_compute_node_states_by_type_omits_absent_types() -> None:
+    assert compute_node_states_by_type(Sinfo(nodes=[])) == {}
+    assert set(
+        compute_node_states_by_type(Sinfo(nodes=[_node("gpu1", "idle", "gpu:8")]))
+    ) == {"gpu"}
+
+
 @pytest.mark.skipif(os.getenv("CI") is not None, reason="CI machines do not have SLURM")
 @pytest.mark.skipif(shutil.which("sacct") is None, reason="Machine does not have sacct")
 def test_cli(tmp_path: Path) -> None:
@@ -5506,6 +5557,45 @@ class TestGetSlurmLog:
         # Other Sdiag fields still propagate through the **asdict(sdiag) unpack.
         assert self_log.schedule_cycle_last == 42
         assert self_log.server_thread_count == 1
+
+    def test_yields_node_type_states_before_slurm_log(self) -> None:
+        from unittest.mock import patch
+
+        start = AwareDatetime(dt.datetime(2026, 1, 1, tzinfo=UTC_TIMEZONE))
+        end = AwareDatetime(dt.datetime(2026, 1, 1, 0, 5, tzinfo=UTC_TIMEZONE))
+        sinfo = Sinfo(
+            nodes=[
+                _node("gpu1", "allocated", "gpu:h200:8"),
+                _node("cpu1", "drained", "(null)"),
+            ]
+        )
+
+        with patch(
+            "gcm.monitoring.cli.slurm_monitor.parse_slurm_jobs", return_value=[]
+        ):
+            out = list(
+                get_slurm_log(
+                    sinfo=sinfo,
+                    sdiag=_make_sdiag(),
+                    start_time=start,
+                    end_time=end,
+                    cluster="test_cluster",
+                    derived_cluster="test_cluster",
+                    logger=logging.getLogger("test"),
+                )
+            )
+
+        node_type_logs = {
+            row.node_type: row for row in out if isinstance(row, SLURMLogNodeTypeStates)
+        }
+        assert set(node_type_logs) == {"gpu", "cpu"}
+        assert node_type_logs["gpu"].prefix == "gcm.node_type.gpu."
+        assert node_type_logs["gpu"].nodes_allocated == 1
+        assert node_type_logs["cpu"].prefix == "gcm.node_type.cpu."
+        assert node_type_logs["cpu"].nodes_drained == 1
+        assert node_type_logs["cpu"].derived_cluster == "test_cluster"
+        assert isinstance(out[-1], SLURMLog)
+        assert out[-1].nodes_total == 2
 
 
 class TestCollectSdiag:

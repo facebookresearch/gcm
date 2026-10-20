@@ -60,6 +60,7 @@ from gcm.monitoring.slurm.sinfo import (
     compute_job_runtime_distribution,
     compute_jobs_without_user,
     compute_node_states,
+    compute_node_states_by_type,
     compute_number_of_active_users,
     compute_per_account_slurm_log,
     compute_percent_jobs_distributed_training,
@@ -74,7 +75,11 @@ from gcm.schemas.slurm.sdiag import Sdiag
 from gcm.schemas.slurm.sinfo import Sinfo
 from gcm.schemas.slurm.sinfo_cpus_gpus import SinfoCpusGpus
 from gcm.schemas.slurm.sinfo_node import SinfoNode
-from gcm.schemas.slurm.slurm_log import SLURMLog, SLURMLogAccountMetrics
+from gcm.schemas.slurm.slurm_log import (
+    SLURMLog,
+    SLURMLogAccountMetrics,
+    SLURMLogNodeTypeStates,
+)
 from typeguard import typechecked
 
 LOGGER_NAME = __name__
@@ -90,7 +95,7 @@ def get_slurm_log(
     derived_cluster: str,
     logger: logging.Logger,
     partition: Optional[str] = None,
-) -> Generator[SLURMLog | SLURMLogAccountMetrics, None, None]:
+) -> Generator[SLURMLog | SLURMLogAccountMetrics | SLURMLogNodeTypeStates, None, None]:
     active_users = None
     running_and_pending_users = None
     jobs_dist_training_percent = None
@@ -240,6 +245,16 @@ def get_slurm_log(
         # add cluster last to keep the canonical value
         "cluster": cluster,
     }
+    # Yielded before the SLURMLog: the otel sink names gauges by field name
+    # only, so the cluster-wide values must be written last.
+    for node_type, states in compute_node_states_by_type(sinfo).items():
+        yield SLURMLogNodeTypeStates(
+            prefix=f"gcm.node_type.{node_type}.",
+            node_type=node_type,
+            derived_cluster=derived_cluster,
+            **asdict(states),
+        )
+
     slurm_log = SLURMLog(**slurm_log_kwargs)
     yield slurm_log
 
@@ -281,7 +296,7 @@ def collect_slurm(
     cluster: str,
     logger: logging.Logger,
     heterogeneous_cluster_v1: bool,
-) -> Generator[SLURMLog | SLURMLogAccountMetrics, None, None]:
+) -> Generator[SLURMLog | SLURMLogAccountMetrics | SLURMLogNodeTypeStates, None, None]:
     """Collect all the relevant slurm metrics that will be stored on ODS"""
     end_time = unixtime_to_pacific_datetime(obj.clock.unixtime())
     start_time = end_time - timedelta(seconds=interval)
@@ -404,7 +419,9 @@ def main(
 
     def collect_slurm_callable(
         cluster: str, interval: int, logger: logging.Logger
-    ) -> Generator[SLURMLog | SLURMLogAccountMetrics, None, None]:
+    ) -> Generator[
+        SLURMLog | SLURMLogAccountMetrics | SLURMLogNodeTypeStates, None, None
+    ]:
         return collect_slurm(
             obj=obj,
             interval=interval,
