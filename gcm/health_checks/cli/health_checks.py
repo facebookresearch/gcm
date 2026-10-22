@@ -32,6 +32,7 @@ def health_checks(detach: bool) -> None:
 
 
 list_of_checks: List[click.core.Command] = [
+    checks.check_pantheon,
     checks.check_ssh_certs,
     checks.check_airstore,
     checks.check_telemetry,

@@ -68,6 +68,7 @@ $ health_checks --features-config=$features_path --config=$config_path check-dcg
 - [check-nvidia-smi](#check-nvidia-smi)
 - [check-syslogs](#check-syslogs)
 - [cuda-memtest](#cuda-memtest)
+- [check-pantheon](#check-pantheon)
 - [check-nccl](#check-nccl)
 - [check-hca](#check-hca)
 - [check-storage](#check-storage)
@@ -185,6 +186,23 @@ Example of execution:
 $ health_checks cuda memtest --help
 $ health_checks cuda memtest fair_cluster prolog  --size=10 --sink=do_nothing
 $ health_checks cuda memtest fair_cluster prolog  --log-folder="healthchecks" --size=10 --sink=do_nothing
+```
+
+# check-pantheon <div id='check-pantheon'/>
+Run workloads of [Pantheon](https://github.com/pantheongpu/pantheon), an open-source GPU diagnostics suite, on the GPUs of the node.
+A workload verifies what the card returns and reads the card's error counters before and after the run.
+1. CRITICAL if a workload failed or did not complete, or uncorrectable errors were counted
+2. WARN if the card throttled on temperature, reached 90 C, or correctable errors were counted
+
+The `pantheon` executable has to be installed on the node, for example with `pipx install pantheon-gpu`.
+
+File: `gcm/health_checks/checks/check_pantheon.py`
+
+Example of execution:
+```shell
+$ health_checks check-pantheon --help
+$ health_checks check-pantheon fair_cluster prolog --sink=do_nothing # memory_read and march_test on the GPUs of the job
+$ health_checks check-pantheon fair_cluster nagios -w march_test -w galpat --duration=60 -gpu 0 -gpu 1 --sink=do_nothing
 ```
 
 # check-nccl <div id='check-nccl'/>

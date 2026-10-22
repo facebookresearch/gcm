@@ -1,6 +1,7 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 class HealthChecksFeatures:
+    disable_check_pantheon: bool
     disable_check_ssh_certs: bool
     disable_cuda_memtest: bool
     disable_check_zombie: bool

@@ -12,6 +12,7 @@ from gcm.health_checks.checks.check_ipmitool import check_ipmitool
 from gcm.health_checks.checks.check_nccl import check_nccl
 from gcm.health_checks.checks.check_node import check_node
 from gcm.health_checks.checks.check_nvidia_smi import check_nvidia_smi
+from gcm.health_checks.checks.check_pantheon import check_pantheon
 from gcm.health_checks.checks.check_pci import check_pci
 from gcm.health_checks.checks.check_process import check_process
 from gcm.health_checks.checks.check_processor import check_processor
@@ -46,4 +47,5 @@ __all__ = [
     "check_blockdev",
     "check_ethlink",
     "check_sensors",
+    "check_pantheon",
 ]
