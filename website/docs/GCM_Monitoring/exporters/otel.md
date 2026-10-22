@@ -24,6 +24,16 @@ export OTEL_EXPORTER_OTLP_TIMEOUT="30"
 gcm slurm_monitor --sink=otel --once
 ```
 
+Logs and metrics can use different endpoints. Standard OTLP headers can provide authentication, including a bearer token:
+
+```shell
+export OTEL_EXPORTER_OTLP_ENDPOINT="https://otel.example.com"
+export OTEL_EXPORTER_OTLP_LOGS_ENDPOINT="https://otel.example.com/v1/platform/logs"
+export OTEL_EXPORTER_OTLP_METRICS_ENDPOINT="https://otel.example.com/v1/platform/metrics"
+export OTEL_EXPORTER_OTLP_LOGS_HEADERS="Authorization=Bearer%20${OTEL_TOKEN}"
+gcm slurm_monitor --sink=otel --once
+```
+
 #### Command Line Options
 
 ```shell
@@ -39,6 +49,8 @@ gcm slurm_monitor \
 | Option | Required | Description |
 |--------|----------|-------------|
 | `otel_endpoint` | Conditional* | OTLP HTTP endpoint base URL |
+| `otel_logs_endpoint` | No | Complete OTLP HTTP logs endpoint; overrides `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` |
+| `otel_metrics_endpoint` | No | Complete OTLP HTTP metrics endpoint; overrides `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` |
 | `otel_timeout` | Conditional** | Request timeout in seconds |
 | `log_resource_attributes` | No | Key-value pairs for log resource metadata |
 | `metric_resource_attributes` | No | Key-value pairs for metric resource metadata |
@@ -80,6 +92,8 @@ The exporter automatically appends the appropriate path to the base endpoint:
 
 - **Logs**: `{otel_endpoint}/v1/logs`
 - **Metrics**: `{otel_endpoint}/v1/metrics`
+
+Set the signal-specific endpoint environment variable or sink option when a receiver uses a custom path. Authentication headers supplied through the standard OpenTelemetry environment variables are handled by the OpenTelemetry SDK.
 
 ## Metrics
 
