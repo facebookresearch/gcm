@@ -154,6 +154,43 @@ docker build -f docker/Dockerfile.npd -t gcm-npd:latest .
 | `healthChecks.concurrency` | Max concurrent checks | `3` |
 | `healthChecks.extraChecks` | Additional health checks | `[]` |
 | `healthChecks.extraEnv` | Additional environment variables | `[]` |
+| `healthChecks.kubernetesMetadata.enabled` | Add selected metadata from active pods on the checked node | `false` |
+| `healthChecks.kubernetesMetadata.keys` | Exact label or annotation keys to export | `[]` |
+
+When Kubernetes metadata enrichment is enabled, selected labels and annotations
+are emitted in the `pod_metadata` health-check log attribute. Each array item is
+a JSON-encoded object containing the pod name, namespace, and matching metadata.
+
+For example, this configuration:
+
+```yaml
+healthChecks:
+  sink: otel
+  sinkOpts:
+    - allow_expanded_lists=true
+  kubernetesMetadata:
+    enabled: true
+    keys:
+      - example.com/job-id
+      - example.com/owner
+```
+
+emits an attribute like:
+
+```json
+{
+  "pod_metadata": [
+    "{\"annotations\":{},\"labels\":{\"example.com/job-id\":\"job-123\",\"example.com/owner\":\"alice\"},\"name\":\"trainer-0\",\"namespace\":\"jobs\"}"
+  ]
+}
+```
+
+Query `pod_metadata` through the log datasource that receives the configured
+OTLP sink. In Grafana, select that datasource and filter the health-check logs:
+
+```shell
+jq -r '.pod_metadata[] | fromjson | .labels["example.com/job-id"]'
+```
 
 ## Monitoring DaemonSet
 

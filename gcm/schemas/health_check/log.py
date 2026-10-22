@@ -20,3 +20,4 @@ class HealthCheckLog:
     job_id: Optional[int]
     start_time: Optional[float]
     end_time: Optional[float]
+    pod_metadata: Optional[list[str]] = None

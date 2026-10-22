@@ -14,9 +14,11 @@ logger = logging.getLogger(__name__)
 
 _TDataclass = TypeVar("_TDataclass")
 BaseType = int | float | str | bool
+FlattenedWithListsValue = BaseType | list[BaseType]
 NonFlattened = object
 FlattenedOrBaseType = dict[str, BaseType] | BaseType
 Flattened = dict[str, BaseType]
+FlattenedWithLists = dict[str, FlattenedWithListsValue]
 
 
 def instantiate_dataclass(
@@ -138,6 +140,34 @@ def flatten_dict_factory(pairs: list[tuple[str, object | BaseModel]]) -> Flatten
     results = {}
     for key, value in pairs:
         if value is None:
+            continue
+        flat_result = asdict_recursive(value, key)
+        if isinstance(flat_result, dict):
+            results.update(flat_result)
+        else:
+            results[key] = flat_result
+    return results
+
+
+def flatten_dict_factory_with_lists(
+    pairs: list[tuple[str, object | BaseModel]],
+) -> FlattenedWithLists:
+    """
+    Flatten nested values while preserving top-level lists of scalar values.
+
+    Use this for sinks with native array support. For example:
+
+    ``{"job_ids": ["job-a", "job-b"]}`` remains one array-valued field instead
+    of becoming ``job_ids.0`` and ``job_ids.1``.
+    """
+    results: FlattenedWithLists = {}
+    for key, value in pairs:
+        if value is None:
+            continue
+        if isinstance(value, list) and all(
+            isinstance(item, (int, float, str, bool)) for item in value
+        ):
+            results[key] = value
             continue
         flat_result = asdict_recursive(value, key)
         if isinstance(flat_result, dict):

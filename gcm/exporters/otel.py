@@ -6,11 +6,12 @@ from dataclasses import asdict, fields
 from typing import Any, cast, Dict, Optional
 
 from gcm.exporters import register
-
-from gcm.monitoring.dataclass_utils import flatten_dict_factory
+from gcm.monitoring.dataclass_utils import (
+    flatten_dict_factory,
+    flatten_dict_factory_with_lists,
+)
 from gcm.monitoring.sink.protocol import DataType, SinkAdditionalParams
 from gcm.schemas.log import Log
-
 from omegaconf import DictConfig, OmegaConf
 from opentelemetry._logs import set_logger_provider
 from opentelemetry.exporter.otlp.proto.http._log_exporter import OTLPLogExporter
@@ -18,15 +19,12 @@ from opentelemetry.exporter.otlp.proto.http.metric_exporter import OTLPMetricExp
 from opentelemetry.metrics import _Gauge
 from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
 from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
-
 from opentelemetry.sdk.metrics import Meter, MeterProvider
 from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-
 from opentelemetry.sdk.resources import (  # type: ignore[attr-defined]
     Resource,
     SERVICE_NAME,
 )
-
 from typing_extensions import Never
 
 logger = logging.getLogger(__name__)
@@ -90,6 +88,26 @@ def get_otel_endpoint(otel_endpoint: Optional[str]) -> str:
     return otel_endpoint
 
 
+def get_otel_logs_endpoint(
+    otel_logs_endpoint: Optional[str], otel_endpoint: str
+) -> str:
+    if otel_logs_endpoint is not None:
+        return otel_logs_endpoint
+    return os.environ.get(
+        "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT", otel_endpoint + "/v1/logs"
+    )
+
+
+def get_otel_metrics_endpoint(
+    otel_metrics_endpoint: Optional[str], otel_endpoint: str
+) -> str:
+    if otel_metrics_endpoint is not None:
+        return otel_metrics_endpoint
+    return os.environ.get(
+        "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT", otel_endpoint + "/v1/metrics"
+    )
+
+
 def get_otel_timeout(otel_timeout: Optional[int]) -> int:
     if otel_timeout is None:
         if "OTEL_EXPORTER_OTLP_TIMEOUT" not in os.environ:
@@ -108,16 +126,21 @@ class Otel:
         log_resource_attributes: Optional[DictConfig] = None,
         metric_resource_attributes: Optional[DictConfig] = None,
         otel_endpoint: Optional[str] = None,
+        otel_logs_endpoint: Optional[str] = None,
+        otel_metrics_endpoint: Optional[str] = None,
         otel_timeout: Optional[int] = None,
+        allow_expanded_lists: bool = False,
     ):
         endpoint = get_otel_endpoint(otel_endpoint)
+        logs_endpoint = get_otel_logs_endpoint(otel_logs_endpoint, endpoint)
+        metrics_endpoint = get_otel_metrics_endpoint(otel_metrics_endpoint, endpoint)
         timeout = get_otel_timeout(otel_timeout)
         for attributes in [log_resource_attributes, metric_resource_attributes]:
             if attributes is not None:
                 attributes[SERVICE_NAME] = "gcm"
 
         self._logger_provider = otel_log_init(
-            log_resource_attributes, endpoint + "/v1/logs", timeout
+            log_resource_attributes, logs_endpoint, timeout
         )
         # Use a dedicated, isolated logger for sink emits. Attaching the
         # LoggingHandler to "gcm" makes EVERY `gcm.*` log record (e.g.
@@ -135,9 +158,10 @@ class Otel:
         self.otel_logger.addHandler(otel_handler)
 
         self.meter, self._meter_provider = otel_metric_init(
-            metric_resource_attributes, endpoint + "/v1/metrics", timeout
+            metric_resource_attributes, metrics_endpoint, timeout
         )
         self.metrics_instruments: dict[str, _Gauge] = {}
+        self._allow_expanded_lists = allow_expanded_lists
 
     def shutdown(self) -> None:
         self._logger_provider.shutdown()
@@ -192,6 +216,13 @@ class Otel:
 
     def _write_log(self, data: Log) -> None:
         for message in data.message:
-            msg = asdict(message, dict_factory=flatten_dict_factory)
-            msg["time"] = data.ts
-            self.otel_logger.info("", extra=msg)
+            if self._allow_expanded_lists:
+                msg_with_lists = asdict(
+                    message, dict_factory=flatten_dict_factory_with_lists
+                )
+                msg_with_lists["time"] = data.ts
+                self.otel_logger.info("", extra=msg_with_lists)
+            else:
+                msg = asdict(message, dict_factory=flatten_dict_factory)
+                msg["time"] = data.ts
+                self.otel_logger.info("", extra=msg)

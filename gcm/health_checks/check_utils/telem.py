@@ -19,8 +19,11 @@ from typing import (
 )
 
 from gcm.exporters import registry
+from gcm.health_checks.check_utils.kubernetes_metadata import (
+    get_kubernetes_metadata,
+    KubernetesMetadata,
+)
 from gcm.health_checks.types import CHECK_TYPE, ExitCode
-
 from gcm.monitoring.clock import ClockImpl
 from gcm.monitoring.sink.protocol import DataType, SinkAdditionalParams, SinkImpl
 from gcm.monitoring.sink.utils import Factory
@@ -41,6 +44,7 @@ def get_telemetry_record(
     start_time: float = 0.0,
     end_time: float = 0.0,
     job_id: int = 0,
+    kubernetes_metadata: Optional[KubernetesMetadata] = None,
 ) -> HealthCheckLog:
     return HealthCheckLog(
         node=node,
@@ -54,6 +58,9 @@ def get_telemetry_record(
         job_id=job_id,
         start_time=start_time,
         end_time=end_time,
+        pod_metadata=(
+            kubernetes_metadata.pods if kubernetes_metadata is not None else None
+        ),
     )
 
 
@@ -70,6 +77,9 @@ class TelemetryContext(ContextManager["TelemetryContext"]):
     get_exit_code_msg: Callable[[], Tuple[ExitCode, str]]
     gpu_node_id: Optional[str]
     job_id: Optional[int] = None
+    kubernetes_metadata_getter: Callable[[str], Optional[KubernetesMetadata]] = (
+        get_kubernetes_metadata
+    )
     telem_registry: Dict[str, Factory[SinkImpl]] = field(
         default_factory=lambda: registry
     )
@@ -97,6 +107,8 @@ class TelemetryContext(ContextManager["TelemetryContext"]):
                     )
                     msg = msg + "\nSLURM_JOB_ID is not set for prolog/epilog check."
 
+        kubernetes_metadata = self.kubernetes_metadata_getter(self.node)
+
         record = get_telemetry_record(
             cluster=self.cluster,
             derived_cluster=self.derived_cluster,
@@ -109,6 +121,7 @@ class TelemetryContext(ContextManager["TelemetryContext"]):
             start_time=self.start_time,
             end_time=self.end_time,
             job_id=self.job_id,
+            kubernetes_metadata=kubernetes_metadata,
         )
         # Get writer from telemetry
         sink_impl = self.telem_registry[self.sink](

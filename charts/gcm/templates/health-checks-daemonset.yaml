@@ -67,6 +67,12 @@ spec:
               value: "all"
             - name: LC_ALL
               value: "C.UTF-8"
+            {{- if .Values.healthChecks.kubernetesMetadata.enabled }}
+            - name: GCM_KUBERNETES_METADATA_ENABLED
+              value: "true"
+            - name: GCM_KUBERNETES_METADATA_KEYS
+              value: {{ join "," .Values.healthChecks.kubernetesMetadata.keys | quote }}
+            {{- end }}
             {{- with .Values.healthChecks.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
