@@ -90,6 +90,26 @@ def get_otel_endpoint(otel_endpoint: Optional[str]) -> str:
     return otel_endpoint
 
 
+def get_otel_logs_endpoint(
+    otel_logs_endpoint: Optional[str], otel_endpoint: str
+) -> str:
+    if otel_logs_endpoint is not None:
+        return otel_logs_endpoint
+    return os.environ.get(
+        "OTEL_EXPORTER_OTLP_LOGS_ENDPOINT", otel_endpoint + "/v1/logs"
+    )
+
+
+def get_otel_metrics_endpoint(
+    otel_metrics_endpoint: Optional[str], otel_endpoint: str
+) -> str:
+    if otel_metrics_endpoint is not None:
+        return otel_metrics_endpoint
+    return os.environ.get(
+        "OTEL_EXPORTER_OTLP_METRICS_ENDPOINT", otel_endpoint + "/v1/metrics"
+    )
+
+
 def get_otel_timeout(otel_timeout: Optional[int]) -> int:
     if otel_timeout is None:
         if "OTEL_EXPORTER_OTLP_TIMEOUT" not in os.environ:
@@ -108,16 +128,20 @@ class Otel:
         log_resource_attributes: Optional[DictConfig] = None,
         metric_resource_attributes: Optional[DictConfig] = None,
         otel_endpoint: Optional[str] = None,
+        otel_logs_endpoint: Optional[str] = None,
+        otel_metrics_endpoint: Optional[str] = None,
         otel_timeout: Optional[int] = None,
     ):
         endpoint = get_otel_endpoint(otel_endpoint)
+        logs_endpoint = get_otel_logs_endpoint(otel_logs_endpoint, endpoint)
+        metrics_endpoint = get_otel_metrics_endpoint(otel_metrics_endpoint, endpoint)
         timeout = get_otel_timeout(otel_timeout)
         for attributes in [log_resource_attributes, metric_resource_attributes]:
             if attributes is not None:
                 attributes[SERVICE_NAME] = "gcm"
 
         self._logger_provider = otel_log_init(
-            log_resource_attributes, endpoint + "/v1/logs", timeout
+            log_resource_attributes, logs_endpoint, timeout
         )
         # Use a dedicated, isolated logger for sink emits. Attaching the
         # LoggingHandler to "gcm" makes EVERY `gcm.*` log record (e.g.
@@ -135,7 +159,7 @@ class Otel:
         self.otel_logger.addHandler(otel_handler)
 
         self.meter, self._meter_provider = otel_metric_init(
-            metric_resource_attributes, endpoint + "/v1/metrics", timeout
+            metric_resource_attributes, metrics_endpoint, timeout
         )
         self.metrics_instruments: dict[str, _Gauge] = {}
 

@@ -49,6 +49,15 @@ monitoring:
   #   extraEnv:
   #     - name: OTEL_EXPORTER_OTLP_ENDPOINT
   #       value: "http://otel-collector:4318"
+  #     - name: OTEL_EXPORTER_OTLP_LOGS_ENDPOINT
+  #       value: "https://otel.example.com/v1/platform/logs"
+  #     - name: OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+  #       value: "https://otel.example.com/v1/platform/metrics"
+  #     - name: OTEL_EXPORTER_OTLP_LOGS_HEADERS
+  #       valueFrom:
+  #         secretKeyRef:
+  #           name: otel-credentials
+  #           key: headers
   extraEnv: []
 
   resources:
@@ -117,6 +126,15 @@ healthChecks:
   #   extraEnv:
   #     - name: OTEL_EXPORTER_OTLP_ENDPOINT
   #       value: "http://otel-collector:4318"
+  #     - name: OTEL_EXPORTER_OTLP_LOGS_ENDPOINT
+  #       value: "https://otel.example.com/v1/platform/logs"
+  #     - name: OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+  #       value: "https://otel.example.com/v1/platform/metrics"
+  #     - name: OTEL_EXPORTER_OTLP_LOGS_HEADERS
+  #       valueFrom:
+  #         secretKeyRef:
+  #           name: otel-credentials
+  #           key: headers
   extraEnv: []
   # Prometheus metrics
   prometheus:
