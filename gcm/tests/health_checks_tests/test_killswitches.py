@@ -36,6 +36,7 @@ def _write_to_file(path: Path, data: str) -> Path:
     [
         "check-process check-zombie",
         "cuda memtest",
+        "check-pantheon",
         "check-syslogs link-flaps",
         "check-syslogs xid",
         "check-syslogs io-errors",
@@ -91,6 +92,7 @@ def test_killswitches(
         """
         [HealthChecksFeatures]
         disable_cuda_memtest = true
+        disable_check_pantheon = true
         disable_check_zombie = true
         disable_link_flap = true
         disable_xid_errors = true

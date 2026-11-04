@@ -4,6 +4,7 @@ from enum import Enum
 
 
 class HealthCheckName(Enum):
+    CHECK_PANTHEON = "check pantheon"
     CHECK_SSH_CERTS = "check ssh certs"
     CUDA_MEMTEST = "cuda memtest"
     CHECK_ZOMBIE = "check zombie"

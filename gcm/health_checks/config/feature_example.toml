@@ -2,6 +2,7 @@
 # All rights reserved.
 [HealthChecksFeatures]
 disable_cuda_memtest = true
+disable_check_pantheon = true
 disable_check_zombie = true
 disable_check_dstate = true
 disable_link_flap = true
