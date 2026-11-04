@@ -34,6 +34,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       priorityClassName: system-node-critical
+      runtimeClassName: {{ .Values.healthChecks.runtimeClassName }}
       terminationGracePeriodSeconds: 30
       hostNetwork: true
       hostPID: true
