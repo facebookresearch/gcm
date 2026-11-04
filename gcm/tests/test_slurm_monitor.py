@@ -34,6 +34,7 @@ from gcm.monitoring.slurm.sinfo import (
     compute_total_allocated_cpus_gpus,
     compute_total_cpus_gpus,
     compute_wait_time_distribution,
+    count_gres_parse_error_nodes,
 )
 from gcm.schemas.slurm.sacct import SacctMetrics
 from gcm.schemas.slurm.sdiag import Sdiag
@@ -5706,3 +5707,223 @@ class TestSdiagLogTaskRegistration:
         # The SLURMLog METRIC task and the sdiag LOG task are both present.
         assert DataType.METRIC in types
         assert DataType.LOG in types
+
+
+@typechecked
+def test_compute_total_allocated_cpus_gpus_skips_unparseable_gres(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """One node with an unparseable GRES must not break the cluster totals."""
+    sinfo = Sinfo(
+        nodes=[
+            SinfoNode(
+                name="good",
+                state="allocated",
+                alloc_cpus=10,
+                gres_used="gpu:volta:2(IDX:0-1)",
+                gres="gpu:volta:8(S:0-1)",
+                total_cpus=80,
+                partition=TEST_PARTITION,
+            ),
+            SinfoNode(
+                name="bad",
+                state="allocated",
+                alloc_cpus=20,
+                gres_used="gpu:",
+                gres="gpu:volta:8(S:0-1)",
+                total_cpus=80,
+                partition=TEST_PARTITION,
+            ),
+        ]
+    )
+    with caplog.at_level(logging.ERROR):
+        cpus, gpus, nodes = compute_total_allocated_cpus_gpus(sinfo)
+
+    assert (cpus, gpus, nodes) == (30, 2, 2)
+    assert "bad" in caplog.text and "'gpu:'" in caplog.text
+
+
+@typechecked
+def test_compute_total_cpus_gpus_skips_unparseable_gres(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """One node with an unparseable GRES must not blank every cluster total."""
+    sinfo = Sinfo(
+        nodes=[
+            SinfoNode(
+                name="good",
+                state="idle",
+                alloc_cpus=0,
+                gres_used="gpu:volta:0(IDX:N/A)",
+                gres="gpu:volta:8(S:0-1)",
+                total_cpus=80,
+                partition=TEST_PARTITION,
+            ),
+            SinfoNode(
+                name="bad",
+                state="idle",
+                alloc_cpus=0,
+                gres_used="gpu:volta:0(IDX:N/A)",
+                gres="gpu:",
+                total_cpus=80,
+                partition=TEST_PARTITION,
+            ),
+        ]
+    )
+    with caplog.at_level(logging.ERROR):
+        result = compute_total_cpus_gpus(sinfo)
+
+    assert result == SinfoCpusGpus(
+        total_cpus_down=0,
+        total_gpus_down=0,
+        total_cpus_up=160,
+        total_gpus_up=8,
+        total_cpus_avail=160,
+        total_gpus_avail=8,
+    )
+    assert "bad" in caplog.text and "'gpu:'" in caplog.text
+
+
+@typechecked
+def test_count_gres_parse_error_nodes() -> None:
+    """Counts each node once, whether its configured or in-use GRES is bad."""
+
+    def node(name: str, gres: str, gres_used: str) -> SinfoNode:
+        return SinfoNode(
+            name=name,
+            state="allocated",
+            alloc_cpus=0,
+            gres_used=gres_used,
+            gres=gres,
+            total_cpus=80,
+            partition=TEST_PARTITION,
+        )
+
+    sinfo = Sinfo(
+        nodes=[
+            node("good", "gpu:volta:8(S:0-1)", "gpu:volta:2(IDX:0-1)"),
+            node("bad_gres", "gpu:", "gpu:volta:0(IDX:N/A)"),
+            node("bad_used", "gpu:volta:8(S:0-1)", "gpu:"),
+            node("bad_both", "gpu:", "gpu:"),
+            node("bad_both", "gpu:", "gpu:"),  # duplicate row, counted once
+        ]
+    )
+    assert count_gres_parse_error_nodes(sinfo) == 3
+
+
+def test_get_slurm_log_publishes_gres_parse_error_nodes() -> None:
+    """A node with unparseable GRES is counted in the published SLURMLog,
+    and the rest of the cluster's GPU totals are still reported."""
+    from unittest.mock import patch
+
+    start = AwareDatetime(dt.datetime(2026, 1, 1, tzinfo=UTC_TIMEZONE))
+    end = AwareDatetime(dt.datetime(2026, 1, 1, 0, 5, tzinfo=UTC_TIMEZONE))
+    sinfo = Sinfo(
+        nodes=[
+            SinfoNode(
+                name="good",
+                state="allocated",
+                alloc_cpus=10,
+                gres_used="gpu:volta:2(IDX:0-1)",
+                gres="gpu:volta:8(S:0-1)",
+                total_cpus=80,
+                partition=TEST_PARTITION,
+            ),
+            SinfoNode(
+                name="bad",
+                state="allocated",
+                alloc_cpus=10,
+                gres_used="gpu:",
+                gres="gpu:",
+                total_cpus=80,
+                partition=TEST_PARTITION,
+            ),
+        ]
+    )
+    with patch("gcm.monitoring.cli.slurm_monitor.parse_slurm_jobs", return_value=[]):
+        out = list(
+            get_slurm_log(
+                sinfo=sinfo,
+                sdiag=_make_sdiag(),
+                start_time=start,
+                end_time=end,
+                cluster="test",
+                derived_cluster="test",
+                logger=logging.getLogger("test"),
+            )
+        )
+
+    slurm_log = out[-1]
+    assert isinstance(slurm_log, SLURMLog)
+    assert slurm_log.gres_parse_error_nodes == 1
+    assert slurm_log.total_gpus_avail == 8
+    assert slurm_log.total_gpus_alloc == 2
+
+
+@typechecked
+def test_compute_node_states_by_type_classifies_unparseable_gres() -> None:
+    """A node whose GRES can't be parsed is still classified, by its gpu: entry."""
+
+    def node(name: str, gres: str) -> SinfoNode:
+        return SinfoNode(
+            name=name,
+            state="idle",
+            alloc_cpus=0,
+            gres_used="(null)",
+            gres=gres,
+            total_cpus=80,
+            partition=TEST_PARTITION,
+        )
+
+    states = compute_node_states_by_type(
+        Sinfo(
+            nodes=[
+                node("good_gpu", "gpu:volta:8(S:0-1)"),
+                node("bad_gpu", "gpu:"),
+                node("cpu", "(null)"),
+            ]
+        )
+    )
+    assert states["gpu"].nodes_total == 2
+    assert states["cpu"].nodes_total == 1
+
+
+@typechecked
+def test_compute_total_cpus_gpus_down_node_unparseable_gres(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A down node with unparseable GRES still counts its CPUs as down, with 0 GPUs."""
+    sinfo = Sinfo(
+        nodes=[
+            SinfoNode(
+                name="good",
+                state="idle",
+                alloc_cpus=0,
+                gres_used="gpu:volta:0(IDX:N/A)",
+                gres="gpu:volta:8(S:0-1)",
+                total_cpus=80,
+                partition=TEST_PARTITION,
+            ),
+            SinfoNode(
+                name="bad_down",
+                state="down",
+                alloc_cpus=0,
+                gres_used="gpu:volta:0(IDX:N/A)",
+                gres="gpu:",
+                total_cpus=64,
+                partition=TEST_PARTITION,
+            ),
+        ]
+    )
+    with caplog.at_level(logging.ERROR):
+        result = compute_total_cpus_gpus(sinfo)
+
+    assert result == SinfoCpusGpus(
+        total_cpus_down=64,
+        total_gpus_down=0,
+        total_cpus_up=80,
+        total_gpus_up=8,
+        total_cpus_avail=144,
+        total_gpus_avail=8,
+    )
+    assert "bad_down" in caplog.text

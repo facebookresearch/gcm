@@ -55,3 +55,4 @@ class SLURMLog(SinfoCpusGpus, SinfoNodeStates, Sdiag, DerivedCluster):
     total_down_nodes: Optional[int]
     total_gpus_alloc: int
     total_nodes_alloc: int
+    gres_parse_error_nodes: Optional[int] = None

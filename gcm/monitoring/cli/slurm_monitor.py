@@ -69,6 +69,7 @@ from gcm.monitoring.slurm.sinfo import (
     compute_total_allocated_cpus_gpus,
     compute_total_cpus_gpus,
     compute_wait_time_distribution,
+    count_gres_parse_error_nodes,
 )
 from gcm.monitoring.utils.monitor import run_data_collection_loop
 from gcm.schemas.slurm.sdiag import Sdiag
@@ -122,6 +123,7 @@ def get_slurm_log(
     total_down_nodes = compute_down_nodes(sinfo)
     node_states = compute_node_states(sinfo)
     total_cpus_gpus = compute_total_cpus_gpus(sinfo)
+    gres_parse_error_nodes = count_gres_parse_error_nodes(sinfo)
     if not total_cpus_gpus:
         total_cpus_gpus = SinfoCpusGpus(
             total_cpus_avail=None,
@@ -235,6 +237,7 @@ def get_slurm_log(
         "total_cpus_alloc": total_cpus_alloc,
         "total_gpus_alloc": total_gpus_alloc,
         "total_nodes_alloc": total_nodes_alloc,
+        "gres_parse_error_nodes": gres_parse_error_nodes,
         "total_down_nodes": total_down_nodes,
         **asdict(total_cpus_gpus),
         **asdict(node_states),

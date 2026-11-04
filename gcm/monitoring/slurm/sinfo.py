@@ -328,8 +328,15 @@ def compute_total_cpus_gpus(sinfo: Sinfo) -> SinfoCpusGpus:
     unique_nodes = {node.name: node for node in sinfo.nodes}
 
     for node in unique_nodes.values():
-        # Correctly format the values.
-        total_gpus = extract_gpus_from_gres(node.gres)
+        # Skip only this node's GPUs if its GRES can't be parsed; its CPUs
+        # still count and the rest of the cluster is unaffected.
+        try:
+            total_gpus = extract_gpus_from_gres(node.gres)
+        except ValueError:
+            logger.error(
+                f"Failed to parse GRES for node {node.name}: {node.gres!r}; skipping its GPUs"
+            )
+            total_gpus = 0
 
         # Compute the available cpus & gpus.
         if any(node.state.startswith(s) for s in NODE_DOWN_STATES):
@@ -363,10 +370,33 @@ def compute_total_allocated_cpus_gpus(sinfo: Sinfo) -> tuple[int, int, int]:
         # https://slurm.schedmd.com/sinfo.html#SECTION_NODE-STATE-CODES
         if any(node.state.startswith(s) for s in NODE_RUNNING_JOB_STATES):
             alloc_cpus += node.alloc_cpus
-            alloc_gpus += parse_gres(node.gres_used)
+            try:
+                alloc_gpus += parse_gres(node.gres_used)
+            except ValueError:
+                logger.error(
+                    f"Failed to parse GRES used for node {node.name}: "
+                    f"{node.gres_used!r}; skipping its GPUs"
+                )
             alloc_nodes += 1
 
     return alloc_cpus, alloc_gpus, alloc_nodes
+
+
+def count_gres_parse_error_nodes(sinfo: Sinfo) -> int:
+    """Count unique nodes whose configured or in-use GRES cannot be parsed.
+
+    The per-node guards in `compute_total_cpus_gpus` and
+    `compute_total_allocated_cpus_gpus` log each failure; this only counts.
+    """
+    unique_nodes = {node.name: node for node in sinfo.nodes}
+    bad_nodes = 0
+    for node in unique_nodes.values():
+        try:
+            extract_gpus_from_gres(node.gres)
+            parse_gres(node.gres_used)
+        except ValueError:
+            bad_nodes += 1
+    return bad_nodes
 
 
 def compute_node_states(sinfo: Sinfo) -> SinfoNodeStates:
@@ -438,8 +468,13 @@ def compute_node_states_by_type(sinfo: Sinfo) -> dict[str, SinfoNodeStates]:
     """
     nodes_by_type: DefaultDict[str, list[SinfoNode]] = defaultdict(list)
     for node in sinfo.nodes:
-        node_type = "gpu" if extract_gpus_from_gres(node.gres) > 0 else "cpu"
-        nodes_by_type[node_type].append(node)
+        try:
+            is_gpu = extract_gpus_from_gres(node.gres) > 0
+        except ValueError:
+            # Unparseable GRES (logged by the total-compute guards): still
+            # classify the node, by whether it declares a GPU resource at all.
+            is_gpu = any(g.startswith("gpu:") for g in node.gres.split(","))
+        nodes_by_type["gpu" if is_gpu else "cpu"].append(node)
     return {
         node_type: compute_node_states(Sinfo(nodes=nodes))
         for node_type, nodes in nodes_by_type.items()

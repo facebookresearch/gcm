@@ -211,6 +211,24 @@ def parse_gres(v: str) -> int:
         raise ValueError(f"Failed to parse {v}") from e
 
 
+def maybe_parse_gres(v: str) -> int | None:
+    """Like `parse_gres`, but log and return None for strings it cannot parse.
+
+    None (rather than 0) keeps an unparseable GRES distinguishable from a node
+    with no GPUs.
+
+    >>> maybe_parse_gres('gpu:volta:8(S:0-1)')
+    8
+    >>> maybe_parse_gres('gpu:') is None
+    True
+    """
+    try:
+        return parse_gres(v)
+    except ValueError:
+        logger.error(f"Failed to parse GRES value: {v!r}")
+        return None
+
+
 def parse_tres(v: str) -> int:
     """Parse a TRES string of the form 'gpu:<number>'."""
     if v in {"N/A", "(null)"}:

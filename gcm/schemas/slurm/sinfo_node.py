@@ -3,12 +3,12 @@
 from dataclasses import dataclass
 
 from gcm.monitoring.slurm.parsing import (
+    maybe_parse_gres,
     maybe_parse_memory_to_bytes,
     parse_cpus_alloc,
     parse_cpus_idle,
     parse_cpus_other,
     parse_cpus_total,
-    parse_gres,
 )
 from gcm.schemas.dataclass import parsed_field
 from gcm.schemas.slurm.derived_cluster import DerivedCluster
@@ -40,7 +40,7 @@ class NodeData(DerivedCluster):
     CPUS_TOTAL: int = parsed_field(parser=parse_cpus_total, field_name="CPUS(A/I/O/T)")
     FREE_MEM: int | None = parsed_field(parser=maybe_parse_memory_to_bytes)
     MEMORY: int | None = parsed_field(parser=maybe_parse_memory_to_bytes)
-    NUM_GPUS: int = parsed_field(parser=parse_gres, field_name="GRES")
+    NUM_GPUS: int | None = parsed_field(parser=maybe_parse_gres, field_name="GRES")
     USER: str = parsed_field(parser=str)
     REASON: str = parsed_field(parser=str)
     TIMESTAMP: str = parsed_field(parser=str)

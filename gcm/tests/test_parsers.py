@@ -2,11 +2,13 @@
 # All rights reserved.
 """Tests for parsers"""
 
+import logging
 import unittest
 from typing import Type
 
 import pytest
 
+from gcm.monitoring.dataclass_utils import instantiate_dataclass
 from gcm.monitoring.slurm.nodelist_parsers import (
     node_range_expression,
     nodelist,
@@ -14,6 +16,7 @@ from gcm.monitoring.slurm.nodelist_parsers import (
     range_expression_element,
 )
 from gcm.monitoring.slurm.parsing import (
+    maybe_parse_gres,
     maybe_parse_memory_to_bytes,
     mb_to_bytes,
     parse_gres,
@@ -31,6 +34,7 @@ from gcm.monitoring.utils.parsing.combinators import (
     first_of,
     ParseResult,
 )
+from gcm.schemas.slurm.sinfo_node import NodeData
 from typeguard import typechecked
 
 
@@ -520,6 +524,42 @@ class TestSLURMParsing:
     def test_parse_gres_throws(s: str, expected_exc: Type[BaseException]) -> None:
         with pytest.raises(expected_exc):
             parse_gres(s)
+
+    @staticmethod
+    @pytest.mark.parametrize(
+        "s, expected",
+        [
+            ("gpu:volta:8(S:0-1)", 8),
+            ("gpu:8", 8),
+            ("(null)", 0),
+            ("gpu:", None),
+            ("", None),
+            ("laser:1", None),
+            pytest.param("gpu::8", None, id="double colon"),
+        ],
+    )
+    @typechecked
+    def test_maybe_parse_gres(s: str, expected: int | None) -> None:
+        assert maybe_parse_gres(s) == expected
+
+    @staticmethod
+    def test_maybe_parse_gres_logs_unparseable(
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        with caplog.at_level(logging.ERROR):
+            assert maybe_parse_gres("gpu:") is None
+        assert "Failed to parse GRES value: 'gpu:'" in caplog.text
+
+    @staticmethod
+    def test_node_data_unparseable_gres_keeps_row() -> None:
+        node = instantiate_dataclass(
+            NodeData,
+            {"NODELIST": "node1", "GRES": "gpu:", "STATE": "idle"},
+            logger=logging.getLogger(__name__),
+        )
+        assert node.NUM_GPUS is None
+        assert node.NODE_NAME == "node1"
+        assert node.STATE == "idle"
 
     @staticmethod
     @pytest.mark.parametrize("s, expected", [("gpu:2", 2), ("gpu:8", 8), ("N/A", 0)])
