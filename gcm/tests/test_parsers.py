@@ -6,7 +6,6 @@ import unittest
 from typing import Type
 
 import pytest
-
 from gcm.monitoring.slurm.nodelist_parsers import (
     node_range_expression,
     nodelist,
@@ -495,6 +494,48 @@ class TestSLURMParsing:
             ("N/A", 0),
             ("gpu:8", 8),
             ("(null)", 0),
+            # Common NVIDIA and AMD type names
+            ("gpu:v100:8(S:0-1)", 8),
+            ("gpu:t4:4", 4),
+            ("gpu:a10:1", 1),
+            ("gpu:a40:4(S:0)", 4),
+            ("gpu:a100:8(S:0-1)", 8),
+            ("gpu:l4:8", 8),
+            ("gpu:l40:8(S:0-1)", 8),
+            ("gpu:l40s:4(S:0-1)", 4),
+            ("gpu:h100:8(S:0-1)", 8),
+            ("gpu:h200:8(S:0-1)", 8),
+            ("gpu:h200:7(S:0-1)", 7),
+            ("gpu:b200:8(S:0-1)", 8),
+            ("gpu:gb200:4(S:0-1)", 4),
+            ("gpu:gb300:4(S:0-1)", 4),
+            ("gpu:rtx_a6000:4", 4),
+            ("gpu:rtx_pro_4500_blackwell_server_edition:8(S:0-1)", 8),
+            ("gpu:mi250x:8(S:0-3)", 8),
+            ("gpu:mi300x:8(S:0-1)", 8),
+            # NVML autodetect style names
+            ("gpu:nvidia_h100_80gb_hbm3:8(S:0-1)", 8),
+            ("gpu:nvidia_a100-sxm4-80gb:8(S:0-1)", 8),
+            ("gpu:tesla_v100-sxm2-32gb:8", 8),
+            # In-use GRES (IDX form)
+            ("gpu:h100:8(IDX:0-7)", 8),
+            ("gpu:h200:0(IDX:N/A)", 0),
+            ("gpu:a100:1(IDX:7)", 1),
+            ("gpu:h200:6(IDX:0-2,4,6-7)", 6),
+            ("gpu:gb200:2(IDX:0,3)", 2),
+            ("gpu:rtx_pro_4500_blackwell_server_edition:8(IDX:0-7)", 8),
+            # Prefixes
+            ("gres:gpu:h200:8(S:0-1)", 8),
+            ("gres/gpu:h100:8", 8),
+            # Two-digit counts
+            ("gpu:h100:16(S:0-3)", 16),
+            ("gpu:mi250x:16(IDX:0-15)", 16),
+            # MIG profiles (contain '.')
+            ("gpu:1g.10gb:2", 2),
+            ("gpu:3g.40gb:1(IDX:0)", 1),
+            ("gpu:a100_1g.5gb:7", 7),
+            # Hyphenated type
+            ("gpu:a100-sxm4-80gb:8", 8),
         ],
     )
     @typechecked
@@ -514,6 +555,9 @@ class TestSLURMParsing:
             # XXX: set test id manually because the default one derived from the param
             # value messes up tpx
             pytest.param("gpu::8", ValueError, id="double colon"),
+            pytest.param("gpu:volta", ValueError, id="no count"),
+            pytest.param("GPU:volta:8", ValueError, id="uppercase prefix"),
+            pytest.param("gpu:my type:4", ValueError, id="whitespace in type"),
         ],
     )
     @typechecked

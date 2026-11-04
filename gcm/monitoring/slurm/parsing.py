@@ -2,20 +2,9 @@
 # All rights reserved.
 import logging
 import re
-import string
 from datetime import timedelta
 
-from typing import cast, SupportsInt
-
 from gcm.monitoring.utils.error import log_error
-from gcm.monitoring.utils.parsing.combinators import (
-    at_least_one,
-    at_least_zero,
-    begins_with,
-    chain,
-    discard_result,
-    first_of,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -152,7 +141,11 @@ def convert_memory_to_mb(value: str) -> int:
 
 
 def parse_gres(v: str) -> int:
-    """Parse a GRES string of the form: gpu:<type>:<number>[(<stuff>)]
+    """Parse a GRES string of the form: gpu:[<type>:]<number>[(<stuff>)]
+
+    The type may contain any character except ':', '(', ')' and whitespace,
+    e.g. 'volta', 'nvidia_gb200', '1g.10gb' or
+    'rtx_pro_4500_blackwell_server_edition'.
 
     Examples:
 
@@ -160,6 +153,8 @@ def parse_gres(v: str) -> int:
     8
     >>> parse_gres('gpu:pascal:2')
     2
+    >>> parse_gres('gpu:h100:16(IDX:0-15)')
+    16
     """
     if v in {"N/A", "(null)"}:
         return 0
@@ -167,48 +162,10 @@ def parse_gres(v: str) -> int:
     v = str.removeprefix(v, "gres:")
     v = str.removeprefix(v, "gres/")
 
-    parser = chain(
-        [
-            # matches 'gpu:{volta|pascal}:'
-            discard_result(
-                chain(
-                    [
-                        begins_with("gpu:"),
-                        at_least_zero(
-                            chain(
-                                [
-                                    # GPU type, e.g. 'volta', 'H100', or
-                                    # 'nvidia_gb300'.
-                                    at_least_one(
-                                        first_of(
-                                            [
-                                                begins_with(c)
-                                                for c in string.ascii_letters
-                                                + string.digits
-                                                + "_"
-                                            ]
-                                        )
-                                    ),
-                                    begins_with(":"),
-                                ]
-                            )
-                        ),
-                    ]
-                )
-            ),
-            # the number we want to extract
-            at_least_one(first_of([begins_with(c) for c in string.digits])),
-        ]
-    )
-    result, _ = parser(v)
+    result = re.match(r"gpu:(?:[^:\s()]+:)?([0-9]+)", v)
     if result is None:
         raise ValueError(f"Failed to parse {v}")
-
-    parsed, *_ = result
-    try:
-        return int(cast(SupportsInt, parsed))
-    except TypeError as e:
-        raise ValueError(f"Failed to parse {v}") from e
+    return int(result[1])
 
 
 def parse_tres(v: str) -> int:
