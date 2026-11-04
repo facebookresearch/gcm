@@ -2,6 +2,7 @@
 # All rights reserved.
 from __future__ import annotations
 
+import json
 from dataclasses import asdict, dataclass, field
 from typing import Dict, Optional, TYPE_CHECKING
 
@@ -109,6 +110,17 @@ def test_to_scuba_message(dc: MM, expected: ScubaMessage) -> None:
     actual = to_scuba_message(dc)
 
     assert actual == expected
+
+
+@pytest.mark.parametrize("flag, expected", [(True, 1), (False, 0)])
+def test_to_scuba_message_encodes_bool_as_json_int(flag: bool, expected: int) -> None:
+    @dataclass
+    class HasBool:
+        flag: bool
+
+    actual = to_scuba_message(HasBool(flag=flag))
+
+    assert json.dumps(actual.int) == json.dumps({"flag": expected})
 
 
 def test_to_scuba_message_throws_on_dict_non_string_keys() -> None:

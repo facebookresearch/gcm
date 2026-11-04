@@ -62,7 +62,9 @@ def to_scuba_message(dc: DataclassInstance) -> ScubaMessage:
                 return
 
             if issubclass(ty, int):
-                scuba_message.int[name] = value
+                # bool is an int subclass; JSON `true` in the int section fails
+                # Graph API Scuba JSON validation and the whole row is dropped.
+                scuba_message.int[name] = int(value)
                 return
 
             if issubclass(ty, float):
