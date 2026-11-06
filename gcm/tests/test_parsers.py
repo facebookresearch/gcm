@@ -15,6 +15,7 @@ from gcm.monitoring.slurm.nodelist_parsers import (
 )
 from gcm.monitoring.slurm.parsing import (
     maybe_parse_memory_to_bytes,
+    maybe_parse_str,
     mb_to_bytes,
     parse_gres,
     parse_gres_gpu_indices,
@@ -644,6 +645,20 @@ def test_parse_memory_to_bytes(value: str, expected: int) -> None:
 )
 def test_maybe_parse_memory_to_bytes(value: str, expected: int | None) -> None:
     assert maybe_parse_memory_to_bytes(value) == expected
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("25.05.3", "25.05.3"),
+        ("25.11.8 ", "25.11.8"),
+        ("N/A", None),
+        ("(null)", None),
+        ("", None),
+    ],
+)
+def test_maybe_parse_str(value: str, expected: str | None) -> None:
+    assert maybe_parse_str(value) == expected
 
 
 @pytest.mark.parametrize(

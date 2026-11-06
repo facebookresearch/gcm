@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 from gcm.monitoring.slurm.parsing import (
     maybe_parse_memory_to_bytes,
+    maybe_parse_str,
     parse_cpus_alloc,
     parse_cpus_idle,
     parse_cpus_other,
@@ -47,3 +48,5 @@ class NodeData(DerivedCluster):
     ACTIVE_FEATURES: str = parsed_field(parser=str)
     STATE: str = parsed_field(parser=str)
     RESERVATION: str = parsed_field(parser=str)
+    # slurmd version as registered with slurmctld; None until the node registers.
+    VERSION: str | None = parsed_field(parser=maybe_parse_str)

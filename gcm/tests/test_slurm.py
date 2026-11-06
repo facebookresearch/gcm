@@ -8,13 +8,14 @@ from importlib import resources
 from unittest.mock import create_autospec, MagicMock, patch
 
 import pytest
+from gcm.monitoring.cli.slurm_job_monitor import as_messages
 from gcm.monitoring.clock import time_to_time_aware
 from gcm.monitoring.slurm.client import SlurmCliClient
 
 from gcm.monitoring.slurm.derived_cluster import get_derived_cluster
 
 from gcm.schemas.slurm.sinfo import Sinfo
-from gcm.schemas.slurm.sinfo_node import SinfoNode
+from gcm.schemas.slurm.sinfo_node import NodeData, SinfoNode
 from gcm.schemas.slurm.squeue import _truncated_nodelist, JobData
 from gcm.tests import data
 
@@ -690,3 +691,26 @@ class TestTruncatedNodelist:
         """Empty/unparseable nodelists return None."""
         result = _truncated_nodelist("")
         assert result is None
+
+
+def test_node_data_parses_slurmd_version() -> None:
+    with resources.path(data, "sample-sinfo-output.txt") as p:
+        lines = p.read_text().splitlines()
+    nodes = list(
+        as_messages(
+            schema=NodeData,
+            delimiter="|",
+            lines=lines,
+            derived_cluster_fetcher=partial(
+                get_derived_cluster, cluster="test", heterogeneous_cluster_v1=False
+            ),
+            logger=logging.getLogger(),
+            attributes={"cluster": "test", "collection_unixtime": 0},
+        )
+    )
+    assert [(n.NODE_NAME, n.VERSION) for n in nodes] == [
+        ("node0201", None),
+        ("node0201", None),
+        ("node1537", "20.11.8"),
+        ("node4180", "20.11.8"),
+    ]
