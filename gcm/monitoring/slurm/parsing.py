@@ -120,6 +120,14 @@ def maybe_parse_memory_to_bytes(v: str) -> int | None:
         return None
 
 
+def maybe_parse_str(v: str) -> str | None:
+    """Return the stripped value, or None for Slurm null values (N/A, (null), empty)."""
+    v = v.strip()
+    if not v or v in {"N/A", "(null)"}:
+        return None
+    return v
+
+
 def convert_memory_to_mb(value: str) -> int:
     """Helper function to convert memory values with units to MB.
 
